@@ -7,7 +7,7 @@ name = "dgl_chem"
 version = "0.0.1"
 description = "An implementation of D-MPNN, MegNET and AGC."
 authors = [
-  { name = "aerte", email = "your@email.com" },
+  { name = "aerte", email = "aertebjerg.felix@gmail.com" },
 ]
 license = { file = "LICENSE" }
 readme = "README.md"
