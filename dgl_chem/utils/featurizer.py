@@ -11,21 +11,6 @@ import dgl.backend as F
 from rdkit import Chem, RDConfig
 from rdkit.Chem import AllChem, ChemicalFeatures
 
-allowable_set_symbols = ['B', 'C', 'N', 'O', 'F', 'Si', 'P', 'S',
-                    'Cl', 'As', 'Se', 'Br', 'Te', 'I', 'At']
-
-atom_feature_list = ['atom_type_one_hot','atom_degree_one_hot','atom_formal_charge',
-                'atom_num_radical_electrons', 'atom_hybridization_one_hot',
-                'atom_is_aromatic',
-                'atom_total_num_H_one_hot',
-                'atom_is_chiral_center',
-                'atom_chirality_type_one_hot',
-                'atom_fun_lol']
-
-bond_feats = ['bond_type_one_hot',
-              'bond_is_conjugated',
-              'bond_is_in_ring',
-              'bond_stereo_one_hot']
 
 def one_hot_encoding(x, allowable_set, encode_unknown=False):
     """One-hot encoding.
@@ -753,10 +738,12 @@ class AtomFeaturizer(BaseAtomFeaturizer):
     atom_data_field : str
         Name for storing atom features in DGLGraphs, default to 'h'.
     """
-    def __init__(self, atom_data_field='h'):
+    def __init__(self, atom_data_field='h', allowed_atoms = None, atom_feature_list = None):
         ### Dictionary for all features
+        self.allowable_set_symbols = allowed_atoms
+
         total_atom_feat = {
-        'atom_type_one_hot': partial(atom_type_one_hot, allowable_set = allowable_set_symbols, encode_unknown=True),
+        'atom_type_one_hot': partial(atom_type_one_hot, allowable_set = self.allowable_set_symbols, encode_unknown=True),
         'atomic_number_one_hot': atomic_number_one_hot,
         'atomic_number': atomic_number,
         'atom_degree_one_hot': partial(atom_degree_one_hot, allowable_set = list(range(6))),
@@ -1095,7 +1082,7 @@ class BondFeaturizer(BaseBondFeaturizer):
         column of binary values to indicate the identity of self loops. The feature of the
         self loops will be zero except for the additional column.
     """
-    def __init__(self, bond_data_field='e', self_loop=False):
+    def __init__(self, bond_data_field='e', self_loop=False, bond_feature_list=None):
 
         total_bond_feats = {
             'bond_type_one_hot': bond_type_one_hot,
@@ -1111,7 +1098,7 @@ class BondFeaturizer(BaseBondFeaturizer):
         }
 
         feat_set = []
-        for item in bond_feats:
+        for item in bond_feature_list:
             if item in total_bond_feats:
                 feat_set.append(total_bond_feats[item])
             else:
