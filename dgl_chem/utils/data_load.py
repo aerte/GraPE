@@ -1,29 +1,36 @@
 import pandas as pd
+from rdkit import Chem
 import re
 
 def filter_smiles(smiles, allowed_set = None):
 
-    # Should probably be importing the allowed set from somewhere
     if allowed_set is None:
         allowed_set = ['C','O']
 
-    df = pd.DataFrame(smiles)
+    df = pd.DataFrame(smiles, columns=['smiles'])
+    indices_to_drop = []
 
-    list_elements = []
+    for element in smiles:
+        mol = Chem.MolFromSmiles(element)
 
-    for mol in df.smiles:
-        al = re.findall('[A-Z][a-z]?', mol)
-        for a in range(len(al)):
-            al[a] = re.sub('[A-Z]c', '', al[a])
-            al[a] = re.sub('[A-Z]n', '', al[a])
-            if not al[a] in list_elements and not al[a] == '':
-                list_elements.append(al[a])
+        if mol is None:
+            print(f'SMILES {element} in index {list(df.smiles).index(element)} is not valid.')
+            indices_to_drop.append(list(df.smiles).index(element))
 
-    print(list_elements)
+        else:
+            if mol.GetNumHeavyAtoms() < 2:
+                print(f'SMILES {element} in index {list(df.smiles).index(element)} consists of less than 2 heavy atoms'
+                      f' and will be ignored.')
+                indices_to_drop.append(list(df.smiles).index(element))
 
-    for element in list_elements:
-        if element not in allowed_set:
-            df.drop(df[df.smiles.str.contains(element)].index, inplace=True)
-            df.reset_index(drop=True, inplace=True)
+            else:
+                for atoms in mol.GetAtoms():
+                    if atoms.GetSymbol() not in allowed_set:
+                        print(f'SMILES {element} in index {list(df.smiles).index(element)} contains the atom {atoms.GetSymbol()} that is not'
+                              f' permitted and will be ignored.')
+                        indices_to_drop.append(list(df.smiles).index(element))
 
-    return df
+    df.drop(indices_to_drop, inplace=True)
+    df.reset_index(drop=True, inplace=True)
+
+    return df.to_numpy()
