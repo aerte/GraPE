@@ -4,9 +4,22 @@ from rdkit import Chem
 __all__ = ['filter_smiles']
 
 def filter_smiles(smiles, allowed_set = None):
+    ''' Filters a list of smiles.
+
+    Args:
+        smiles: list of str
+            Smiles to be filtered.
+        allowed_set: list of str
+            Atom types that are allowed. Default: [``B``, ``C``, ``N``, ``O``,
+            ``F``, ``Si``, ``P``, ``S``, ``Cl``, ``As``, ``Se``, ``Br``, ``Te``, ``I``, ``At``]
+
+    Returns: list[str]
+
+    '''
 
     if allowed_set is None:
-        allowed_set = ['C','O']
+        allowed_set = ['B', 'C', 'N', 'O','F', 'Si', 'P',
+                       'S', 'Cl', 'As', 'Se', 'Br', 'Te', 'I', 'At']
 
     df = pd.DataFrame(smiles, columns=['smiles'])
     indices_to_drop = []

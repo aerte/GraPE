@@ -752,25 +752,62 @@ class BaseAtomFeaturizer(object):
         return processed_features
 
 class AtomFeaturizer(BaseAtomFeaturizer):
-    """An atom featurizer
+    """An atom featurizer based on a flexible input list.
 
-    The atom features include:
+    The possible features include:
 
-    * **One hot encoding of the atom type**. The supported atom types include
-      ``B``, ``C``, ``N``, ``O``, ``F``, ``Si``, ``P``, ``S``, ``Cl``, ``As``,
-      ``Se``, ``Br``, ``Te``, ``I``, ``At``, and ``other``.
-    * **One hot encoding of the atom degree**. The supported possibilities
-      include ``0 - 5``.
-    * **Formal charge of the atom**.
-    * **Number of radical electrons of the atom**.
-    * **One hot encoding of the atom hybridization**. The supported possibilities include
-      ``SP``, ``SP2``, ``SP3``, ``SP3D``, ``SP3D2``, and ``other``.
-    * **Whether the atom is aromatic**.
-    * **One hot encoding of the number of total Hs on the atom**. The supported possibilities
-      include ``0 - 4``.
-    * **Whether the atom is chiral center**
-    * **One hot encoding of the atom chirality type**. The supported possibilities include
-      ``R``, and ``S``.
+    * **One hot encoding of atoms types.**
+      ---> *['atom_type_one_hot']*: based on a list of allowed atoms.
+    * **One hot encoding of atomic numbers.**
+      ---> *['atomic_number_one_hot']*
+    * **Atomic number of atoms.**
+      ---> *['atomic_number']*
+    * **One hot encoding of atom degree.**
+      ---> *['atom_degree_one_hot']*
+    * **Atom degree.**
+      ---> *['atom_degree']*
+    * **One hot encoding of atom degree (including H).**
+      ---> *['atom_total_degree_one_hot']*
+    * **Atom degree (including H).**
+      ---> *['atom_total_degree']*
+    * **One hot encoding of the atom valence (explicit/including H).**
+      ---> *['atom_explicit_valence_one_hot']*
+    * **Atom valence (explicit/including H).**
+      ---> *['atom_explicit_valence']*
+    * **One hot encoding of the atom valence (implicit).**
+      ---> *['atom_implicit_valence_one_hot']*
+    * **Atom valence (implicit).**
+      ---> *['atom_implicit_valence']*
+    * **One hot encoding of the atom hybridization.**
+      ---> *['atom_hybridization_one_hot']*
+    * **One hot encoding of the total number of H.**
+      ---> *['atom_total_num_H_one_hot']*
+    * **Number of H.**
+      ---> *['atom_total_num_H']*
+    * **One hot encoding og the atom formal charge.**
+      ---> *['atom_formal_charge_one_hot']*
+    * **Formal charge.**
+      ---> *['atom_formal_charge']*
+    * **One hot encoding of the number of radical electrons of an atom.**
+      ---> *['atom_num_radical_electrons_one_hot']*
+    * **Number of radical electrons of an atom.**
+      ---> *['atom_num_radical_electrons']*
+    * **One hot encoding whether an atom is aromatic.**
+      ---> *['atom_is_aromatic_one_hot']*
+    * **If an atom is aromatic (True/False).**
+      ---> *['atom_is_aromatic']*
+    * **One hot encoding whether an atom is in a ring.**
+      ---> *['atom_is_in_ring_one_hot']*
+    * **If an atom is in a ring (True/False).**
+      ---> *['atom_is_in_ring']*
+    * **One hot encoding of an atoms chiral tag.**
+      ---> *['atom_chiral_tag_one_hot']*
+    * **Atomic mass.**
+      ---> *['atom_mass']*
+    * **If an atom is a chiral center (True/False).**
+      ---> *['atom_is_chiral_center']*
+
+    **The list argument order defines the feature order.
 
     **We assume the resulting DGLGraph will not contain any virtual nodes.**
 
@@ -778,11 +815,29 @@ class AtomFeaturizer(BaseAtomFeaturizer):
     ----------
     atom_data_field : str
         Name for storing atom features in DGLGraphs, default to 'h'.
+    allowed_atoms : list of str
+        List of allowed atoms symbols. Default: [``B``, ``C``, ``N``, ``O``,
+        ``F``, ``Si``, ``P``, ``S``, ``Cl``, ``As``, ``Se``, ``Br``, ``Te``, ``I``, ``At``,``other``]
+    atom_feature_list: list of str
+        List of features to be applied. Default are the AFP atom features:
+            atom_feature_list =
+                ['atom_type_one_hot','atom_degree_one_hot','atom_formal_charge',
+                'atom_num_radical_electrons',
+                'atom_hybridization_one_hot',
+                'atom_is_aromatic',
+                'atom_total_num_H_one_hot',
+                'atom_is_chiral_center',
+                'atom_chirality_type_one_hot']
+
     """
     def __init__(self, atom_data_field='h', allowed_atoms = None, atom_feature_list = None):
-        ### Dictionary for all features
+
+        if allowed_atoms is None:
+            allowed_atoms = ['B', 'C', 'N', 'O', 'F', 'Si', 'P',
+                           'S', 'Cl', 'As', 'Se', 'Br', 'Te', 'I', 'At']
         self.allowable_set_symbols = allowed_atoms
 
+        ### Dictionary for all features
         total_atom_feat = {
         'atom_type_one_hot': partial(atom_type_one_hot, allowable_set = self.allowable_set_symbols, encode_unknown=True),
         'atomic_number_one_hot': atomic_number_one_hot,
@@ -1101,15 +1156,26 @@ class BaseBondFeaturizer(object):
 
 
 class BondFeaturizer(BaseBondFeaturizer):
-    """A bond featurizer
+    """A bond featurizer based on a flexible input list.
 
-    The bond features include:
-    * **One hot encoding of the bond type**. The supported bond types include
-      ``SINGLE``, ``DOUBLE``, ``TRIPLE``, ``AROMATIC``.
-    * **Whether the bond is conjugated.**.
-    * **Whether the bond is in a ring of any size.**
-    * **One hot encoding of the stereo configuration of a bond**. The supported bond stereo
-      configurations include ``STEREONONE``, ``STEREOANY``, ``STEREOZ``, ``STEREOE``.
+    All possible bond features are:
+
+    * **One hot encoding of the bond type.**:
+      ---> *['bond_type_one_hot']*
+    * **One hot encoding if bond is conjugated (true/false).**:
+      ---> *['bond_is_conjugated_one_hot']*
+    * **Bond conjugation (true/false).**:
+      ---> *['bond_is_conjugated']*
+    * **One hot encoding if bond is in a ring**:
+      ---> *['bond_is_in_ring_one_hot']*
+    * **Bond in a ring (true/false)**:
+      ---> *['bond_is_in_ring']*
+    * **One hot encoding of bond stereo configuration.**:
+      ---> *['bond_stereo_one_hot']*
+    * **One hot encoding of bond direction.**:
+      ---> *['bond_direction_one_hot']*
+
+    **The input feature list determines the order of the features.**
 
     **We assume the resulting DGLGraph will be created with :func:`smiles_to_bigraph` without
     self loops.**
@@ -1122,6 +1188,12 @@ class BondFeaturizer(BaseBondFeaturizer):
         Whether self loops will be added. Default to False. If True, it will use an additional
         column of binary values to indicate the identity of self loops. The feature of the
         self loops will be zero except for the additional column.
+    bond_feature_list: list of str
+        List of features that will be applied. Default are the AFP features:
+            bond_feats = ['bond_type_one_hot',
+                          'bond_is_conjugated',
+                          'bond_is_in_ring',
+                          'bond_stereo_one_hot']
     """
     def __init__(self, bond_data_field='e', self_loop=False, bond_feature_list=None):
 
