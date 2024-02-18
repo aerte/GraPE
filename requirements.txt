@@ -7,3 +7,5 @@ numpy
 pyarrow
 openpyxl
 dgllife
+sphinx_gallery
+sphinx_rtd_theme
