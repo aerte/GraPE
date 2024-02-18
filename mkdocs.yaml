@@ -1,0 +1,28 @@
+site_name: DGL Chem
+site_author: aerte
+docs_dir: docs/source
+
+theme:
+    language: en
+    name: material
+    features:
+    - content.code.copy
+    - content.code.annotate
+
+plugins:
+- search
+- gen-files:
+    scripts:
+    - scripts/gen_ref_pages.py
+- literate-nav:
+    nav_file: SUMMARY.md
+- section-index
+- mkdocstrings
+
+
+nav:
+  - Home: index.md
+  - Code Reference: reference/
+  - API reference:
+      - utils:
+          - filter_smiles: 'filter_smiles.md'

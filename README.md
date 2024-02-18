@@ -2,6 +2,8 @@
 
 An implementation of D-MPNN, MegNET and AGC.
 
+Documentation at: 
+
 ## Project structure
 
 The directory structure of the project looks like this:
@@ -21,6 +23,9 @@ The directory structure of the project looks like this:
 │   ├── mkdocs.yml       <- Configuration file for mkdocs
 │   │
 │   └── source/          <- Source directory for documentation files
+├── scripts                 <- Documentation folder
+│   │
+│   └── gen_ref_pages.py <- Generate documentation
 │
 ├── models               <- Trained and serialized models, model predictions, or model summaries
 │
