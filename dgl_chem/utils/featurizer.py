@@ -1197,6 +1197,12 @@ class BondFeaturizer(BaseBondFeaturizer):
     """
     def __init__(self, bond_data_field='e', self_loop=False, bond_feature_list=None):
 
+        if bond_feature_list is None:
+            bond_feature_list = ['bond_type_one_hot',
+                                 'bond_is_conjugated',
+                                 'bond_is_in_ring',
+                                 'bond_stereo_one_hot']
+
         total_bond_feats = {
             'bond_type_one_hot': bond_type_one_hot,
             'bond_is_conjugated_one_hot': bond_is_conjugated_one_hot,
