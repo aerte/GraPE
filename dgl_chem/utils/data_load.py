@@ -1,6 +1,7 @@
 import pandas as pd
 from rdkit import Chem
-import re
+
+__all__ = ['filter_smiles']
 
 def filter_smiles(smiles, allowed_set = None):
 
@@ -33,4 +34,4 @@ def filter_smiles(smiles, allowed_set = None):
     df.drop(indices_to_drop, inplace=True)
     df.reset_index(drop=True, inplace=True)
 
-    return df.to_numpy()
+    return list(df.smiles)

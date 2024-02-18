@@ -11,6 +11,47 @@ import dgl.backend as F
 from rdkit import Chem, RDConfig
 from rdkit.Chem import AllChem, ChemicalFeatures
 
+__all__ = ['one_hot_encoding',
+           'atom_type_one_hot',
+           'atomic_number_one_hot',
+           'atomic_number',
+           'atom_degree_one_hot',
+           'atom_degree',
+           'atom_total_degree_one_hot',
+           'atom_total_degree',
+           'atom_explicit_valence_one_hot',
+           'atom_explicit_valence',
+           'atom_implicit_valence_one_hot',
+           'atom_implicit_valence',
+           'atom_hybridization_one_hot',
+           'atom_total_num_H_one_hot',
+           'atom_total_num_H',
+           'atom_formal_charge_one_hot',
+           'atom_formal_charge',
+           'atom_num_radical_electrons_one_hot',
+           'atom_num_radical_electrons',
+           'atom_is_aromatic_one_hot',
+           'atom_is_aromatic',
+           'atom_is_in_ring_one_hot',
+           'atom_is_in_ring',
+           'atom_chiral_tag_one_hot',
+           'atom_chirality_type_one_hot',
+           'atom_mass',
+           'atom_is_chiral_center',
+           'ConcatFeaturizer',
+           'BaseAtomFeaturizer',
+           'AtomFeaturizer',
+           'bond_type_one_hot',
+           'bond_is_conjugated_one_hot',
+           'bond_is_conjugated',
+           'bond_is_in_ring_one_hot',
+           'bond_is_in_ring',
+           'bond_stereo_one_hot',
+           'bond_direction_one_hot',
+           'BaseBondFeaturizer',
+           'BondFeaturizer',
+           ]
+
 
 def one_hot_encoding(x, allowable_set, encode_unknown=False):
     """One-hot encoding.
