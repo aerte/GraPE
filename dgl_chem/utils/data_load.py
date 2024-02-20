@@ -6,14 +6,18 @@ __all__ = ['filter_smiles']
 def filter_smiles(smiles, allowed_set = None):
     ''' Filters a list of smiles.
 
-    Args:
-        smiles: list of str
-            Smiles to be filtered.
-        allowed_set: list of str
-            Atom types that are allowed. Default: [``B``, ``C``, ``N``, ``O``,
+    Args
+    ----------
+    smiles: list of str
+        Smiles to be filtered.
+    allowed_set: list of str
+        Valid atom symbols, non-valid symbols will be discarded. Default: [``B``, ``C``, ``N``, ``O``,
             ``F``, ``Si``, ``P``, ``S``, ``Cl``, ``As``, ``Se``, ``Br``, ``Te``, ``I``, ``At``]
 
-    Returns: list[str]
+    Returns
+    ----------
+    list[str]
+        A list of filtered smiles strings.
 
     '''
 
