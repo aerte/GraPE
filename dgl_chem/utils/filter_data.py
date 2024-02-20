@@ -3,7 +3,7 @@ from rdkit import Chem
 
 __all__ = ['filter_smiles']
 
-def filter_smiles(smiles, allowed_set = None):
+def filter_smiles(smiles, allowed_set = None, print_out = False):
     ''' Filters a list of smiles.
 
     Args
@@ -13,6 +13,8 @@ def filter_smiles(smiles, allowed_set = None):
     allowed_set: list of str
         Valid atom symbols, non-valid symbols will be discarded. Default: [``B``, ``C``, ``N``, ``O``,
             ``F``, ``Si``, ``P``, ``S``, ``Cl``, ``As``, ``Se``, ``Br``, ``Te``, ``I``, ``At``]
+    print_out: bool
+        Determines if there should be print-out statements to indicate why mols were filtered out. Default: False
 
     Returns
     ----------
@@ -32,20 +34,23 @@ def filter_smiles(smiles, allowed_set = None):
         mol = Chem.MolFromSmiles(element)
 
         if mol is None:
-            print(f'SMILES {element} in index {list(df.smiles).index(element)} is not valid.')
+            if print_out:
+                print(f'SMILES {element} in index {list(df.smiles).index(element)} is not valid.')
             indices_to_drop.append(list(df.smiles).index(element))
 
         else:
             if mol.GetNumHeavyAtoms() < 2:
-                print(f'SMILES {element} in index {list(df.smiles).index(element)} consists of less than 2 heavy atoms'
-                      f' and will be ignored.')
+                if print_out:
+                    print(f'SMILES {element} in index {list(df.smiles).index(element)} consists of less than 2 heavy atoms'
+                        f' and will be ignored.')
                 indices_to_drop.append(list(df.smiles).index(element))
 
             else:
                 for atoms in mol.GetAtoms():
                     if atoms.GetSymbol() not in allowed_set:
-                        print(f'SMILES {element} in index {list(df.smiles).index(element)} contains the atom {atoms.GetSymbol()} that is not'
-                              f' permitted and will be ignored.')
+                        if print_out:
+                            print(f'SMILES {element} in index {list(df.smiles).index(element)} contains the atom {atoms.GetSymbol()} that is not'
+                                f' permitted and will be ignored.')
                         indices_to_drop.append(list(df.smiles).index(element))
 
     df.drop(indices_to_drop, inplace=True)

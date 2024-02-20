@@ -1,4 +1,9 @@
-# This code is adapted from https://github.com/awslabs/dgl-lifesci
+# -*- coding: utf-8 -*-
+#
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+#
+# This code was adapted from https://github.com/awslabs/dgl-lifesci under the Apache-2.0 license.
 
 import itertools
 
