@@ -1,10 +1,5 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
-# SPDX-License-Identifier: Apache-2.0
-#
-# This code was adapted from https://github.com/awslabs/dgl-lifesci under the Apache-2.0 license.
-#
 # Graph constructer with input built on top of dgl-lifesci and pytorch geometric
 
 import os
@@ -21,7 +16,7 @@ from rdkit import RDLogger
 from torch_geometric.data import Dataset, Data
 from torch_geometric.utils import dense_to_sparse
 
-from dgllife.utils import splitters
+from dgllife.utils import splitters, analyze_mols
 
 
 from dglchem.utils import featurizer
@@ -34,7 +29,7 @@ __all__ = ['filter_smiles',
            'MakeGraphDataSet']
 
 def filter_smiles(smiles, target, allowed_atoms = None, print_out = False):
-    ''' Filters a list of smiles.
+    ''' Filters a list of smiles based on the allowed atom symbols.
 
     Args
     ----------
@@ -93,7 +88,7 @@ def filter_smiles(smiles, target, allowed_atoms = None, print_out = False):
 
 
 def construct_dataset(smiles, target, allowed_atoms = None, atom_feature_list = None, bond_feature_list = None):
-    """
+    """Constructs a dataset out of the smiles and target lists based on the feature lists provided.
 
     Args:
         smiles : list of str
@@ -162,6 +157,28 @@ def construct_dataset(smiles, target, allowed_atoms = None, atom_feature_list = 
     return data
 
 class DataSet(object):
+    """A class that takes a path to a pickle file or a list of smiles and targets. The data is stored in
+        Pytorch-Geometric Data instances and be accessed like an array.
+
+    Parameters
+    ----------
+    path: str
+        The path to a pickle file that should be loaded and the data therein used.
+    smiles: list of str
+        List of smiles to be made into a graph.
+    target: list of in or float
+        List of target values that will act as the graphs 'y'.
+    allowed_atoms: list of str
+        List of allowed atom symbols.
+    atom_feature_list: list of str
+        List of features to be applied. Default are the AFP atom features.
+    bond_feature_list: list of str
+        List of features that will be applied. Default are the AFP features
+    log: bool
+        Decides if the filtering output and other outputs will be shown.
+
+
+    """
     def __init__(self, path = None, smiles = None, target = None, allowed_atoms = None,
                  atom_feature_list = None, bond_feature_list = None, log = False):
 
@@ -180,6 +197,15 @@ class DataSet(object):
                                           bond_feature_list = bond_feature_list)
 
     def save(self, filename, path=None):
+        """Writes the dataset into a pickle file for easy reuse.
+
+        Args:
+            filename:
+            path:
+
+        Returns:
+
+        """
         if path is None:
             path = os.getcwd()+'/data'
         if not os.path.exists(path):
@@ -195,6 +221,7 @@ class DataSet(object):
         """
 
         Returns: int
+            Length of the dataset.
 
         """
         return len(self.data)
@@ -213,10 +240,47 @@ class DataSet(object):
 
         return self.data[item]
 
+    def analysis(self):
+        """Returns an overview of different aspects of the smiles dataset **after filtering** according to:
+        https://github.com/awslabs/dgl-lifesci/blob/master/python/dgllife/utils/analysis.py.
+        This includes the frequency of symbols, degree frequency and more.
+
+        Returns: dict
+            Dictionary with the analysis results.
+
+        """
+
+        return analyze_mols(self.smiles)
+
 
 
 
 class MakeGraphDataSet(DataSet):
+    """A class that takes a path to a pickle file or a list of smiles and targets. The data is stored in
+        Pytorch-Geometric Data instances and be accessed like an array. Additionally, it splits the data and
+        prepares the splits for training and validation. **If you do not wish to split the data immediately, please use
+        the DataSet class instead.**
+
+    Parameters
+    ----------
+    path: str
+        The path to a pickle file that should be loaded and the data therein used.
+    smiles: list of str
+        List of smiles to be made into a graph.
+    target: list of in or float
+        List of target values that will act as the graphs 'y'.
+    allowed_atoms: list of str
+        List of allowed atom symbols.
+    atom_feature_list: list of str
+        List of features to be applied. Default are the AFP atom features.
+    bond_feature_list: list of str
+        List of features that will be applied. Default are the AFP features
+    log: bool
+        Decides if the filtering output and other outputs will be shown.
+
+
+    """
+
     def __init__(self, path = None, smiles=None, target=None, allowed_atoms = None,
                  atom_feature_list = None, bond_feature_list = None,
                  split_type = None, split_frac = None, log = False):
