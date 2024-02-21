@@ -1,6 +1,8 @@
 import pandas as pd
 from rdkit import Chem
+from rdkit import RDLogger
 
+RDLogger.DisableLog('rdApp.*')
 __all__ = ['filter_smiles']
 
 def filter_smiles(smiles, allowed_set = None, print_out = False):
