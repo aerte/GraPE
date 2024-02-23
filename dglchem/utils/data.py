@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Graph constructer with input built on top of dgl-lifesci and pytorch geometric
+# Graph constructor with input built on top of dgl-lifesci and pytorch geometric
 
 import os
 
@@ -29,7 +29,7 @@ __all__ = ['filter_smiles',
            'MakeGraphDataSet']
 
 def filter_smiles(smiles, target, allowed_atoms = None, print_out = False):
-    ''' Filters a list of smiles based on the allowed atom symbols.
+    """Filters a list of smiles based on the allowed atom symbols.
 
     Args
     ----------
@@ -37,7 +37,7 @@ def filter_smiles(smiles, target, allowed_atoms = None, print_out = False):
         Smiles to be filtered.
     target: list
         Target of the graphs.
-    allowed_set: list of str
+    allowed_atoms: list of str
         Valid atom symbols, non-valid symbols will be discarded. Default: [``B``, ``C``, ``N``, ``O``,
             ``F``, ``Si``, ``P``, ``S``, ``Cl``, ``As``, ``Se``, ``Br``, ``Te``, ``I``, ``At``]
     print_out: bool
@@ -48,7 +48,7 @@ def filter_smiles(smiles, target, allowed_atoms = None, print_out = False):
     list[str]
         A list of filtered smiles strings.
 
-    '''
+    """
 
     if allowed_atoms is None:
         allowed_atoms = ['B', 'C', 'N', 'O','F', 'Si', 'P',
