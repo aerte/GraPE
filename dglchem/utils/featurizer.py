@@ -109,7 +109,7 @@ class AtomFeaturizer(object):
 
         ### Dictionary for all features
         total_atom_feat = {
-        'atom_type_one_hot': partial(ft.atom_type_one_hot, allowable_set = self.allowable_set_symbols, encode_unknown=True),
+        'atom_type_one_hot': partial(ft.atom_type_one_hot, allowable_set = self.allowable_set_symbols, encode_unknown=False),
         'atomic_number_one_hot': ft.atomic_number_one_hot,
         'atomic_number': ft.atomic_number,
         'atom_degree_one_hot': partial(ft.atom_degree_one_hot, allowable_set = list(range(6))),
@@ -120,7 +120,7 @@ class AtomFeaturizer(object):
         'atom_explicit_valence': ft.atom_explicit_valence,
         'atom_implicit_valence_one_hot': ft.atom_implicit_valence_one_hot,
         'atom_implicit_valence': ft.atom_implicit_valence,
-        'atom_hybridization_one_hot': partial(ft.atom_hybridization_one_hot, encode_unknown = True),
+        'atom_hybridization_one_hot': partial(ft.atom_hybridization_one_hot, encode_unknown = False),
         'atom_total_num_H_one_hot': ft.atom_total_num_H_one_hot,
         'atom_total_num_H': ft.atom_total_num_H,
         'atom_formal_charge_one_hot': ft.atom_formal_charge_one_hot,
@@ -227,10 +227,12 @@ class BondFeaturizer(object):
 
         if bond_feature_list is None:
             bond_feature_list = list(total_bond_feats.keys())
+
         self.bond_feature_list = bond_feature_list
 
         self.feat_set = []
-        for item in bond_feature_list:
+
+        for item in self.bond_feature_list:
             if item in total_bond_feats:
                 self.feat_set.append(total_bond_feats[item])
             else:

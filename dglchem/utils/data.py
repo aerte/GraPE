@@ -180,7 +180,7 @@ class DataSet(object):
 
 
     """
-    def __init__(self, path = None, smiles = None, target = None, allowed_atoms = None,
+    def __init__(self, path = None, smiles = None, target = None, global_features = None, allowed_atoms = None,
                  atom_feature_list = None, bond_feature_list = None, log = False):
 
         assert (path is not None) or (smiles is not None and target is not None),'path or (smiles and target) must given.'
@@ -191,11 +191,17 @@ class DataSet(object):
         else:
             self.smiles, self.target = filter_smiles(smiles, target, allowed_atoms= allowed_atoms, print_out=log)
 
+            # standardize target
+            target_ = np.array(self.target)
+            self.target = (target_-np.mean(target_))/np.std(target_)
+
             self.data = construct_dataset(smiles=self.smiles,
                                           target=self.target,
                                           allowed_atoms = allowed_atoms,
                                           atom_feature_list = atom_feature_list,
                                           bond_feature_list = bond_feature_list)
+
+            self.global_features = global_features
 
     def save(self, filename, path=None):
         """Writes the dataset into a pickle file for easy reuse.
@@ -217,6 +223,14 @@ class DataSet(object):
             pickle.dump(self.data, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
         print(f'File saved at: {path}/{filename}.pickle')
+
+    def get_smiles(self, path=None):
+        if path is None:
+            path = os.getcwd()+'/data'
+        if not os.path.exists(path):
+            os.makedirs(path)
+
+        np.savetxt(path+'/filtered_smiles.txt', X = np.array(self.smiles), fmt='%s')
 
     def __len__(self):
         """
@@ -282,11 +296,13 @@ class MakeGraphDataSet(DataSet):
 
     """
 
-    def __init__(self, path = None, smiles=None, target=None, allowed_atoms = None,
-                 atom_feature_list = None, bond_feature_list = None,
-                 split_type = None, split_frac = None, log = False):
+    def __init__(self, path = None, smiles=None, target=None, global_features = None,
+                 allowed_atoms = None, atom_feature_list = None, bond_feature_list = None,
+                 split_type = None, split_frac = None, custom_split = None, log = False):
 
-        super().__init__(path, smiles, target, allowed_atoms, atom_feature_list, bond_feature_list, log)
+        super().__init__(path=path, smiles=smiles, target=target, global_features=global_features,
+                         allowed_atoms=allowed_atoms, atom_feature_list=atom_feature_list, bond_feature_list=bond_feature_list,
+                         log = log)
 
 
         if split_type is None:
@@ -305,7 +321,13 @@ class MakeGraphDataSet(DataSet):
             'stratified': splitters.SingleTaskStratifiedSplitter
         }
 
-        self.train, self.test, self.val = self.split_func[self.split_type].train_val_test_split(self.data,
-                                                                                                self.split_frac[0],
-                                                                                                self.split_frac[1],
-                                                                                                self.split_frac[2])
+        if split_type == 'custom':
+            assert custom_split is not None and len(custom_split)==len(self.data), ('The custom split has to match the length of the filtered dataset.'
+                                                                                    'Consider saving the filtered output with .get_smiles()')
+
+            self.train = custom_split[custom_split==0], self.test = custom_split[custom_split==1], self.val = custom_split[custom_split==2]
+        else:
+            self.train, self.test, self.val = self.split_func[self.split_type].train_val_test_split(self.data,
+                                                                                                    self.split_frac[0],
+                                                                                                    self.split_frac[1],
+                                                                                                    self.split_frac[2])
