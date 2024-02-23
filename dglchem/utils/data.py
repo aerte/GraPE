@@ -16,10 +16,11 @@ from rdkit import RDLogger
 from torch_geometric.data import Dataset, Data
 from torch_geometric.utils import dense_to_sparse
 
-from dgllife.utils import splitters, analyze_mols
+from dgllife.utils import splitters
 
 
-from dglchem.utils import featurizer
+from dglchem.utils.featurizer import AtomFeaturizer, BondFeaturizer
+from dglchem.utils.analysis import graph_data_set_analysis
 
 RDLogger.DisableLog('rdApp.*')
 
@@ -139,10 +140,10 @@ def construct_dataset(smiles, target, allowed_atoms = None, atom_feature_list = 
                       'bond_is_in_ring',
                       'bond_stereo_one_hot']
 
-    atom_featurizer = featurizer.AtomFeaturizer(atom_data_field='node-feats', allowed_atoms=allowed_atoms,
+    atom_featurizer = AtomFeaturizer(allowed_atoms=allowed_atoms,
                                                 atom_feature_list = atom_feature_list)
 
-    bond_featurizer = featurizer.BondFeaturizer(bond_data_field='edge-feats', bond_feature_list=bond_feature_list)
+    bond_featurizer = BondFeaturizer(bond_feature_list=bond_feature_list)
 
 
     data = []
@@ -150,8 +151,8 @@ def construct_dataset(smiles, target, allowed_atoms = None, atom_feature_list = 
     for (smile, i) in zip(smiles, range(len(smiles))):
         mol = MolFromSmiles(smile)
         edge_index = dense_to_sparse(torch.tensor(rdmolops.GetAdjacencyMatrix(mol)))[0]
-        x = atom_featurizer(mol)['node-feats']
-        edge_attr = bond_featurizer(mol)['edge-feats']
+        x = atom_featurizer(mol)
+        edge_attr = bond_featurizer(mol)
         data.append(Data(x = x, edge_index = edge_index, edge_attr = edge_attr, y=target[i]))
 
     return data
@@ -240,7 +241,7 @@ class DataSet(object):
 
         return self.data[item]
 
-    def analysis(self):
+    def analysis(self, path_to_export=None, download=False, plots = None, save_plots = False):
         """Returns an overview of different aspects of the smiles dataset **after filtering** according to:
         https://github.com/awslabs/dgl-lifesci/blob/master/python/dgllife/utils/analysis.py.
         This includes the frequency of symbols, degree frequency and more.
@@ -250,7 +251,7 @@ class DataSet(object):
 
         """
 
-        return analyze_mols(self.smiles)
+        return graph_data_set_analysis(self.smiles, path_to_export, download, plots, save_plots)
 
 
 
