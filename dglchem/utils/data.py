@@ -3,12 +3,15 @@
 # Graph constructor with input built on top of dgl-lifesci and pytorch geometric
 
 import os
+import copy
+from collections.abc import Sequence
 
 import pickle
 import pandas as pd
 import numpy as np
 import torch
 
+from torch import Tensor
 from rdkit import Chem
 from rdkit.Chem import rdmolops, MolFromSmiles
 from rdkit import RDLogger
@@ -26,6 +29,7 @@ RDLogger.DisableLog('rdApp.*')
 
 __all__ = ['filter_smiles',
            'construct_dataset',
+           'split_data',
            'DataSet',
            'MakeGraphDataSet']
 
@@ -161,6 +165,12 @@ def construct_dataset(smiles, target, allowed_atoms = None, atom_feature_list = 
 
 def split_data(data, split_type = None, split_frac = None, custom_split = None):
 
+    if split_type is None:
+        split_type = 'random'
+
+    if split_frac is None:
+        split_frac = [0.8,0.1,0.1]
+
     split_func = {
         'consecutive': splitters.ConsecutiveSplitter,
         'random': splitters.RandomSplitter,
@@ -169,12 +179,12 @@ def split_data(data, split_type = None, split_frac = None, custom_split = None):
         'stratified': splitters.SingleTaskStratifiedSplitter
     }
 
-    if split_type == 'custom':
-        assert custom_split is not None and len(custom_split) == len(self.data), (
+    if split_type == 'custom' or custom_split is not None:
+        assert custom_split is not None and len(custom_split) == len(data), (
             'The custom split has to match the length of the filtered dataset.'
             'Consider saving the filtered output with .get_smiles()')
 
-        return custom_split[custom_split == 0], custom_split[custom_split == 1], custom_split[custom_split == 2]
+        return data[custom_split == 0], data[custom_split == 1], data[custom_split == 2]
     else:
          return split_func[split_type].train_val_test_split(data,split_frac[0],split_frac[1],split_frac[2])
 
@@ -206,6 +216,8 @@ class DataSet(DataLoad):
     """A class that takes a path to a pickle file or a list of smiles and targets. The data is stored in
         Pytorch-Geometric Data instances and be accessed like an array.
 
+        Heavily inspired by the PyTorch-Geometric Dataset class, especially indices and index_select.
+
     Parameters
     ----------
     path: str
@@ -226,7 +238,7 @@ class DataSet(DataLoad):
 
     """
     def __init__(self, file_path = None, smiles = None, target = None, global_features = None, allowed_atoms = None,
-                 atom_feature_list = None, bond_feature_list = None, log = False, root = None):
+                 atom_feature_list = None, bond_feature_list = None, log = False, root = None, indices = None):
 
         assert (file_path is not None) or (smiles is not None and target is not None),'path or (smiles and target) must given.'
 
@@ -235,6 +247,7 @@ class DataSet(DataLoad):
         if file_path is not None:
             with open(file_path, 'rb') as handle:
                 self.data = pickle.load(handle)
+                print('Loaded data.')
         else:
             self.smiles, self.target = filter_smiles(smiles, target, allowed_atoms= allowed_atoms, print_out=log)
 
@@ -249,30 +262,10 @@ class DataSet(DataLoad):
                                           bond_feature_list = bond_feature_list)
 
             self.global_features = global_features
-
-    def save(self, filename, path=None):
-        """Writes the dataset into a pickle file for easy reuse.
-
-        Args:
-            filename:
-            path:
-
-        Returns:
-
-        """
-        if path is None:
-            path = os.getcwd()+'/data'
-        if not os.path.exists(path):
-            os.makedirs(path)
-        print('Path to the saved file: ')
-
-        with open(path+'/'+filename+'.pickle', 'wb') as handle:
-            pickle.dump(self.data, handle, protocol=pickle.HIGHEST_PROTOCOL)
-
-        print(f'File saved at: {path}/{filename}.pickle')
+            self._indices = indices
 
 
-    def save_test(self, filename):
+    def save_data_set(self, filename):
 
         path = self.processed_dir
 
@@ -293,6 +286,9 @@ class DataSet(DataLoad):
 
         np.savetxt(path+'/filtered_smiles.txt', X = np.array(self.smiles), fmt='%s')
 
+    def indices(self):
+        return range(len(self.data)) if self._indices is None else self._indices
+
     def __len__(self):
         """
 
@@ -302,7 +298,7 @@ class DataSet(DataLoad):
         """
         return len(self.data)
 
-    def __getitem__(self, item):
+    def __getitem__(self, idx):
         """
 
         Args:
@@ -314,7 +310,62 @@ class DataSet(DataLoad):
 
         """
 
-        return self.data[item]
+        if isinstance(idx, (int, np.integer)):
+            return self.data[idx]
+        else:
+            return self.index_select(idx)
+
+    def __iter__(self):
+        for i in range(len(self.data)):
+            yield self.data[i]
+
+    def index_select(self, idx):
+        r"""Creates a subset of the dataset from specified indices :obj:`idx`.
+        Indices :obj:`idx` can be a slicing object, *e.g.*, :obj:`[2:5]`, a
+        list, a tuple, or a :obj:`torch.Tensor` or :obj:`np.ndarray` of type
+        long or bool.
+
+        Modified from https://pytorch-geometric.readthedocs.io/en/latest/_modules/torch_geometric/data/dataset.html#Dataset
+        """
+
+        indices = self.indices()
+
+        if isinstance(idx, slice):
+            start, stop, step = idx.start, idx.stop, idx.step
+            # Allow floating-point slicing, e.g., dataset[:0.9]
+            if isinstance(start, float):
+                start = round(start * len(self))
+            if isinstance(stop, float):
+                stop = round(stop * len(self))
+            idx = slice(start, stop, step)
+
+            indices = indices[idx]
+
+        elif isinstance(idx, Tensor) and idx.dtype == torch.long:
+            return self.index_select(idx.flatten().tolist())
+
+        elif isinstance(idx, Tensor) and idx.dtype == torch.bool:
+            idx = idx.flatten().nonzero(as_tuple=False)
+            return self.index_select(idx.flatten().tolist())
+
+        elif isinstance(idx, np.ndarray) and idx.dtype == np.int64:
+            return self.index_select(idx.flatten().tolist())
+
+        elif isinstance(idx, np.ndarray) and idx.dtype == bool:
+            idx = idx.flatten().nonzero()[0]
+            return self.index_select(idx.flatten().tolist())
+
+        elif isinstance(idx, Sequence) and not isinstance(idx, str):
+            indices = [indices[i] for i in idx]
+
+        else:
+            raise IndexError(
+                f"Only slices (':'), list, tuples, torch.tensor and "
+                f"np.ndarray of dtype long or bool are valid indices (got "
+                f"'{type(idx).__name__}')")
+
+        return [self[i] for i in indices]
+
 
     def analysis(self, path_to_export=None, download=False, plots = None, save_plots = False):
         """Returns an overview of different aspects of the smiles dataset **after filtering** according to:
@@ -357,16 +408,18 @@ class MakeGraphDataSet(DataSet):
 
     """
 
-    def __init__(self, path = None, smiles=None, target=None, global_features = None,
+    def __init__(self, file_path = None, smiles=None, target=None, global_features = None,
                  allowed_atoms = None, atom_feature_list = None, bond_feature_list = None, split = True,
-                 split_type = None, split_frac = None, custom_split = None, log = False):
+                 split_type = None, split_frac = None, custom_split = None, log = False, indices=None):
 
-        super().__init__(path, smiles, target, global_features,
-                         allowed_atoms, atom_feature_list, bond_feature_list,
-                         log)
+        super().__init__(file_path=file_path, smiles=smiles, target=target, global_features=global_features,
+                         allowed_atoms=allowed_atoms, atom_feature_list=atom_feature_list,
+                         bond_feature_list=bond_feature_list, log=log, indices=indices)
 
         if split_type is None:
             split_type = 'random'
+        else:
+            split = True
 
         if split_frac is None:
             split_frac = [0.8, 0.1, 0.1]
@@ -378,7 +431,7 @@ class MakeGraphDataSet(DataSet):
 
         assert np.sum(self.split_frac), 'Split fractions should add to 1.'
 
-        if split:
+        if split or (self.custom_split is not None):
             self.train, self.test, self.val = split_data(data = self.data, split_type = self.split_type,
                                                         split_frac = self.split_frac, custom_split = self.custom_split)
 

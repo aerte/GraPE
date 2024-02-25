@@ -78,12 +78,10 @@ class AtomFeaturizer(object):
 
     **The list argument order defines the feature order.
 
-    **We assume the resulting DGLGraph will not contain any virtual nodes.**
+    **Virtual nodes still have to be implemented.**
 
     Parameters
     ----------
-    atom_data_field : str
-        Name for storing atom features in DGLGraphs, default to 'h'.
     allowed_atoms : list of str
         List of allowed atoms symbols. Default: [``B``, ``C``, ``N``, ``O``,
         ``F``, ``Si``, ``P``, ``S``, ``Cl``, ``As``, ``Se``, ``Br``, ``Te``, ``I``, ``At``,``other``]
@@ -192,17 +190,8 @@ class BondFeaturizer(object):
 
     **The input feature list determines the order of the features.**
 
-    **We assume the resulting DGLGraph will be created with :func:`smiles_to_bigraph` without
-    self loops.**
-
     Parameters
     ----------
-    bond_data_field : str
-        Name for storing bond features in DGLGraphs, default to ``'e'``.
-    self_loop : bool
-        Whether self loops will be added. Default to False. If True, it will use an additional
-        column of binary values to indicate the identity of self loops. The feature of the
-        self loops will be zero except for the additional column.
     bond_feature_list: list of str
         List of features that will be applied. Default are the AFP features:
             bond_feats = ['bond_type_one_hot',
@@ -254,7 +243,7 @@ class BondFeaturizer(object):
         feats = []
 
         for bond_num in bond_feats.keys():
-            # Has to be savd twice
+            # Has to be saved twice
             feats.append(np.concatenate(bond_feats[bond_num]))
             feats.append(np.concatenate(bond_feats[bond_num]))
         feats = np.array(feats)

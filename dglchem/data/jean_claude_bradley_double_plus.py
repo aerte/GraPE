@@ -1,4 +1,4 @@
-import os.path
+import os.path as osp
 
 import pandas as pd
 from torch_geometric.data import download_url
@@ -15,6 +15,7 @@ class BradleyDoublePlus(MakeGraphDataSet):
                  allowed_atoms = None, atom_feature_list = None, bond_feature_list = None, split = False,
                  split_type = None, split_frac = None, custom_split = None, log = False):
 
+        global file_path
         if root is None:
             self.root = './data'
 
@@ -22,16 +23,16 @@ class BradleyDoublePlus(MakeGraphDataSet):
 
         self.raw_path = self.raw_dir
 
-        if not os.path.exists(os.path.join(self.raw_path, self.file_name)):
+        if not osp.exists(osp.join(self.raw_path, self.file_name)):
             download_url('https://figshare.com/ndownloader/files/1503991',
                          folder = self.raw_path,
                          filename= self.file_name,
                          log = True)
 
-            path = os.path.join(self.raw_path, self.file_name)
+            path = osp.join(self.raw_path, self.file_name)
 
         else:
-            path = os.path.join(self.raw_path, self.file_name)
+            path = osp.join(self.raw_path, self.file_name)
 
         df = pd.read_excel(path)
 
@@ -39,6 +40,7 @@ class BradleyDoublePlus(MakeGraphDataSet):
             target = 'mpC'
         if global_features is not None:
             global_features = df[global_features]
+
 
         super().__init__(smiles = df.smiles, target = df[target], global_features=global_features,
                          allowed_atoms = allowed_atoms, atom_feature_list = atom_feature_list,
