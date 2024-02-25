@@ -3,7 +3,6 @@
 # Graph constructor with input built on top of dgl-lifesci and pytorch geometric
 
 import os
-import copy
 from collections.abc import Sequence
 
 import pickle
@@ -126,7 +125,7 @@ def construct_dataset(smiles, target, allowed_atoms = None, atom_feature_list = 
                           'bond_stereo_one_hot']
 
     Returns:
-        data: Pytorch-Geometric DataSet object
+        data: list of Pytorch-Geometric Data objects
 
     """
     if atom_feature_list is None:
@@ -164,6 +163,19 @@ def construct_dataset(smiles, target, allowed_atoms = None, atom_feature_list = 
 
 
 def split_data(data, split_type = None, split_frac = None, custom_split = None):
+    """
+
+    Args:
+        data: Any iterable
+            An object that can be accessed per an index and iterated upon. Ex: a DataSet object
+        split_type: str
+            Defines in what ways
+        split_frac:
+        custom_split:
+
+    Returns:
+
+    """
 
     if split_type is None:
         split_type = 'random'
@@ -195,6 +207,8 @@ class DataLoad(object):
     """The basic data-loading class. It will download the data off a given path and store it similarly to how a
     PyTorch dataset it stored. Inspired by the PyTorch geometric Dataset class
 
+
+
     """
     def __int__(self, root = None):
         if root is None:
@@ -203,10 +217,20 @@ class DataLoad(object):
 
     @property
     def raw_dir(self):
+        """
+
+        Returns:
+
+        """
         return os.path.join(self.root, 'raw')
 
     @property
     def processed_dir(self):
+        """
+
+        Returns:
+
+        """
         return os.path.join(self.root, 'processed')
 
 
@@ -266,6 +290,14 @@ class DataSet(DataLoad):
 
 
     def save_data_set(self, filename):
+        """
+
+        Args:
+            filename:
+
+        Returns:
+
+        """
 
         path = self.processed_dir
 
@@ -279,6 +311,15 @@ class DataSet(DataLoad):
 
 
     def get_smiles(self, path=None):
+        """
+
+        Args:
+            path:
+
+        Returns:
+
+        """
+
         if path is None:
             path = os.getcwd()+'/data'
         if not os.path.exists(path):
@@ -287,6 +328,12 @@ class DataSet(DataLoad):
         np.savetxt(path+'/filtered_smiles.txt', X = np.array(self.smiles), fmt='%s')
 
     def indices(self):
+        """
+
+        Returns:
+
+        """
+
         return range(len(self.data)) if self._indices is None else self._indices
 
     def __len__(self):
@@ -316,6 +363,12 @@ class DataSet(DataLoad):
             return self.index_select(idx)
 
     def __iter__(self):
+        """
+
+        Returns:
+
+        """
+
         for i in range(len(self.data)):
             yield self.data[i]
 
@@ -436,5 +489,10 @@ class MakeGraphDataSet(DataSet):
                                                         split_frac = self.split_frac, custom_split = self.custom_split)
 
     def get_splits(self):
+        """
+
+        Returns:
+
+        """
         return split_data(data = self.data, split_type = self.split_type,
                             split_frac = self.split_frac, custom_split = self.custom_split)

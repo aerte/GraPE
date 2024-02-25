@@ -11,6 +11,19 @@ __all__ = [
 ]
 
 def graph_data_set_analysis(smiles, path_to_export=None, download=False, plots = None, save_plots = False, fig_size = None):
+    """
+
+    Args:
+        smiles:
+        path_to_export:
+        download:
+        plots:
+        save_plots:
+        fig_size:
+
+    Returns:
+
+    """
 
     if download and path_to_export is None:
 
