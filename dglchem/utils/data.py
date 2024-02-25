@@ -13,7 +13,7 @@ from rdkit import Chem
 from rdkit.Chem import rdmolops, MolFromSmiles
 from rdkit import RDLogger
 
-from torch_geometric.data import Dataset, Data
+from torch_geometric.data import Dataset, Data, download_url
 from torch_geometric.utils import dense_to_sparse
 
 from dgllife.utils import splitters
@@ -157,7 +157,52 @@ def construct_dataset(smiles, target, allowed_atoms = None, atom_feature_list = 
 
     return data
 
-class DataSet(object):
+
+
+def split_data(data, split_type = None, split_frac = None, custom_split = None):
+
+    split_func = {
+        'consecutive': splitters.ConsecutiveSplitter,
+        'random': splitters.RandomSplitter,
+        'molecular_weight': splitters.MolecularWeightSplitter,
+        'scaffold': splitters.ScaffoldSplitter,
+        'stratified': splitters.SingleTaskStratifiedSplitter
+    }
+
+    if split_type == 'custom':
+        assert custom_split is not None and len(custom_split) == len(self.data), (
+            'The custom split has to match the length of the filtered dataset.'
+            'Consider saving the filtered output with .get_smiles()')
+
+        return custom_split[custom_split == 0], custom_split[custom_split == 1], custom_split[custom_split == 2]
+    else:
+         return split_func[split_type].train_val_test_split(data,split_frac[0],split_frac[1],split_frac[2])
+
+
+
+
+class DataLoad(object):
+    """The basic data-loading class. It will download the data off a given path and store it similarly to how a
+    PyTorch dataset it stored. Inspired by the PyTorch geometric Dataset class
+
+    """
+    def __int__(self, root = None):
+        if root is None:
+            root = './data'
+        self.root = root
+
+    @property
+    def raw_dir(self):
+        return os.path.join(self.root, 'raw')
+
+    @property
+    def processed_dir(self):
+        return os.path.join(self.root, 'processed')
+
+
+
+
+class DataSet(DataLoad):
     """A class that takes a path to a pickle file or a list of smiles and targets. The data is stored in
         Pytorch-Geometric Data instances and be accessed like an array.
 
@@ -180,13 +225,15 @@ class DataSet(object):
 
 
     """
-    def __init__(self, path = None, smiles = None, target = None, global_features = None, allowed_atoms = None,
-                 atom_feature_list = None, bond_feature_list = None, log = False):
+    def __init__(self, file_path = None, smiles = None, target = None, global_features = None, allowed_atoms = None,
+                 atom_feature_list = None, bond_feature_list = None, log = False, root = None):
 
-        assert (path is not None) or (smiles is not None and target is not None),'path or (smiles and target) must given.'
+        assert (file_path is not None) or (smiles is not None and target is not None),'path or (smiles and target) must given.'
 
-        if path is not None:
-            with open(path, 'rb') as handle:
+        super().__int__(root)
+
+        if file_path is not None:
+            with open(file_path, 'rb') as handle:
                 self.data = pickle.load(handle)
         else:
             self.smiles, self.target = filter_smiles(smiles, target, allowed_atoms= allowed_atoms, print_out=log)
@@ -223,6 +270,20 @@ class DataSet(object):
             pickle.dump(self.data, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
         print(f'File saved at: {path}/{filename}.pickle')
+
+
+    def save_test(self, filename):
+
+        path = self.processed_dir
+
+        if not os.path.exists(path):
+            os.makedirs(path)
+
+        with open(path+'/'+filename+'.pickle', 'wb') as handle:
+            pickle.dump(self.data, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+        print(f'File saved at: {path}/{filename}.pickle')
+
 
     def get_smiles(self, path=None):
         if path is None:
@@ -297,37 +358,30 @@ class MakeGraphDataSet(DataSet):
     """
 
     def __init__(self, path = None, smiles=None, target=None, global_features = None,
-                 allowed_atoms = None, atom_feature_list = None, bond_feature_list = None,
+                 allowed_atoms = None, atom_feature_list = None, bond_feature_list = None, split = True,
                  split_type = None, split_frac = None, custom_split = None, log = False):
 
-        super().__init__(path=path, smiles=smiles, target=target, global_features=global_features,
-                         allowed_atoms=allowed_atoms, atom_feature_list=atom_feature_list, bond_feature_list=bond_feature_list,
-                         log = log)
-
+        super().__init__(path, smiles, target, global_features,
+                         allowed_atoms, atom_feature_list, bond_feature_list,
+                         log)
 
         if split_type is None:
-            self.split_type = 'random'
+            split_type = 'random'
 
         if split_frac is None:
-            self.split_frac = [0.8, 0.1, 0.1]
+            split_frac = [0.8, 0.1, 0.1]
+
+        self.custom_split = custom_split
+        self.split_type = split_type
+        self.split_frac = split_frac
+
 
         assert np.sum(self.split_frac), 'Split fractions should add to 1.'
 
-        self.split_func = {
-            'consecutive': splitters.ConsecutiveSplitter,
-            'random': splitters.RandomSplitter,
-            'molecular_weight': splitters.MolecularWeightSplitter,
-            'scaffold': splitters.ScaffoldSplitter,
-            'stratified': splitters.SingleTaskStratifiedSplitter
-        }
+        if split:
+            self.train, self.test, self.val = split_data(data = self.data, split_type = self.split_type,
+                                                        split_frac = self.split_frac, custom_split = self.custom_split)
 
-        if split_type == 'custom':
-            assert custom_split is not None and len(custom_split)==len(self.data), ('The custom split has to match the length of the filtered dataset.'
-                                                                                    'Consider saving the filtered output with .get_smiles()')
-
-            self.train = custom_split[custom_split==0], self.test = custom_split[custom_split==1], self.val = custom_split[custom_split==2]
-        else:
-            self.train, self.test, self.val = self.split_func[self.split_type].train_val_test_split(self.data,
-                                                                                                    self.split_frac[0],
-                                                                                                    self.split_frac[1],
-                                                                                                    self.split_frac[2])
+    def get_splits(self):
+        return split_data(data = self.data, split_type = self.split_type,
+                            split_frac = self.split_frac, custom_split = self.custom_split)
