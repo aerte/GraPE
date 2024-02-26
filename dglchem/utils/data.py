@@ -30,7 +30,7 @@ __all__ = ['filter_smiles',
            'construct_dataset',
            'split_data',
            'DataSet',
-           'MakeGraphDataSet']
+           'GraphDataSet']
 
 def filter_smiles(smiles, target, allowed_atoms = None, print_out = False):
     """Filters a list of smiles based on the allowed atom symbols.
@@ -321,7 +321,7 @@ class DataSet(DataLoad):
         """
 
         if path is None:
-            path = os.getcwd()+'/data'
+            path = self.processed_dir
         if not os.path.exists(path):
             os.makedirs(path)
 
@@ -435,7 +435,7 @@ class DataSet(DataLoad):
 
 
 
-class MakeGraphDataSet(DataSet):
+class GraphDataSet(DataSet):
     """A class that takes a path to a pickle file or a list of smiles and targets. The data is stored in
         Pytorch-Geometric Data instances and be accessed like an array. Additionally, it splits the data and
         prepares the splits for training and validation. **If you do not wish to split the data immediately, please use
