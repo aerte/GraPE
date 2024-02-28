@@ -22,7 +22,7 @@ from dgllife.utils import splitters
 
 
 from dglchem.utils.featurizer import AtomFeaturizer, BondFeaturizer
-from dglchem.utils.analysis import smiles_analysis
+from dglchem.utils.analysis import smiles_analysis, mol_weight_vs_target
 
 RDLogger.DisableLog('rdApp.*')
 
@@ -275,10 +275,10 @@ class DataSet(DataLoad):
                 self.data = pickle.load(handle)
                 print('Loaded data.')
         else:
-            self.smiles, self.target = filter_smiles(smiles, target, allowed_atoms= allowed_atoms, log=log)
+            self.smiles, self.raw_target = filter_smiles(smiles, target, allowed_atoms= allowed_atoms, log=log)
 
             # standardize target
-            target_ = np.array(self.target)
+            target_ = np.array(self.raw_target)
             self.target = (target_-np.mean(target_))/np.std(target_)
 
             self.data = construct_dataset(smiles=self.smiles,
@@ -460,6 +460,35 @@ class DataSet(DataLoad):
         """
 
         return smiles_analysis(self.smiles, path_to_export, download, plots, save_plots, fig_size, output_filter)
+
+    def weight_vs_target_plot(self, target_name=None, save_fig = False, pre_standardization = True, path_to_export = None):
+        """
+
+        Args:
+            target_name: str
+                The title of the y-axis in the plot. Default: 'target'
+            save_fig: bool
+                Decides if the figure is saved in the processed directory.
+            pre_standardization: bool
+                Decides if the pre- or post-standardization target variable is used. Will only affect the scale,
+                not the distribution. Default: True.
+            path_to_export: str
+                Export path, will default to the directory 'analysis_results' if not specified.
+
+        Returns: plot
+            A seaborn jointplot of the molecular weight and target distributions.
+
+        """
+
+        target = self.raw_target if pre_standardization else self.target
+
+        plot = mol_weight_vs_target(self.smiles, target, target_name=target_name, save_fig=save_fig,
+                                    path_to_export=path_to_export)
+
+        return plot
+
+
+
 
 
 

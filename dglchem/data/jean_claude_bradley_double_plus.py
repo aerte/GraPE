@@ -82,6 +82,8 @@ class BradleyDoublePlus(GraphDataSet):
 
         target = 'mpC' if target_string is None else target_string
 
+        self.target_name = target
+
         if global_features is not None:
             for i in range(len(global_features)):
                  if global_features[i] not in df.columns:

@@ -1,12 +1,18 @@
-# analyis tools
+# analysis tools
 
 import os
+
+import pandas as pd
 from rdkit import Chem
 from dgllife.utils.analysis import analyze_mols
 import matplotlib.pyplot as plt
 import numpy as np
+import seaborn as sns
+
+from dglchem.utils.featurizer import mol_weight
 
 __all__ = [
+    'mol_weight_vs_target',
     'smiles_analysis'
 ]
 
@@ -45,7 +51,7 @@ def smiles_analysis(smiles, path_to_export=None, download=False, plots = None, s
 
     """
 
-    if download or (path_to_export is None):
+    if download and (path_to_export is None):
 
         path_to_export = os.getcwd() + '/analysis_results'
 
@@ -103,6 +109,51 @@ def smiles_analysis(smiles, path_to_export=None, download=False, plots = None, s
 
 
     return dic
+
+def mol_weight_vs_target(smiles, target, target_name = None, save_fig = False, path_to_export=None):
+    """Plots a seaborn jointplot of the target distribution against the molecular weight distribution.
+
+    Args:
+        smiles: list of str
+            SMILES list.
+        target: list of float
+            Prediction target.
+        target_name: str
+            Title of the y-axis in the plot.
+        save_fig: bool
+            Decides if the figure is saved as a svg (unless a path is given, then it will save the image). Default: False
+        path_to_export: str
+            File path of the saved image. Default: None
+
+
+    Returns: plot
+        The seaborn jointplot object containing the plot.
+
+    """
+
+    if save_fig and (path_to_export is None):
+
+        path_to_export = os.getcwd() + '/analysis_results'
+
+        if not os.path.exists(path_to_export):
+            os.mkdir(path_to_export)
+
+    target_name = 'target' if target_name is None else target_name
+    weight = np.zeros(len(smiles))
+
+    for i in range(len(smiles)):
+        weight[i] = mol_weight(smiles[i])
+
+    df = pd.DataFrame({'molecular weight in [g/mol]': weight, target_name: target})
+
+    plot = sns.jointplot(data=df, x='molecular weight in [g/mol]',y=target_name, color='orange')
+
+    if path_to_export is not None:
+        plot.savefig(fname=f'{path_to_export}/molecular_weight_against_{target_name}.svg', format='svg')
+
+    return plot
+
+
 
 
 

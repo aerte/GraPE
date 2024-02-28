@@ -10,15 +10,30 @@ from functools import partial
 import numpy as np
 import torch
 from rdkit import Chem, RDConfig
-from rdkit.Chem import AllChem, ChemicalFeatures
+from rdkit.Chem import AllChem, ChemicalFeatures, Descriptors
 
 # feature extraction functions from dgl life
 from dgllife.utils import featurizers as ft
 
 __all__ = [
+    'mol_weight',
     'AtomFeaturizer',
     'BondFeaturizer'
 ]
+
+def mol_weight(smiles):
+    """Returns the molecular weight of a smile.
+
+    Args:
+        smiles: str
+            SMILE string.
+
+    Returns: float
+        The molecular weight of the SMILES molecule.
+
+    """
+
+    return Descriptors.ExactMolWt(Chem.MolFromSmiles(smiles))
 
 class AtomFeaturizer(object):
     """An atom featurizer based on a flexible input list.
