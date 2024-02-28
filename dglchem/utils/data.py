@@ -15,7 +15,7 @@ from rdkit import Chem
 from rdkit.Chem import rdmolops, MolFromSmiles
 from rdkit import RDLogger
 
-from torch_geometric.data import Dataset, Data, download_url
+from torch_geometric.data import Data
 from torch_geometric.utils import dense_to_sparse
 
 from dgllife.utils import splitters
@@ -32,7 +32,7 @@ __all__ = ['filter_smiles',
            'DataSet',
            'GraphDataSet']
 
-def filter_smiles(smiles, target, allowed_atoms = None, print_out = False):
+def filter_smiles(smiles, target, allowed_atoms = None, log = False):
     """Filters a list of smiles based on the allowed atom symbols.
 
     Args
@@ -44,7 +44,7 @@ def filter_smiles(smiles, target, allowed_atoms = None, print_out = False):
     allowed_atoms: list of str
         Valid atom symbols, non-valid symbols will be discarded. Default: [``B``, ``C``, ``N``, ``O``,
             ``F``, ``Si``, ``P``, ``S``, ``Cl``, ``As``, ``Se``, ``Br``, ``Te``, ``I``, ``At``]
-    print_out: bool
+    log: bool
         Determines if there should be print-out statements to indicate why mols were filtered out. Default: False
 
     Returns
@@ -65,13 +65,13 @@ def filter_smiles(smiles, target, allowed_atoms = None, print_out = False):
         mol = Chem.MolFromSmiles(element)
 
         if mol is None:
-            if print_out:
+            if log:
                 print(f'SMILES {element} in index {list(df.smiles).index(element)} is not valid.')
             indices_to_drop.append(list(df.smiles).index(element))
 
         else:
             if mol.GetNumHeavyAtoms() < 2:
-                if print_out:
+                if log:
                     print(f'SMILES {element} in index {list(df.smiles).index(element)} consists of less than 2 heavy atoms'
                         f' and will be ignored.')
                 indices_to_drop.append(list(df.smiles).index(element))
@@ -79,7 +79,7 @@ def filter_smiles(smiles, target, allowed_atoms = None, print_out = False):
             else:
                 for atoms in mol.GetAtoms():
                     if atoms.GetSymbol() not in allowed_atoms:
-                        if print_out:
+                        if log:
                             print(f'SMILES {element} in index {list(df.smiles).index(element)} contains the atom {atoms.GetSymbol()} that is not'
                                 f' permitted and will be ignored.')
                         indices_to_drop.append(list(df.smiles).index(element))
@@ -167,13 +167,18 @@ def split_data(data, split_type = None, split_frac = None, custom_split = None):
 
     Args:
         data: Any iterable
-            An object that can be accessed per an index and iterated upon. Ex: a DataSet object
+            An object that can be accessed per an index and iterated upon. Ex: a DataSet or np.array object
         split_type: str
-            Defines in what ways
-        split_frac:
-        custom_split:
-
+            Indicates what split should be used. Default: random. The options are: [consecutive, random,
+            molecular weight, scaffold, stratified, custom]
+        split_frac: array
+            Indicates what the split fractions should be. Default: [0.8, 0.1, 0.1]
+        custom_split: array
+            The custom split that should be applied. Has to be an array matching the length of the filtered smiles,
+            where 0 indicates a training sample, 1 a testing sample and 2 a validation sample.
     Returns:
+        list, list, list
+            The list are the train, test and validation split respectively.
 
     """
 
@@ -204,10 +209,7 @@ def split_data(data, split_type = None, split_frac = None, custom_split = None):
 
 
 class DataLoad(object):
-    """The basic data-loading class. It will download the data off a given path and store it similarly to how a
-    PyTorch dataset it stored. Inspired by the PyTorch geometric Dataset class
-
-
+    """The basic data-loading class. It holds the root as well as the raw  and processed files directories.
 
     """
     def __int__(self, root = None):
@@ -219,7 +221,7 @@ class DataLoad(object):
     def raw_dir(self):
         """
 
-        Returns:
+        Returns: path
 
         """
         return os.path.join(self.root, 'raw')
@@ -228,7 +230,7 @@ class DataLoad(object):
     def processed_dir(self):
         """
 
-        Returns:
+        Returns: path
 
         """
         return os.path.join(self.root, 'processed')
@@ -244,7 +246,7 @@ class DataSet(DataLoad):
 
     Parameters
     ----------
-    path: str
+    file_path: str
         The path to a pickle file that should be loaded and the data therein used.
     smiles: list of str
         List of smiles to be made into a graph.
@@ -273,7 +275,7 @@ class DataSet(DataLoad):
                 self.data = pickle.load(handle)
                 print('Loaded data.')
         else:
-            self.smiles, self.target = filter_smiles(smiles, target, allowed_atoms= allowed_atoms, print_out=log)
+            self.smiles, self.target = filter_smiles(smiles, target, allowed_atoms= allowed_atoms, log=log)
 
             # standardize target
             target_ = np.array(self.target)
@@ -293,9 +295,8 @@ class DataSet(DataLoad):
         """
 
         Args:
-            filename:
-
-        Returns:
+            filename: str
+                Name of the file in which the data will be saved as a pickle file.
 
         """
 
@@ -314,9 +315,8 @@ class DataSet(DataLoad):
         """
 
         Args:
-            path:
-
-        Returns:
+            path: str
+                Path where the smiles should be saved. Default is the processed files directory.
 
         """
 
@@ -330,7 +330,8 @@ class DataSet(DataLoad):
     def indices(self):
         """
 
-        Returns:
+        Returns: list
+            Indices of the dataset
 
         """
 
@@ -349,7 +350,7 @@ class DataSet(DataLoad):
         """
 
         Args:
-            item: int
+            idx: int
                 Index of item to be returned.
 
         Returns: obj
@@ -379,6 +380,14 @@ class DataSet(DataLoad):
         long or bool.
 
         Modified from https://pytorch-geometric.readthedocs.io/en/latest/_modules/torch_geometric/data/dataset.html#Dataset
+
+        Args:
+            idx: obj
+                Index list of data objects to retrieve.
+
+        Returns: list
+            List of data objects.
+
         """
 
         indices = self.indices()
@@ -437,9 +446,9 @@ class DataSet(DataLoad):
 
 class GraphDataSet(DataSet):
     """A class that takes a path to a pickle file or a list of smiles and targets. The data is stored in
-        Pytorch-Geometric Data instances and be accessed like an array. Additionally, it splits the data and
-        prepares the splits for training and validation. **If you do not wish to split the data immediately, please use
-        the DataSet class instead.**
+        Pytorch-Geometric Data instances and be accessed like an array. Additionally, if desired it splits the data and
+        prepares the splits for training and validation. **If you wish to split the data immediately, please set
+        split to True. Per default, it will not split.**
 
     Parameters
     ----------
@@ -455,8 +464,21 @@ class GraphDataSet(DataSet):
         List of features to be applied. Default are the AFP atom features.
     bond_feature_list: list of str
         List of features that will be applied. Default are the AFP features
+    split: bool
+        An indicator if the dataset should be split. Only takes effect if nothing else regarding the split is specified
+        and will trigger the default split. Default: False
+    split_type: str
+        Indicates what split should be used. Default: random. The options are:
+        [consecutive, random, molecular weight, scaffold, stratified, custom]
+    split_frac: array
+        Indicates what the split fractions should be. Default: [0.8, 0.1, 0.1]
+    custom_split: array
+        The custom split that should be applied. Has to be an array matching the length of the filtered smiles,
+        where 0 indicates a training sample, 1 a testing sample and 2 a validation sample.
     log: bool
         Decides if the filtering output and other outputs will be shown.
+    indices: np.array
+        Can be used to override the indices of the data objects. Recommended not to use.
 
 
     """
@@ -491,7 +513,8 @@ class GraphDataSet(DataSet):
     def get_splits(self):
         """
 
-        Returns:
+        Returns: list, list, list
+            Lists containing the training, testing and validation split respectively.
 
         """
         return split_data(data = self.data, split_type = self.split_type,
