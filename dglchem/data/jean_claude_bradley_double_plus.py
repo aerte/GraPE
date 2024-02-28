@@ -1,6 +1,7 @@
 import os.path as osp
 
 import pandas as pd
+import numpy as np
 from torch_geometric.data import download_url
 from dglchem.utils.data import GraphDataSet
 
@@ -17,7 +18,7 @@ class BradleyDoublePlus(GraphDataSet):
     ----------
     root: str
         Indicates what the root or working directory is. Default: None
-    target: str
+    target_string: str
         A string that indicates which of the features from the dataset should be the 'target'.
     global_features: list of str
         A list of strings indicating any additional features that should be included as global features.
@@ -29,7 +30,7 @@ class BradleyDoublePlus(GraphDataSet):
         List of features that will be applied. Default are the AFP features
     split: bool
         An indicator if the dataset should be split. Only takes effect if nothing else regarding the split is specified
-        and will trigger the default split. Default: False
+        and will trigger the default split. Default: False (recommended)
     split_type: str
         Indicates what split should be used. Default: random. The options are:
         [consecutive, random, molecular weight, scaffold, stratified, custom]
@@ -52,17 +53,15 @@ class BradleyDoublePlus(GraphDataSet):
     and Validated) Melting Point Dataset, 2014, http://dx.doi.org/10.6084/m9.figshare.1031637
 
 
-
-
     """
 
 
-    def __init__(self, root = None, target = None, global_features = None, allowed_atoms = None,
+    def __init__(self, root = None, target_string = None, global_features = None, allowed_atoms = None,
                  atom_feature_list = None, bond_feature_list = None, split = False, split_type = None,
                  split_frac = None, custom_split = None, log = False, save_data_filename=None):
 
-        if root is None:
-            self.root = './data'
+
+        self.root = './data' if root is None else root
 
         self.file_name = 'BradleyDoublePlus.xlsx'
 
@@ -81,10 +80,22 @@ class BradleyDoublePlus(GraphDataSet):
 
         df = pd.read_excel(path)
 
-        if target is None:
-            target = 'mpC'
+        target = 'mpC' if target_string is None else target_string
+
         if global_features is not None:
-            global_features = df[global_features]
+            for i in range(len(global_features)):
+                 if global_features[i] not in df.columns:
+                    print(f'Error: {global_features[i]} is a feature in the raw dataset.')
+                    del global_features[i]
+
+        global_features = df[global_features]
+
+        #if global_features is not None:
+        #    for feat in global_features:
+        #        if feat in df.columns:
+        #            global_features.append(list[global_features])
+        #        else:
+        #            print(f'Error: {feat} is a feature in the raw dataset.')
 
 
         super().__init__(smiles = df.smiles, target = df[target], global_features=global_features,

@@ -7,25 +7,45 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 __all__ = [
-    'graph_data_set_analysis'
+    'smiles_analysis'
 ]
 
-def graph_data_set_analysis(smiles, path_to_export=None, download=False, plots = None, save_plots = False, fig_size = None):
-    """
+def smiles_analysis(smiles, path_to_export=None, download=False, plots = None, save_plots = False, fig_size = None,
+                    output_filter=True):
+    """ Function to analyze a list of SMILES. Builds on top of:
+    https://github.com/awslabs/dgl-lifesci/blob/master/python/dgllife/utils/analysis.py
 
     Args:
-        smiles:
-        path_to_export:
-        download:
-        plots:
-        save_plots:
-        fig_size:
+        smiles: list of str
+            List of SMILES that are to be analyzed.
+        path_to_export: str
+            Path to the folder where analysis results should be saved. Default: None
+        download: bool
+            Decides if the results are downloaded. If either the path is given or download is set to true, the
+            analysis results will be downloaded as a txt file. Default: False
+        plots: list of str
+            Bar plots of the analysis results. Default: None. Possible options are:
+            ['atom_type_frequency', 'degree_frequency', 'total_degree_frequency', 'explicit_valence_frequency',
+            'implicit_valence_frequency', 'hybridization_frequency', 'total_num_h_frequency', 'formal_charge_frequency',
+            'num_radical_electrons_frequency', 'aromatic_atom_frequency', 'chirality_tag_frequency',
+            'bond_type_frequency', 'conjugated_bond_frequency', 'bond_stereo_configuration_frequency',
+            'bond_direction_frequency']
+        save_plots: bool
+            Decides if the plots are saved in the processed folder. Default: False
+        fig_size: list
+            2-D list to set the figure sizes. Default: [10,6]
+        output_filter: bool
+            Filters the output of excessive output. Default: True (recommended).
 
     Returns:
+        dictionary
+            Summary of the results.
+        figures (optional)
+            Bar plots of the specified results.
 
     """
 
-    if download and path_to_export is None:
+    if download or (path_to_export is None):
 
         path_to_export = os.getcwd() + '/analysis_results'
 
@@ -34,8 +54,10 @@ def graph_data_set_analysis(smiles, path_to_export=None, download=False, plots =
 
     dic = analyze_mols(smiles, path_to_export=path_to_export)
 
-    for key in ['num_atoms', 'num_bonds','num_rings','num_input_mols','num_valid_mols','valid_proportion', 'cano_smi']:
-        del dic[key]
+    # Filters some non
+    if output_filter:
+        for key in ['num_atoms', 'num_bonds','num_rings','num_valid_mols','valid_proportion', 'cano_smi']:
+            del dic[key]
 
     if path_to_export is not None:
         if os.path.exists(path_to_export +'/valid_canonical_smiles.txt'):
@@ -52,7 +74,11 @@ def graph_data_set_analysis(smiles, path_to_export=None, download=False, plots =
 
         for key in plots:
 
-            courses = list(dic[key].keys())
+            if key not in dic.keys():
+                print(f'Error: {key} is not a valid plot.')
+                continue
+
+            freq = list(dic[key].keys())
             values = list(dic[key].values())
 
             color = np.random.randint(0,100)
@@ -60,7 +86,7 @@ def graph_data_set_analysis(smiles, path_to_export=None, download=False, plots =
             fig = plt.figure(figsize=fig_size)
 
             # creating the bar plot
-            plt.bar(courses, values, color=cmap(color),
+            plt.bar(freq, values, color=cmap(color),
                     width=0.4)
 
             plt.xlabel(key)

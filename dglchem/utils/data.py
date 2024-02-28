@@ -22,7 +22,7 @@ from dgllife.utils import splitters
 
 
 from dglchem.utils.featurizer import AtomFeaturizer, BondFeaturizer
-from dglchem.utils.analysis import graph_data_set_analysis
+from dglchem.utils.analysis import smiles_analysis
 
 RDLogger.DisableLog('rdApp.*')
 
@@ -169,16 +169,16 @@ def split_data(data, split_type = None, split_frac = None, custom_split = None):
         data: Any iterable
             An object that can be accessed per an index and iterated upon. Ex: a DataSet or np.array object
         split_type: str
-            Indicates what split should be used. Default: random. The options are: [consecutive, random,
-            molecular weight, scaffold, stratified, custom]
+            Indicates what split should be used. Default: random. The options are: ['consecutive', 'random',
+            'molecular weight', 'scaffold', 'stratified', 'custom']
         split_frac: array
             Indicates what the split fractions should be. Default: [0.8, 0.1, 0.1]
         custom_split: array
             The custom split that should be applied. Has to be an array matching the length of the filtered smiles,
-            where 0 indicates a training sample, 1 a testing sample and 2 a validation sample.
+            where 0 indicates a training sample, 1 a testing sample and 2 a validation sample. Default: None
     Returns:
-        list, list, list
-            The list are the train, test and validation split respectively.
+        train, test, val
+            - Lists containing the respective data objects.
 
     """
 
@@ -291,12 +291,8 @@ class DataSet(DataLoad):
             self._indices = indices
 
 
-    def save_data_set(self, filename):
-        """
-
-        Args:
-            filename: str
-                Name of the file in which the data will be saved as a pickle file.
+    def save_data_set(self, filename=None):
+        """Saves the dataset in the processed folder as a pickle file.
 
         """
 
@@ -429,17 +425,41 @@ class DataSet(DataLoad):
         return [self[i] for i in indices]
 
 
-    def analysis(self, path_to_export=None, download=False, plots = None, save_plots = False):
+    def analysis(self, path_to_export=None, download=False, plots = None, save_plots = False, fig_size=None,
+                 output_filter = True):
         """Returns an overview of different aspects of the smiles dataset **after filtering** according to:
         https://github.com/awslabs/dgl-lifesci/blob/master/python/dgllife/utils/analysis.py.
         This includes the frequency of symbols, degree frequency and more.
 
-        Returns: dict
-            Dictionary with the analysis results.
+    Args:
+        path_to_export: str
+            Path to the folder where analysis results should be saved. Default: None (recommended).
+        download: bool
+            Decides if the results are downloaded. If either the path is given or download is set to true, the
+            analysis results will be downloaded as a txt file.
+        plots: list of str
+            Bar plots of the analysis results. Default: None. Possible options are:
+            ['atom_type_frequency', 'degree_frequency', 'total_degree_frequency', 'explicit_valence_frequency',
+            'implicit_valence_frequency', 'hybridization_frequency', 'total_num_h_frequency', 'formal_charge_frequency',
+            'num_radical_electrons_frequency', 'aromatic_atom_frequency', 'chirality_tag_frequency',
+            'bond_type_frequency', 'conjugated_bond_frequency', 'bond_stereo_configuration_frequency',
+            'bond_direction_frequency']
+        save_plots: bool
+            Decides if the plots are saved in the processed folder.
+        fig_size: list
+            2-D list to set the figure sizes. Default: [10,6]
+        output_filter: bool
+            Filters the output of excessive output.
+
+    Returns:
+        dictionary
+            Summary of the results.
+        figures (optional)
+            Bar plots of the specified results.
 
         """
 
-        return graph_data_set_analysis(self.smiles, path_to_export, download, plots, save_plots)
+        return smiles_analysis(self.smiles, path_to_export, download, plots, save_plots, fig_size, output_filter)
 
 
 
@@ -452,11 +472,11 @@ class GraphDataSet(DataSet):
 
     Parameters
     ----------
-    path: str
+    file_path: str
         The path to a pickle file that should be loaded and the data therein used.
     smiles: list of str
         List of smiles to be made into a graph.
-    target: list of in or float
+    target: list of float
         List of target values that will act as the graphs 'y'.
     allowed_atoms: list of str
         List of allowed atom symbols.
@@ -470,7 +490,7 @@ class GraphDataSet(DataSet):
     split_type: str
         Indicates what split should be used. Default: random. The options are:
         [consecutive, random, molecular weight, scaffold, stratified, custom]
-    split_frac: array
+    split_frac: list of float
         Indicates what the split fractions should be. Default: [0.8, 0.1, 0.1]
     custom_split: array
         The custom split that should be applied. Has to be an array matching the length of the filtered smiles,
@@ -510,12 +530,30 @@ class GraphDataSet(DataSet):
             self.train, self.test, self.val = split_data(data = self.data, split_type = self.split_type,
                                                         split_frac = self.split_frac, custom_split = self.custom_split)
 
-    def get_splits(self):
+    def get_splits(self, split_type = None, split_frac = None, custom_split = None):
+        """ Returns the dataset split into training, testing and validation based on the given split type.
+
+        Args:
+            split_type: str
+                Indicates what split should be used. It will either take a new argument or default
+                 to the initialized split fractions. The default initialization is 'random'. The options are:
+                 ['consecutive', 'random', 'molecular weight', 'scaffold', 'stratified', 'custom']
+            split_frac: array
+                Indicates what the split fractions should be. It will either take a new argument or default
+                 to the initialized split fractions. The default initialization is [0.8,0.1,0.1].
+            custom_split: array
+                The custom split that should be applied. Has to be an array matching the length of the filtered smiles,
+                where 0 indicates a training sample, 1 a testing sample and 2 a validation sample. It will either take
+                a new argument of default to the initialized custom split. The default initialization is None.
+
+        train, test, val
+            List containing the respective data objects.
+
         """
 
-        Returns: list, list, list
-            Lists containing the training, testing and validation split respectively.
+        split_type = self.split_type if split_type is None else split_type
+        split_frac = self.split_frac if split_frac is None else split_frac
+        custom_split = self.custom_split if custom_split is None else custom_split
 
-        """
-        return split_data(data = self.data, split_type = self.split_type,
-                            split_frac = self.split_frac, custom_split = self.custom_split)
+        return split_data(data = self.data, split_type = split_type,
+                            split_frac = split_frac, custom_split = custom_split)
