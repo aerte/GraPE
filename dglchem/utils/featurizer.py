@@ -164,7 +164,7 @@ class AtomFeaturizer(object):
 
     def __call__(self, mol):
         num_atoms = mol.GetNumAtoms()
-        atom_feats = dict()
+        atom_feats = defaultdict()
 
         for i in range(num_atoms):
             atom = mol.GetAtomWithIdx(i)
@@ -245,7 +245,7 @@ class BondFeaturizer(object):
 
     def __call__(self, mol):
         num_bonds = mol.GetNumBonds()
-        bond_feats = dict()
+        bond_feats = defaultdict()
 
         for i in range(num_bonds):
             bond = mol.GetBondWithIdx(i)

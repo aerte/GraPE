@@ -4,16 +4,20 @@
 
 import os
 from collections.abc import Sequence
+from collections import defaultdict
 
 import pickle
 import pandas as pd
 import numpy as np
 import torch
-
 from torch import Tensor
+
 from rdkit import Chem
-from rdkit.Chem import rdmolops, MolFromSmiles
+from rdkit.Chem import rdmolops, MolFromSmiles, rdMolDescriptors, Descriptors
 from rdkit import RDLogger
+from rdkit.ML.Cluster import Butina
+from rdkit import DataStructs
+
 
 from torch_geometric.data import Data
 from torch_geometric.utils import dense_to_sparse
@@ -28,6 +32,7 @@ RDLogger.DisableLog('rdApp.*')
 
 __all__ = ['filter_smiles',
            'construct_dataset',
+           'taylor_butina_clustering',
            'split_data',
            'DataSet',
            'GraphDataSet']
@@ -159,6 +164,92 @@ def construct_dataset(smiles, target, allowed_atoms = None, atom_feature_list = 
         data.append(Data(x = x, edge_index = edge_index, edge_attr = edge_attr, y=target[i]))
 
     return data
+
+
+def taylor_butina_clustering(data, threshold=0.35, nBits = 1024, radius = 3,
+                             split_frac=None):
+    """Clusters the data based on Butina clustering [1] and splits it into training, testing and validation data splits.
+    Splitting will occur from largest to smallest cluster. Inspired by the great workshop code by Pat Walters,
+    see https://github.com/PatWalters/workshop/blob/master/clustering/taylor_butina.ipynb.
+
+    Args:
+        data: object
+            An object like the DataSet class that can be indexed and stores the SMILES via data.smiles.
+        threshold: float
+            Distance threshold used for the Butina clustering [1]. Default: 0.35.
+        nBits: int
+            The number of bits used for the Morgan fingerprints [2]. Default: 1024.
+        radius: int
+            Atom radius used for the Morgan fingerprints [2]. Default: 3.
+        split_frac: list of float
+            List of data split fractions. Default: [0.8,0.1,0.1].
+
+    Returns:
+        train, test, val -
+            Returns the respective lists of Data lists that be fed into a DataLoader.
+
+    ----
+
+    References: \n
+    [1] Darko Butina, Unsupervised Data Base Clustering Based on Daylight's Fingerprint and Tanimoto Similarity: A Fast
+    and Automated Way To Cluster Small and Large Data Sets, https://doi.org/10.1021/ci9803381 \n
+    [2] Rogers, D. & Hahn, M. Extended-Connectivity Fingerprints. J. Chem. Inf. Model. 50, 742-754 (2010),
+    https://doi.org/10.1021/ci100050t
+
+
+    """
+
+    # 1) Finding the fingerprints of the molecules
+    fingerprints = []
+    for smile in data.smiles:
+        mol = MolFromSmiles(smile)
+        fingerprints.append(rdMolDescriptors.GetMorganFingerprintAsBitVect(mol, radius = radius, nBits=nBits))
+    nPoints = len(fingerprints)
+
+    # 2) Distance matrix for 1-similarity
+    dist_matrix = []
+    for i in range(nPoints):
+        similarity = DataStructs.BulkTanimotoSimilarity(fingerprints[i],fingerprints[:i])
+        dist_matrix.extend([1-sim for sim in similarity])
+
+    # 3) Clustering
+    clusters = Butina.ClusterData(dist_matrix, nPts=nPoints, distThresh=threshold, isDistData=True)
+
+    # 4) Assigning smiles to clustering
+    Idx = np.zeros([nPoints,], dtype=np.int8)
+
+    for id, cluster in enumerate(clusters):
+        Idx[np.array(cluster)] = id
+
+    splits = defaultdict()
+    splits[0] = []
+    processed_len = 0
+    split = 0
+
+    # Data split:
+
+    split_frac = [0.8,0.1,0.1] if split_frac is None else split_frac
+
+    for cluster in np.unique(Idx):
+        if processed_len/nPoints >= np.sum(split_frac[:split + 1]):
+            split+=1
+            if split == 3: break
+
+            splits[split] = []
+            # print('next split')
+
+        splits[split].append([point for point in data[Idx==cluster]])
+        processed_len += np.sum(Idx==cluster)
+        # print(f'{processed_len/nPoints*100}% processed.')
+
+    return splits[0], splits[1], splits[2]
+
+
+
+
+
+
+
 
 
 
