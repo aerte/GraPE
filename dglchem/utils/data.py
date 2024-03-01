@@ -180,7 +180,7 @@ def taylor_butina_clustering(data, threshold=0.35, nBits = 1024, radius = 3,
         nBits: int
             The number of bits used for the Morgan fingerprints [2]. Default: 1024.
         radius: int
-            Atom radius used for the Morgan fingerprints [2]. Default: 3.
+            Atom radius used for the Morgan fingerprints [2]. Decides the size of the considered fragments. Default: 3.
         split_frac: list of float
             List of data split fractions. Default: [0.8,0.1,0.1].
 
