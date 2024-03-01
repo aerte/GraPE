@@ -9,73 +9,16 @@ from functools import partial
 
 import numpy as np
 import torch
-from rdkit import Chem, RDConfig
-from rdkit.Chem import AllChem, ChemicalFeatures, Descriptors
+from rdkit import Chem
+
+from dglchem.utils import feature_func as ff
 
 # feature extraction functions from dgl life
-from dgllife.utils import featurizers as ft
 
 __all__ = [
-    'mol_weight',
-    'one_hot',
     'AtomFeaturizer',
     'BondFeaturizer'
 ]
-
-def mol_weight(smiles):
-    """Returns the molecular weight of a smile.
-
-    Parameters
-    ----------
-    smiles: str
-        SMILE string.
-
-    Returns
-    -------
-    float
-        The molecular weight of the SMILES molecule.
-
-    """
-
-    return Descriptors.ExactMolWt(Chem.MolFromSmiles(smiles))
-
-def one_hot(input_, mapping, encode_unknown = False):
-    """One hot encodes an arbitrary input given a mapping.
-
-    Parameters
-    ----------
-    input_: Any
-        The input value that will be encoded. Could be an integer, a string or rdkit bond type.
-    mapping: list
-        A list of values that the input will be encoding to.
-    encode_unknown: bool
-        Decides if, should the input not be represented in the mapping, the unknowns input is encoded as 'other' at
-        the end. Default: False
-
-    Returns
-    -------
-    list
-        One hot encoding.
-
-    """
-
-    if isinstance(input_, list):
-        input_ = input_[0]
-
-    encoding = list(map(lambda x: x == input_, mapping))
-
-    if encode_unknown and (input_ not in mapping):
-        encoding.append(True)
-    elif encode_unknown:
-        encoding.append(False)
-
-    assert np.sum(np.array(encoding)) != 0, ('At least one of the elements should be True, consider checking the values'
-                                             'or encoding the unknowns.')
-
-    return encoding
-
-
-
 
 
 class AtomFeaturizer(object):
@@ -127,7 +70,7 @@ class AtomFeaturizer(object):
       ---> *['atom_is_in_ring_one_hot']*
     * **If an atom is in a ring (True/False).**
       ---> *['atom_is_in_ring']*
-    * **One hot encoding of an atoms chiral tag.**
+    * **One hot encoding of an atoms chiral tag**
       ---> *['atom_chiral_tag_one_hot']*
     * **Atomic mass.**
       ---> *['atom_mass']*
@@ -160,32 +103,30 @@ class AtomFeaturizer(object):
 
         ### Dictionary for all features
         total_atom_feat = {
-        'atom_type_one_hot': partial(ft.atom_type_one_hot, allowable_set = self.allowable_set_symbols, encode_unknown=False),
-        'atomic_number_one_hot': ft.atomic_number_one_hot,
-        'atomic_number': ft.atomic_number,
-        'atom_degree_one_hot': partial(ft.atom_degree_one_hot, allowable_set = list(range(6))),
-        'atom_degree': ft.atom_degree,
-        'atom_total_degree_one_hot': ft.atom_total_degree_one_hot,
-        'atom_total_degree': ft.atom_total_degree,
-        'atom_explicit_valence_one_hot': ft.atom_explicit_valence_one_hot,
-        'atom_explicit_valence': ft.atom_explicit_valence,
-        'atom_implicit_valence_one_hot': ft.atom_implicit_valence_one_hot,
-        'atom_implicit_valence': ft.atom_implicit_valence,
-        'atom_hybridization_one_hot': partial(ft.atom_hybridization_one_hot, encode_unknown = False),
-        'atom_total_num_H_one_hot': ft.atom_total_num_H_one_hot,
-        'atom_total_num_H': ft.atom_total_num_H,
-        'atom_formal_charge_one_hot': ft.atom_formal_charge_one_hot,
-        'atom_formal_charge': ft.atom_formal_charge,
-        'atom_num_radical_electrons_one_hot': ft.atom_num_radical_electrons_one_hot,
-        'atom_num_radical_electrons': ft.atom_num_radical_electrons,
-        'atom_is_aromatic_one_hot': ft.atom_is_aromatic_one_hot,
-        'atom_is_aromatic': ft.atom_is_aromatic,
-        'atom_is_in_ring_one_hot': ft.atom_is_in_ring_one_hot,
-        'atom_is_in_ring': ft.atom_is_in_ring,
-        'atom_chiral_tag_one_hot': ft.atom_chiral_tag_one_hot,
-        'atom_chirality_type_one_hot': ft.atom_chirality_type_one_hot,
-        'atom_mass': ft.atom_mass,
-        'atom_is_chiral_center': ft.atom_is_chiral_center,
+        'atom_type_one_hot': ff.atom_symbol,
+        'atomic_number_one_hot': partial(ff.atom_number, type_='one_hot'),
+        'atomic_number': ff.atomic_number,
+        'atom_degree_one_hot': partial(ff.atom_degree, type_='one_hot'),
+        'atom_degree': ff.atom_degree,
+        'atom_total_degree_one_hot': partial(ff.atom_degree, type_='total_one_hot'),
+        'atom_total_degree': partial(ff.atom_degree, type_='total'),
+        'atom_explicit_valence_one_hot': partial(ff.atom_degree, type_='ex_one_hot'),
+        'atom_explicit_valence': partial(ff.atom_degree, type_='ex'),
+        'atom_implicit_valence_one_hot': partial(ff.atom_degree, type_='im_one_hot'),
+        'atom_implicit_valence': ff.atom_valence,
+        'atom_hybridization_one_hot': ff.atom_hybridization,
+        'atom_total_num_H_one_hot': partial(ff.atom_num_H, type_='one_hot'),
+        'atom_total_num_H': ff.atom_num_H,
+        'atom_formal_charge_one_hot': partial(ff.atom_formal_charge,type='one_hot'),
+        'atom_formal_charge': ff.atom_formal_charge,
+        'atom_num_radical_electrons_one_hot': partial(ff.atom_formal_charge, type_='one_hot'),
+        'atom_num_radical_electrons': ff.atom_formal_charge,
+        'atom_is_aromatic': ff.atom_is_aromatic,
+        'atom_is_in_ring': ff.atom_in_ring,
+        'atom_chiral_tag_one_hot': partial(ff.atom_chiral, type_='tag'),
+        'atom_chirality_type_one_hot': partial(ff.atom_chiral, type_='type'),
+        'atom_is_chiral_center': partial(ff.atom_chiral, type_='center'),
+        'atom_mass': ff.atom_mass,
         }
 
         if atom_feature_list is None:
@@ -226,19 +167,15 @@ class BondFeaturizer(object):
 
     All possible bond features are:
 
-    * **One hot encoding of the bond type.**:
+    * **One hot encoding of the bond type**.
       ---> *['bond_type_one_hot']*
-    * **One hot encoding if bond is conjugated (true/false).**:
-      ---> *['bond_is_conjugated_one_hot']*
-    * **Bond conjugation (true/false).**:
+    * **Bond conjugation (true/false)**.
       ---> *['bond_is_conjugated']*
-    * **One hot encoding if bond is in a ring**:
-      ---> *['bond_is_in_ring_one_hot']*
-    * **Bond in a ring (true/false)**:
+    * **Bond in a ring (true/false)**.
       ---> *['bond_is_in_ring']*
-    * **One hot encoding of bond stereo configuration.**:
+    * **One hot encoding of bond stereo configuration**.
       ---> *['bond_stereo_one_hot']*
-    * **One hot encoding of bond direction.**:
+    * **One hot encoding of bond direction**.
       ---> *['bond_direction_one_hot']*
 
     **The input feature list determines the order of the features.**
@@ -251,16 +188,11 @@ class BondFeaturizer(object):
     def __init__(self, bond_feature_list=None):
 
         total_bond_feats = {
-            'bond_type_one_hot': ft.bond_type_one_hot,
-            'bond_is_conjugated_one_hot': ft.bond_is_conjugated_one_hot,
-            'bond_is_conjugated': ft.bond_is_conjugated,
-            'bond_is_in_ring_one_hot': ft.bond_is_in_ring_one_hot,
-            'bond_is_in_ring': ft.bond_is_in_ring,
-            'bond_stereo_one_hot':partial(ft.bond_stereo_one_hot, allowable_set=[Chem.rdchem.BondStereo.STEREONONE,
-                                                             Chem.rdchem.BondStereo.STEREOANY,
-                                                             Chem.rdchem.BondStereo.STEREOZ,
-                                                             Chem.rdchem.BondStereo.STEREOE]),
-            'bond_direction_one_hot':ft.bond_direction_one_hot
+            'bond_type_one_hot': ff.bond_type,
+            'bond_is_conjugated': ff.bond_is_conjugated,
+            'bond_is_in_ring': ff.bond_is_in_ring,
+            'bond_stereo_one_hot': ff.bond_stereo,
+            'bond_direction_one_hot':ff.bond_direction
         }
 
         if bond_feature_list is None:

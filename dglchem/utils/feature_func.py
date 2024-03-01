@@ -94,13 +94,24 @@ def atom_symbol(atom, allowed_set = None, encode_unknown=False):
     allowed_set =  ['C', 'N', 'O', 'S', 'F', 'Cl', 'Br', 'I', 'P'] if allowed_set is None else allowed_set
     return one_hot(atom.GetSymbol(), allowed_set, encode_unknown)
 
+def atom_number(atom, type_='', allowed_set = None, encode_unknown=False):
+
+    match type_:
+        case 'one_hot':
+            allowed_set = list(range(1,101)) if allowed_set is None else allowed_set
+            return one_hot(atom.GetAtomicNum(), allowed_set, encode_unknown)
+        case 'regular':
+            return [atom.GetAtomicNum()]
+        case _:
+            return [atom.GetAtomicNum()]
+
 
 #### Atom degree
 def atom_degree(atom, type_='', allowed_set=None, encode_unknown=None):
 
     match type_:
         case 'total_one_hot':
-            allowed_set = list(range(6)) if allowed_set is None else allowed_set_total
+            allowed_set = list(range(6)) if allowed_set is None else allowed_set
             return one_hot(atom.GetTotalDegree(), allowed_set, encode_unknown)
         case 'total':
             return [atom.GetTotalDegree()]
@@ -116,15 +127,15 @@ def atom_degree(atom, type_='', allowed_set=None, encode_unknown=None):
 #### Atom valency
 def atom_valence(atom, type_='', allowed_set=None, encode_unknown=False):
     match type_:
-        case 'explicit_one_hot':
+        case 'ex_one_hot':
             allowed_set = list(range(0, 6)) if allowed_set is None else allowed_set
             return one_hot(atom.GetExplicitValence(), allowed_set, encode_unknown)
-        case 'explicit':
+        case 'ex':
             return [atom.GetExplicitValence()]
-        case 'implicit_one_hot':
+        case 'im_one_hot':
             allowed_set = list(range(0, 6)) if allowed_set is None else allowed_set
             return one_hot(atom.GetImplicitValence(), allowed_set, encode_unknown)
-        case 'implicit':
+        case 'im':
             return [atom.GetImplicitValence()]
         case _:
             return [atom.GetImplicitValence()]
@@ -143,7 +154,7 @@ def atom_hybridization(atom, allowed_set=None, encode_unknown=False):
 
 
 #### Total number of H of an Atom
-def atom_total_H(atom, type_='', allowed_set=None, encode_unknown=False):
+def atom_num_H(atom, type_='', allowed_set=None, encode_unknown=False):
     match type_:
         case 'one_hot':
             allowed_set = list(range(5)) if allowed_set is None else allowed_set
