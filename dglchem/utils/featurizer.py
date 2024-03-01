@@ -17,6 +17,7 @@ from dgllife.utils import featurizers as ft
 
 __all__ = [
     'mol_weight',
+    'one_hot',
     'AtomFeaturizer',
     'BondFeaturizer'
 ]
@@ -24,19 +25,61 @@ __all__ = [
 def mol_weight(smiles):
     """Returns the molecular weight of a smile.
 
-    Args:
-        smiles: str
-            SMILE string.
+    Parameters
+    ----------
+    smiles: str
+        SMILE string.
 
-    Returns: float
+    Returns
+    -------
+    float
         The molecular weight of the SMILES molecule.
 
     """
 
     return Descriptors.ExactMolWt(Chem.MolFromSmiles(smiles))
 
+def one_hot(input_, mapping, encode_unknown = False):
+    """One hot encodes an arbitrary input given a mapping.
+
+    Parameters
+    ----------
+    input_: Any
+        The input value that will be encoded. Could be an integer, a string or rdkit bond type.
+    mapping: list
+        A list of values that the input will be encoding to.
+    encode_unknown: bool
+        Decides if, should the input not be represented in the mapping, the unknowns input is encoded as 'other' at
+        the end. Default: False
+
+    Returns
+    -------
+    list
+        One hot encoding.
+
+    """
+
+    if isinstance(input_, list):
+        input_ = input_[0]
+
+    encoding = list(map(lambda x: x == input_, mapping))
+
+    if encode_unknown and (input_ not in mapping):
+        encoding.append(True)
+    elif encode_unknown:
+        encoding.append(False)
+
+    assert np.sum(np.array(encoding)) != 0, ('At least one of the elements should be True, consider checking the values'
+                                             'or encoding the unknowns.')
+
+    return encoding
+
+
+
+
+
 class AtomFeaturizer(object):
-    """An atom featurizer based on a flexible input list.
+    """An atom featurizer based on a flexible input list. Inspired by https://github.com/awslabs/dgl-lifesci.
 
     The possible features include:
 
@@ -98,25 +141,20 @@ class AtomFeaturizer(object):
     Parameters
     ----------
     allowed_atoms : list of str
-        List of allowed atoms symbols. Default: [``B``, ``C``, ``N``, ``O``,
-        ``F``, ``Si``, ``P``, ``S``, ``Cl``, ``As``, ``Se``, ``Br``, ``Te``, ``I``, ``At``,``other``]
+        List of allowed atoms symbols. The default follows the choice of atom symbols allowed in [1, 2]. Default:
+        [``C``, ``N``, ``O``, ``S``, ``F``, ``Cl``, ``Br``, ``I``, ``P``].
     atom_feature_list: list of str
-        List of features to be applied. Default are the AFP atom features:
-            atom_feature_list =
-                ['atom_type_one_hot','atom_degree_one_hot','atom_formal_charge',
-                'atom_num_radical_electrons',
-                'atom_hybridization_one_hot',
-                'atom_is_aromatic',
-                'atom_total_num_H_one_hot',
-                'atom_is_chiral_center',
-                'atom_chirality_type_one_hot']
+        List of features to be applied. Default: All implemented features.
+
+    References
+    -----
+    [1] Adem R.N. Aouichaoui et al., Application of interpretable group-embedded graph neural networks for pure compound
+     properties, 2023, https://doi.org/10.1016/j.compchemeng.2023.108291
+    [2] Adem R.N. Aouichaoui et al., Combining Group-Contribution Concept and Graph Neural Networks Toward Interpretable
+     Molecular Property Models, 2023, https://doi.org/10.1021/acs.jcim.2c01091
 
     """
     def __init__(self, allowed_atoms = None, atom_feature_list = None):
-
-        if allowed_atoms is None:
-            allowed_atoms = ['B', 'C', 'N', 'O', 'F', 'Si', 'P',
-                           'S', 'Cl', 'As', 'Se', 'Br', 'Te', 'I', 'At']
 
         self.allowable_set_symbols = allowed_atoms
 
@@ -184,7 +222,7 @@ class AtomFeaturizer(object):
 
 
 class BondFeaturizer(object):
-    """A bond featurizer based on a flexible input list.
+    """A bond featurizer based on a flexible input list. Inspired by https://github.com/awslabs/dgl-lifesci.
 
     All possible bond features are:
 
@@ -208,11 +246,7 @@ class BondFeaturizer(object):
     Parameters
     ----------
     bond_feature_list: list of str
-        List of features that will be applied. Default are the AFP features:
-            bond_feats = ['bond_type_one_hot',
-                          'bond_is_conjugated',
-                          'bond_is_in_ring',
-                          'bond_stereo_one_hot']
+        List of features that will be applied. Default: All implemented features.
     """
     def __init__(self, bond_feature_list=None):
 

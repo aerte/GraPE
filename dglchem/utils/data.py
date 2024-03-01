@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Graph constructor with input built on top of dgl-lifesci and pytorch geometric
+# Graph constructor built on top of pytorch geometric
 
 import os
 from collections.abc import Sequence
@@ -99,38 +99,28 @@ def filter_smiles(smiles, target, allowed_atoms = None, log = False):
 def construct_dataset(smiles, target, allowed_atoms = None, atom_feature_list = None, bond_feature_list = None):
     """Constructs a dataset out of the smiles and target lists based on the feature lists provided.
 
-    Args:
-        smiles : list of str
-            Smiles that are featurized and passed into a PyG DataSet.
+    Parameters
+    ----------
+    smiles : list of str
+        Smiles that are featurized and passed into a PyG DataSet.
 
-        target: Any
-            Array of values that serve as the graph 'target'.
+    target: Any
+        Array of values that serve as the graph 'target'.
 
-        allowed_atoms : list of str
-            Smiles that are considered in featurization. Default: [``B``, ``C``, ``N``, ``O``,
-            ``F``, ``Si``, ``P``, ``S``, ``Cl``, ``As``, ``Se``, ``Br``, ``Te``, ``I``, ``At``,``other``]
+    allowed_atoms : list of str
+        Smiles that are considered in featurization. Default: [``C``, ``N``, ``O``, ``S``, ``F``, ``Cl``, ``Br``,
+        ``I``, ``P``]
 
-        atom_feature_list : list of str
-            Features of the featurizer, see utils.featurizer for more details. Default: AFP featurizer:
-                atom_feature_list =
-                    ['atom_type_one_hot','atom_degree_one_hot','atom_formal_charge',
-                    'atom_num_radical_electrons',
-                    'atom_hybridization_one_hot',
-                    'atom_is_aromatic',
-                    'atom_total_num_H_one_hot',
-                    'atom_is_chiral_center',
-                    'atom_chirality_type_one_hot']
+    atom_feature_list : list of str
+        Features of the featurizer, see utils.featurizer for more details. Default: All implemented features.
 
-        bond_feature_list : list of str
-            Bond features of the bond featurizer, see utils.featurizer for more details. Default: AFP featurizer:
+    bond_feature_list : list of str
+        Bond features of the bond featurizer, see utils.featurizer for more details. Default: All implemented features.
 
-                bond_feats = ['bond_type_one_hot',
-                          'bond_is_conjugated',
-                          'bond_is_in_ring',
-                          'bond_stereo_one_hot']
-
-    Returns:
-        data: list of Pytorch-Geometric Data objects
+    Returns
+    -------
+    data
+        list of Pytorch-Geometric Data objects
 
     """
     if atom_feature_list is None:
@@ -172,21 +162,23 @@ def taylor_butina_clustering(data, threshold=0.35, nBits = 1024, radius = 3,
     Splitting will occur from largest to smallest cluster. Inspired by the great workshop code by Pat Walters,
     see https://github.com/PatWalters/workshop/blob/master/clustering/taylor_butina.ipynb.
 
-    Args:
-        data: object
-            An object like the DataSet class that can be indexed and stores the SMILES via data.smiles.
-        threshold: float
-            Distance threshold used for the Butina clustering [1]. Default: 0.35.
-        nBits: int
-            The number of bits used for the Morgan fingerprints [2]. Default: 1024.
-        radius: int
-            Atom radius used for the Morgan fingerprints [2]. Decides the size of the considered fragments. Default: 3.
-        split_frac: list of float
-            List of data split fractions. Default: [0.8,0.1,0.1].
+    Parameters
+    ----------
+    data: object
+        An object like the DataSet class that can be indexed and stores the SMILES via data.smiles.
+    threshold: float
+        Distance threshold used for the Butina clustering [1]. Default: 0.35.
+    nBits: int
+        The number of bits used for the Morgan fingerprints [2]. Default: 1024.
+    radius: int
+        Atom radius used for the Morgan fingerprints [2]. Decides the size of the considered fragments. Default: 3.
+    split_frac: list of float
+        List of data split fractions. Default: [0.8,0.1,0.1].
 
-    Returns:
-        train, test, val -
-            Returns the respective lists of Data lists that be fed into a DataLoader.
+    Returns
+    -------
+    train, test, val -
+        Returns the respective lists of Data lists that be fed into a DataLoader.
 
     ----
 
@@ -246,30 +238,26 @@ def taylor_butina_clustering(data, threshold=0.35, nBits = 1024, radius = 3,
 
 
 
-
-
-
-
-
-
-
 def split_data(data, split_type = None, split_frac = None, custom_split = None):
     """
 
-    Args:
-        data: Any iterable
-            An object that can be accessed per an index and iterated upon. Ex: a DataSet or np.array object
-        split_type: str
-            Indicates what split should be used. Default: random. The options are: ['consecutive', 'random',
-            'molecular weight', 'scaffold', 'stratified', 'custom']
-        split_frac: array
-            Indicates what the split fractions should be. Default: [0.8, 0.1, 0.1]
-        custom_split: array
-            The custom split that should be applied. Has to be an array matching the length of the filtered smiles,
-            where 0 indicates a training sample, 1 a testing sample and 2 a validation sample. Default: None
-    Returns:
-        train, test, val
-            - Lists containing the respective data objects.
+    Parameters
+    ----------
+    data: Any iterable
+        An object that can be accessed per an index and iterated upon. Ex: a DataSet or np.array object
+    split_type: str
+        Indicates what split should be used. Default: random. The options are: ['consecutive', 'random',
+        'molecular weight', 'scaffold', 'stratified', 'custom']
+    split_frac: array
+        Indicates what the split fractions should be. Default: [0.8, 0.1, 0.1]
+    custom_split: array
+        The custom split that should be applied. Has to be an array matching the length of the filtered smiles,
+        where 0 indicates a training sample, 1 a testing sample and 2 a validation sample. Default: None
+
+    Returns
+    -------
+    train, test, val
+        - Lists containing the respective data objects.
 
     """
 
@@ -346,9 +334,9 @@ class DataSet(DataLoad):
     allowed_atoms: list of str
         List of allowed atom symbols.
     atom_feature_list: list of str
-        List of features to be applied. Default are the AFP atom features.
+        List of features to be applied. Default: All implemented features.
     bond_feature_list: list of str
-        List of features that will be applied. Default are the AFP features
+        List of features that will be applied. Default: All implemented features.
     log: bool
         Decides if the filtering output and other outputs will be shown.
 
@@ -385,7 +373,14 @@ class DataSet(DataLoad):
     def save_data_set(self, filename=None):
         """Saves the dataset in the processed folder as a pickle file.
 
+        Parameters
+        ----------
+        filename: str
+            Name of the data file. Default: 'data'
+
+
         """
+        filename='data' if filename is None else filename
 
         path = self.processed_dir
 
@@ -401,14 +396,15 @@ class DataSet(DataLoad):
     def get_smiles(self, path=None):
         """
 
-        Args:
-            path: str
-                Path where the smiles should be saved. Default is the processed files directory.
+        Parameters
+        ----------
+        path: str
+            Path where the smiles should be saved. Default: The processed files' directory.
 
         """
 
-        if path is None:
-            path = self.processed_dir
+        path = self.processed_dir if path is None else path
+
         if not os.path.exists(path):
             os.makedirs(path)
 
@@ -417,7 +413,9 @@ class DataSet(DataLoad):
     def indices(self):
         """
 
-        Returns: list
+        Returns
+        -------
+        list
             Indices of the dataset
 
         """
@@ -427,7 +425,9 @@ class DataSet(DataLoad):
     def __len__(self):
         """
 
-        Returns: int
+        Returns
+        -------
+        int
             Length of the dataset.
 
         """
@@ -436,11 +436,14 @@ class DataSet(DataLoad):
     def __getitem__(self, idx):
         """
 
-        Args:
-            idx: int
-                Index of item to be returned.
+        Parameters
+        ----------
+        idx: int
+            Index of item to be returned.
 
-        Returns: obj
+        Returns
+        -------
+        obj
             Data object at index [item].
 
         """
@@ -468,12 +471,15 @@ class DataSet(DataLoad):
 
         Modified from https://pytorch-geometric.readthedocs.io/en/latest/_modules/torch_geometric/data/dataset.html#Dataset
 
-        Args:
+        Parameters
+        ----------
             idx: obj
                 Index list of data objects to retrieve.
 
-        Returns: list
-            List of data objects.
+        Returns
+        -------
+        list
+            Python list of data objects.
 
         """
 
@@ -522,7 +528,8 @@ class DataSet(DataLoad):
         https://github.com/awslabs/dgl-lifesci/blob/master/python/dgllife/utils/analysis.py.
         This includes the frequency of symbols, degree frequency and more.
 
-    Args:
+        Parameters
+        ----------
         path_to_export: str
             Path to the folder where analysis results should be saved. Default: None (recommended).
         download: bool
@@ -542,7 +549,8 @@ class DataSet(DataLoad):
         output_filter: bool
             Filters the output of excessive output.
 
-    Returns:
+        Returns
+        -------
         dictionary
             Summary of the results.
         figures (optional)
@@ -555,18 +563,21 @@ class DataSet(DataLoad):
     def weight_vs_target_plot(self, target_name=None, save_fig = False, pre_standardization = True, path_to_export = None):
         """
 
-        Args:
-            target_name: str
-                The title of the y-axis in the plot. Default: 'target'
-            save_fig: bool
-                Decides if the figure is saved in the processed directory.
-            pre_standardization: bool
-                Decides if the pre- or post-standardization target variable is used. Will only affect the scale,
-                not the distribution. Default: True.
-            path_to_export: str
-                Export path, will default to the directory 'analysis_results' if not specified.
+        Parameters
+        ----------
+        target_name: str
+            The title of the y-axis in the plot. Default: 'target'
+        save_fig: bool
+            Decides if the figure is saved in the processed directory.
+        pre_standardization: bool
+            Decides if the pre- or post-standardization target variable is used. Will only affect the scale,
+            not the distribution. Default: True.
+        path_to_export: str
+            Export path, will default to the directory 'analysis_results' if not specified.
 
-        Returns: plot
+        Returns
+        -------
+        plot
             A seaborn jointplot of the molecular weight and target distributions.
 
         """
@@ -653,19 +664,22 @@ class GraphDataSet(DataSet):
     def get_splits(self, split_type = None, split_frac = None, custom_split = None):
         """ Returns the dataset split into training, testing and validation based on the given split type.
 
-        Args:
-            split_type: str
-                Indicates what split should be used. It will either take a new argument or default
-                 to the initialized split fractions. The default initialization is 'random'. The options are:
-                 ['consecutive', 'random', 'molecular weight', 'scaffold', 'stratified', 'custom']
-            split_frac: array
-                Indicates what the split fractions should be. It will either take a new argument or default
-                 to the initialized split fractions. The default initialization is [0.8,0.1,0.1].
-            custom_split: array
-                The custom split that should be applied. Has to be an array matching the length of the filtered smiles,
-                where 0 indicates a training sample, 1 a testing sample and 2 a validation sample. It will either take
-                a new argument of default to the initialized custom split. The default initialization is None.
+        Parameters
+        ----------
+        split_type: str
+            Indicates what split should be used. It will either take a new argument or default
+             to the initialized split fractions. The default initialization is 'random'. The options are:
+             ['consecutive', 'random', 'molecular weight', 'scaffold', 'stratified', 'custom']
+        split_frac: array
+            Indicates what the split fractions should be. It will either take a new argument or default
+             to the initialized split fractions. The default initialization is [0.8,0.1,0.1].
+        custom_split: array
+            The custom split that should be applied. Has to be an array matching the length of the filtered smiles,
+            where 0 indicates a training sample, 1 a testing sample and 2 a validation sample. It will either take
+            a new argument of default to the initialized custom split. The default initialization is None.
 
+        Returns
+        -------
         train, test, val
             List containing the respective data objects.
 
