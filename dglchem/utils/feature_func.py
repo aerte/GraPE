@@ -15,7 +15,7 @@ __all__ = [
     'atom_valence',
     'atom_hybridization',
     'atom_in_ring',
-    'atom_total_H',
+    'atom_num_H',
     'atom_num_rad_electrons',
     'atom_mass',
     'atom_is_aromatic',
@@ -23,7 +23,7 @@ __all__ = [
     'bond_direction',
     'bond_type',
     'bond_stereo',
-    'bond_conjugated',
+    'bond_is_conjugated',
     'bond_in_ring'
 ]
 
@@ -57,7 +57,7 @@ def one_hot(input_, mapping, encode_unknown = False):
     elif encode_unknown:
         encoding.append(False)
 
-    assert np.sum(np.array(encoding)) != 0, ('At least one of the elements should be True, consider checking the values'
+    assert np.sum(np.array(encoding)) == 1, ('One of the elements has to be True, consider checking the values'
                                              'or encoding the unknowns.')
 
     return encoding
@@ -96,6 +96,8 @@ def atom_symbol(atom, allowed_set = None, encode_unknown=False):
 
 def atom_number(atom, type_='', allowed_set = None, encode_unknown=False):
 
+    assert type_ in ['one_hot', 'regular', ''], 'Wrong type, the options are: [one_hot, regular, ]'
+
     match type_:
         case 'one_hot':
             allowed_set = list(range(1,101)) if allowed_set is None else allowed_set
@@ -108,6 +110,9 @@ def atom_number(atom, type_='', allowed_set = None, encode_unknown=False):
 
 #### Atom degree
 def atom_degree(atom, type_='', allowed_set=None, encode_unknown=None):
+
+    assert type_ in ['total_one_hot', 'total', 'one_hot', 'regular', ''], ('Wrong type, the options are:'
+                                                                           '[total_one_hot, total, one_hot, regular, ]')
 
     match type_:
         case 'total_one_hot':
@@ -126,6 +131,9 @@ def atom_degree(atom, type_='', allowed_set=None, encode_unknown=None):
 
 #### Atom valency
 def atom_valence(atom, type_='', allowed_set=None, encode_unknown=False):
+    assert type_ in ['ex_one_hot', 'ex', 'im_one_hot', 'im', ''], ('Wrong type, the options are: '
+                                                                    '[ex_one_hot, ex, im_one_hot, im, ]')
+
     match type_:
         case 'ex_one_hot':
             allowed_set = list(range(0, 6)) if allowed_set is None else allowed_set
@@ -155,6 +163,9 @@ def atom_hybridization(atom, allowed_set=None, encode_unknown=False):
 
 #### Total number of H of an Atom
 def atom_num_H(atom, type_='', allowed_set=None, encode_unknown=False):
+
+    assert type_ in ['one_hot', 'regular', ''], 'Wrong type, the options are: [one_hot, regular, ]'
+
     match type_:
         case 'one_hot':
             allowed_set = list(range(5)) if allowed_set is None else allowed_set
@@ -166,6 +177,9 @@ def atom_num_H(atom, type_='', allowed_set=None, encode_unknown=False):
 
 #### Formal charge
 def atom_formal_charge(atom, type_='', allowed_set=None, encode_unknown=False):
+
+    assert type_ in ['one_hot', 'regular', ''], 'Wrong type, the options are: [one_hot, regular, ]'
+
     match type_:
         case 'one_hot':
             allowed_set = list(range(-2,3)) if allowed_set is None else allowed_set
@@ -176,7 +190,10 @@ def atom_formal_charge(atom, type_='', allowed_set=None, encode_unknown=False):
             return [atom.GetFormalCharge()]
 
 #### Radical electrons
-def atom_num_rad_electrons(atom, type_, allowed_set=None, encode_unknown=False):
+def atom_num_rad_electrons(atom, type_='', allowed_set=None, encode_unknown=False):
+
+    assert type_ in ['one_hot', 'regular', ''], 'Wrong type, the options are: [one_hot, regular, ]'
+
     match type_:
         case 'one_hot':
             allowed_set = list(range(5)) if allowed_set is None else allowed_set
@@ -199,6 +216,8 @@ def atom_in_ring(atom):
 
 def atom_chiral(atom, type_='', allowed_set=None, encode_unknown=False):
 
+    assert type_ in ['tag', 'type', 'center'], 'Wrong type, the options are: [tag, type, center]'
+
     match type_:
         case 'tag':
             if allowed_set is None:
@@ -206,8 +225,12 @@ def atom_chiral(atom, type_='', allowed_set=None, encode_unknown=False):
                                Chem.rdchem.ChiralType.CHI_TETRAHEDRAL_CW,
                                Chem.rdchem.ChiralType.CHI_TETRAHEDRAL_CCW,
                                Chem.rdchem.ChiralType.CHI_OTHER]
-            return one_hot(atom.GetProp('_CIPCode'), allowed_set, encode_unknown)
+            return one_hot(atom.GetChiralTag(), allowed_set, encode_unknown)
         case 'type':
+
+            if not atom.HasProp('_CIPCode'):
+                return [False, False]
+
             allowed_set = ['R', 'S'] if allowed_set is None else allowed_set
             return one_hot(atom.GetProp('_CIPCode'), allowed_set, encode_unknown)
         case 'center':
@@ -232,7 +255,7 @@ def bond_type(bond, allowed_set=None, encode_unknown=False):
 
     return one_hot(bond.GetBondType(), allowed_set, encode_unknown)
 
-def bond_conjugated(bond):
+def bond_is_conjugated(bond):
 
     return [bond.GetIsConjugated()]
 
@@ -249,7 +272,7 @@ def bond_stereo(bond, allowed_set=None, encode_unknown=False):
                        Chem.rdchem.BondStereo.STEREOZ,
                        Chem.rdchem.BondStereo.STEREOCIS,
                        Chem.rdchem.BondStereo.STEREOTRANS]
-    return one_hot(bond.GetStero(), allowed_set, encode_unknown)
+    return one_hot(bond.GetStereo(), allowed_set, encode_unknown)
 
 def bond_direction(bond, allowed_set=None, encode_unknown=False):
 

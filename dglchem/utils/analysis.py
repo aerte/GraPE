@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
 
-from dglchem.utils.featurizer import mol_weight
+from dglchem.utils.feature_func import mol_weight
 
 __all__ = [
     'smiles_analysis',

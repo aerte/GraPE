@@ -60,8 +60,7 @@ def filter_smiles(smiles, target, allowed_atoms = None, log = False):
     """
 
     if allowed_atoms is None:
-        allowed_atoms = ['B', 'C', 'N', 'O','F', 'Si', 'P',
-                       'S', 'Cl', 'As', 'Se', 'Br', 'Te', 'I', 'At']
+        allowed_atoms = ['C', 'N', 'O', 'S', 'F', 'Cl', 'Br', 'I', 'P']
 
     df = pd.DataFrame({'smiles': smiles, 'target': target})
     indices_to_drop = []

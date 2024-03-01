@@ -183,7 +183,7 @@ def atom_degree_one_hot(atom, allowable_set=None, encode_unknown=False):
         List of boolean values where at most one value is True.
     """
     if allowable_set is None:
-        allowable_set = list(range(11))
+        allowable_set = list(range(6))
     return one_hot_encoding(atom.GetDegree(), allowable_set, encode_unknown)
 
 def atom_degree(atom):
@@ -250,7 +250,7 @@ def atom_explicit_valence_one_hot(atom, allowable_set=None, encode_unknown=False
         List of boolean values where at most one value is True.
     """
     if allowable_set is None:
-        allowable_set = list(range(1, 7))
+        allowable_set = list(range(0, 6))
     return one_hot_encoding(atom.GetExplicitValence(), allowable_set, encode_unknown)
 
 def atom_explicit_valence(atom):
@@ -287,7 +287,7 @@ def atom_implicit_valence_one_hot(atom, allowable_set=None, encode_unknown=False
         List of boolean values where at most one value is True.
     """
     if allowable_set is None:
-        allowable_set = list(range(7))
+        allowable_set = list(range(0,6))
     return one_hot_encoding(atom.GetImplicitValence(), allowable_set, encode_unknown)
 
 def atom_implicit_valence(atom):
@@ -838,16 +838,15 @@ class AtomFeaturizerOld(BaseAtomFeaturizer):
     def __init__(self, atom_data_field='h', allowed_atoms = None, atom_feature_list = None):
 
         if allowed_atoms is None:
-            allowed_atoms = ['B', 'C', 'N', 'O', 'F', 'Si', 'P',
-                           'S', 'Cl', 'As', 'Se', 'Br', 'Te', 'I', 'At']
+            allowed_atoms = ['C', 'N', 'O', 'S', 'F', 'Cl', 'Br', 'I', 'P']
         self.allowable_set_symbols = allowed_atoms
 
         ### Dictionary for all features
         total_atom_feat = {
-        'atom_type_one_hot': partial(atom_type_one_hot, allowable_set = self.allowable_set_symbols, encode_unknown=True),
+        'atom_type_one_hot': partial(atom_type_one_hot, allowable_set = self.allowable_set_symbols, encode_unknown=False),
         'atomic_number_one_hot': atomic_number_one_hot,
         'atomic_number': atomic_number,
-        'atom_degree_one_hot': partial(atom_degree_one_hot, allowable_set = list(range(6))),
+        'atom_degree_one_hot': atom_degree_one_hot,
         'atom_degree': atom_degree,
         'atom_total_degree_one_hot': atom_total_degree_one_hot,
         'atom_total_degree': atom_total_degree,
@@ -855,22 +854,24 @@ class AtomFeaturizerOld(BaseAtomFeaturizer):
         'atom_explicit_valence': atom_explicit_valence,
         'atom_implicit_valence_one_hot': atom_implicit_valence_one_hot,
         'atom_implicit_valence': atom_implicit_valence,
-        'atom_hybridization_one_hot': partial(atom_hybridization_one_hot, encode_unknown = True),
+        'atom_hybridization_one_hot': atom_hybridization_one_hot,
         'atom_total_num_H_one_hot': atom_total_num_H_one_hot,
         'atom_total_num_H': atom_total_num_H,
         'atom_formal_charge_one_hot': atom_formal_charge_one_hot,
         'atom_formal_charge': atom_formal_charge,
         'atom_num_radical_electrons_one_hot': atom_num_radical_electrons_one_hot,
         'atom_num_radical_electrons': atom_num_radical_electrons,
-        'atom_is_aromatic_one_hot': atom_is_aromatic_one_hot,
         'atom_is_aromatic': atom_is_aromatic,
-        'atom_is_in_ring_one_hot': atom_is_in_ring_one_hot,
         'atom_is_in_ring': atom_is_in_ring,
         'atom_chiral_tag_one_hot': atom_chiral_tag_one_hot,
         'atom_chirality_type_one_hot': atom_chirality_type_one_hot,
-        'atom_mass': atom_mass,
         'atom_is_chiral_center': atom_is_chiral_center,
+        'atom_mass': atom_mass,
         }
+
+        if atom_feature_list is None:
+            atom_feature_list = list(total_atom_feat.keys())
+        self.atom_feature_list = atom_feature_list
 
 
         feat_set = []
@@ -1202,24 +1203,17 @@ class BondFeaturizer(BaseBondFeaturizer):
     """
     def __init__(self, bond_data_field='e', self_loop=False, bond_feature_list=None):
 
-        if bond_feature_list is None:
-            bond_feature_list = ['bond_type_one_hot',
-                                 'bond_is_conjugated',
-                                 'bond_is_in_ring',
-                                 'bond_stereo_one_hot']
-
         total_bond_feats = {
             'bond_type_one_hot': bond_type_one_hot,
-            'bond_is_conjugated_one_hot': bond_is_conjugated_one_hot,
             'bond_is_conjugated': bond_is_conjugated,
-            'bond_is_in_ring_one_hot': bond_is_in_ring_one_hot,
             'bond_is_in_ring': bond_is_in_ring,
-            'bond_stereo_one_hot':partial(bond_stereo_one_hot, allowable_set=[Chem.rdchem.BondStereo.STEREONONE,
-                                                             Chem.rdchem.BondStereo.STEREOANY,
-                                                             Chem.rdchem.BondStereo.STEREOZ,
-                                                             Chem.rdchem.BondStereo.STEREOE]),
+            'bond_stereo_one_hot':bond_stereo_one_hot,
             'bond_direction_one_hot':bond_direction_one_hot
         }
+
+        if bond_feature_list is None:
+            bond_feature_list = list(total_bond_feats.keys())
+        self.atom_feature_list = bond_feature_list
 
         feat_set = []
         for item in bond_feature_list:

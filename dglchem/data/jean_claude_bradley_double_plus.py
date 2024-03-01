@@ -90,14 +90,8 @@ class BradleyDoublePlus(GraphDataSet):
                     print(f'Error: {global_features[i]} is a feature in the raw dataset.')
                     del global_features[i]
 
-        global_features = df[global_features]
+            global_features = df[global_features]
 
-        #if global_features is not None:
-        #    for feat in global_features:
-        #        if feat in df.columns:
-        #            global_features.append(list[global_features])
-        #        else:
-        #            print(f'Error: {feat} is a feature in the raw dataset.')
 
 
         super().__init__(smiles = df.smiles, target = df[target], global_features=global_features,
