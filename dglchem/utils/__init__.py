@@ -3,3 +3,4 @@ from .data import *
 from .featurizer import *
 from .analysis import *
 from .feature_func import *
+from .data_splitting import *

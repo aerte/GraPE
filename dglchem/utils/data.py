@@ -4,7 +4,6 @@
 
 import os
 from collections.abc import Sequence
-from collections import defaultdict
 
 import pickle
 import pandas as pd
@@ -13,31 +12,27 @@ import torch
 from torch import Tensor
 
 from rdkit import Chem
-from rdkit.Chem import rdmolops, MolFromSmiles, rdMolDescriptors, Descriptors
+from rdkit.Chem import rdmolops, MolFromSmiles
 from rdkit import RDLogger
-from rdkit.ML.Cluster import Butina
-from rdkit import DataStructs
 
 
 from torch_geometric.data import Data
 from torch_geometric.utils import dense_to_sparse
 
-from dgllife.utils import splitters
-
-
 from dglchem.utils.featurizer import AtomFeaturizer, BondFeaturizer
 from dglchem.utils.analysis import smiles_analysis, mol_weight_vs_target
+from dglchem.utils.data_splitting import split_data
 
 RDLogger.DisableLog('rdApp.*')
 
 __all__ = ['filter_smiles',
            'construct_dataset',
-           'taylor_butina_clustering',
-           'split_data',
+           'classify_compounds',
+           'DataLoad',
            'DataSet',
            'GraphDataSet']
 
-def filter_smiles(smiles, target, allowed_atoms = None, log = False):
+def filter_smiles(smiles: list, target: list, allowed_atoms: list = None, log: bool = False) -> (list,list):
     """Filters a list of smiles based on the allowed atom symbols.
 
     Args
@@ -93,9 +88,71 @@ def filter_smiles(smiles, target, allowed_atoms = None, log = False):
 
     return list(df.smiles), list(df.target)
 
+def classify_compounds(smiles: list) -> tuple:
+    """Function that classifies compounds into the following classes:
+        ['Hydrocarbons', 'Oxygenated', 'Nitrogenated', 'Chlorinated', 'Fluorinated', 'Brominated', 'Iodinated',
+        'Phosphorous containing', 'Sulfonated', 'Silicon containing']
+
+    Parameters
+    ----------
+    smiles
+        List of smiles that will be classified into the families.
+
+    Returns
+    -------
+    class_dictionary, length_dictionary
+        The class dictionary contains the classes and associated indices, the length dictionary contains the
+        summarized lengths
 
 
-def construct_dataset(smiles, target, allowed_atoms = None, atom_feature_list = None, bond_feature_list = None):
+    """
+
+    df = pd.DataFrame({'SMILES': smiles})
+
+    # Defining the class names
+    class_names = ['Hydrocarbons', 'Oxygenated', 'Nitrogenated', 'Chlorinated', 'Fluorinated', 'Brominated',
+                   'Iodinated', 'Phosphorous containing', 'Sulfonated', 'Silicon containing']
+    # Defining the class tags
+    class_patterns = ['C', 'CO', 'CN', 'CCL', "CF", "CBR", "CI", "CP", "CS", "CSI"]
+
+    class_dict = {}
+    for i in class_names:
+        class_dict[i] = []
+    for j, smi in enumerate(df['SMILES']):
+        s = ''.join(filter(str.isalpha, smi)).upper()
+        for n in range(len(class_names)):
+            allowed_char = set(class_patterns[n])
+            if set(s) == allowed_char:
+                if class_names[n] == 'Chlorinated':
+                    if 'CL' in s:
+                        class_dict[class_names[n]].append(j)
+                elif class_names[n] == 'Brominated':
+                    if 'BR' in s:
+                        class_dict[class_names[n]].append(j)
+                elif class_names[n] == "Silicon containing":
+                    if 'SI' in s:
+                        class_dict[class_names[n]].append(j)
+                else:
+                    class_dict[class_names[n]].append(j)
+
+    sum_lst = []
+    for key in class_dict:
+        sum_lst.extend(class_dict[key])
+
+        # check the consistence
+    if len(sum_lst) == len(list(set(sum_lst))):
+        multi_lst = list(set(range(len(df))) - set(sum_lst))
+        class_dict['Multifunctional'] = multi_lst
+        length_dict = {key: len(value) for key, value in class_dict.items()}
+    else:
+        raise ValueError('The sum is not matching')
+
+    return class_dict, length_dict
+
+
+
+def construct_dataset(smiles: list, target: list, allowed_atoms: list = None,
+                      atom_feature_list: list = None, bond_feature_list: list = None) -> Data:
     """Constructs a dataset out of the smiles and target lists based on the feature lists provided.
 
     Parameters
@@ -153,137 +210,6 @@ def construct_dataset(smiles, target, allowed_atoms = None, atom_feature_list = 
         data.append(Data(x = x, edge_index = edge_index, edge_attr = edge_attr, y=target[i]))
 
     return data
-
-
-def taylor_butina_clustering(data, threshold=0.35, nBits = 1024, radius = 3,
-                             split_frac=None):
-    """Clusters the data based on Butina clustering [1] and splits it into training, testing and validation data splits.
-    Splitting will occur from largest to smallest cluster. Inspired by the great workshop code by Pat Walters,
-    see https://github.com/PatWalters/workshop/blob/master/clustering/taylor_butina.ipynb.
-
-    Parameters
-    ----------
-    data: object
-        An object like the DataSet class that can be indexed and stores the SMILES via data.smiles.
-    threshold: float
-        Distance threshold used for the Butina clustering [1]. Default: 0.35.
-    nBits: int
-        The number of bits used for the Morgan fingerprints [2]. Default: 1024.
-    radius: int
-        Atom radius used for the Morgan fingerprints [2]. Decides the size of the considered fragments. Default: 3.
-    split_frac: list of float
-        List of data split fractions. Default: [0.8,0.1,0.1].
-
-    Returns
-    -------
-    train, test, val -
-        Returns the respective lists of Data lists that be fed into a DataLoader.
-
-    ----
-
-    References: \n
-    [1] Darko Butina, Unsupervised Data Base Clustering Based on Daylight's Fingerprint and Tanimoto Similarity: A Fast
-    and Automated Way To Cluster Small and Large Data Sets, https://doi.org/10.1021/ci9803381 \n
-    [2] Rogers, D. & Hahn, M. Extended-Connectivity Fingerprints. J. Chem. Inf. Model. 50, 742-754 (2010),
-    https://doi.org/10.1021/ci100050t
-
-
-    """
-
-    # 1) Finding the fingerprints of the molecules
-    fingerprints = []
-    for smile in data.smiles:
-        mol = MolFromSmiles(smile)
-        fingerprints.append(rdMolDescriptors.GetMorganFingerprintAsBitVect(mol, radius = radius, nBits=nBits))
-    nPoints = len(fingerprints)
-
-    # 2) Distance matrix for 1-similarity
-    dist_matrix = []
-    for i in range(nPoints):
-        similarity = DataStructs.BulkTanimotoSimilarity(fingerprints[i],fingerprints[:i])
-        dist_matrix.extend([1-sim for sim in similarity])
-
-    # 3) Clustering
-    clusters = Butina.ClusterData(dist_matrix, nPts=nPoints, distThresh=threshold, isDistData=True)
-
-    # 4) Assigning smiles to clustering
-    Idx = np.zeros([nPoints,], dtype=np.int8)
-
-    for id, cluster in enumerate(clusters):
-        Idx[np.array(cluster)] = id
-
-    splits = defaultdict()
-    splits[0] = []
-    processed_len = 0
-    split = 0
-
-    # Data split:
-
-    split_frac = [0.8,0.1,0.1] if split_frac is None else split_frac
-
-    for cluster in np.unique(Idx):
-        if processed_len/nPoints >= np.sum(split_frac[:split + 1]):
-            split+=1
-            if split == 3: break
-
-            splits[split] = []
-            # print('next split')
-
-        splits[split].append([point for point in data[Idx==cluster]])
-        processed_len += np.sum(Idx==cluster)
-        # print(f'{processed_len/nPoints*100}% processed.')
-
-    return splits[0], splits[1], splits[2]
-
-
-
-def split_data(data, split_type = None, split_frac = None, custom_split = None):
-    """
-
-    Parameters
-    ----------
-    data: Any iterable
-        An object that can be accessed per an index and iterated upon. Ex: a DataSet or np.array object
-    split_type: str
-        Indicates what split should be used. Default: random. The options are: ['consecutive', 'random',
-        'molecular weight', 'scaffold', 'stratified', 'custom']
-    split_frac: array
-        Indicates what the split fractions should be. Default: [0.8, 0.1, 0.1]
-    custom_split: array
-        The custom split that should be applied. Has to be an array matching the length of the filtered smiles,
-        where 0 indicates a training sample, 1 a testing sample and 2 a validation sample. Default: None
-
-    Returns
-    -------
-    train, test, val
-        - Lists containing the respective data objects.
-
-    """
-
-    if split_type is None:
-        split_type = 'random'
-
-    if split_frac is None:
-        split_frac = [0.8,0.1,0.1]
-
-    split_func = {
-        'consecutive': splitters.ConsecutiveSplitter,
-        'random': splitters.RandomSplitter,
-        'molecular_weight': splitters.MolecularWeightSplitter,
-        'scaffold': splitters.ScaffoldSplitter,
-        'stratified': splitters.SingleTaskStratifiedSplitter
-    }
-
-    if split_type == 'custom' or custom_split is not None:
-        assert custom_split is not None and len(custom_split) == len(data), (
-            'The custom split has to match the length of the filtered dataset.'
-            'Consider saving the filtered output with .get_smiles()')
-
-        return data[custom_split == 0], data[custom_split == 1], data[custom_split == 2]
-    else:
-         return split_func[split_type].train_val_test_split(data,split_frac[0],split_frac[1],split_frac[2])
-
-
 
 
 class DataLoad(object):
@@ -589,11 +515,6 @@ class DataSet(DataLoad):
         return plot
 
 
-
-
-
-
-
 class GraphDataSet(DataSet):
     """A class that takes a path to a pickle file or a list of smiles and targets. The data is stored in
         Pytorch-Geometric Data instances and be accessed like an array. Additionally, if desired it splits the data and
@@ -688,5 +609,5 @@ class GraphDataSet(DataSet):
         split_frac = self.split_frac if split_frac is None else split_frac
         custom_split = self.custom_split if custom_split is None else custom_split
 
-        return split_data(data = self.data, split_type = split_type,
+        return split_data(data = self, split_type = split_type,
                             split_frac = split_frac, custom_split = custom_split)

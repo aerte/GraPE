@@ -16,10 +16,10 @@ __all__ = [
     'mol_weight_vs_target'
 ]
 
-def smiles_analysis(smiles, path_to_export=None, download=False, plots = None, save_plots = False, fig_size = None,
-                    output_filter=True):
-    """ Function to analyze a list of SMILES. Builds on top of:
-    https://github.com/awslabs/dgl-lifesci/blob/master/python/dgllife/utils/analysis.py
+def smiles_analysis(smiles: list, path_to_export: str =None, download: bool =False, plots: list = None,
+                    save_plots:bool = False, fig_size: list = None, output_filter: bool =True) -> (dict, plt.figure):
+    """Function to analyze a list of SMILES. Builds on top of:
+    https://github.com/awslabs/dgl-lifesci/blob/master/python/dgllife/utils/analysis.py.
 
     Parameters
     ----------
@@ -112,7 +112,8 @@ def smiles_analysis(smiles, path_to_export=None, download=False, plots = None, s
 
     return dic
 
-def mol_weight_vs_target(smiles, target, target_name = None, save_fig = False, path_to_export=None):
+def mol_weight_vs_target(smiles: list, target: list, target_name: str = None, save_fig: bool = False,
+                         path_to_export: str =None) -> sns.jointplot:
     """Plots a seaborn jointplot of the target distribution against the molecular weight distribution.
 
     Parameters
