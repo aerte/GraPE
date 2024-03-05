@@ -1,7 +1,6 @@
 import os.path as osp
 
 import pandas as pd
-import numpy as np
 from torch_geometric.data import download_url
 from dglchem.utils.data import GraphDataSet
 
@@ -11,7 +10,8 @@ __all__ = [
 
 class LogP(GraphDataSet):
     """A dataset class inspired by the Torchvision datasets such as MNIST. It will download the corrected *logP* Dataset
-    from [1], first introduced in [2], should it not already exist. It then initializes it into a **GraphDataSet** class.
+    from https://github.com/nadinulrich/log_P_prediction/blob/30f2f6ad0d7806a3246a5b3da936aa02478d5202/Dataset_and_Predictions.xlsx
+    [1], first introduced in [2], should it not already exist. It then initializes it into a **GraphDataSet** class.
 
     Parameters:
     ----------

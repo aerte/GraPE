@@ -10,7 +10,7 @@ from torch_geometric.data import Data
 
 from dgllife.utils import splitters
 
-def taylor_butina_clustering(data, threshold: float =0.35, nBits: int = 1024, radius: int = 3,
+def taylor_butina_clustering(data, threshold: float =0.8, nBits: int = 2048, radius: int = 3,
                              split_frac: list =None) -> Data:
     """Clusters the data based on Butina clustering [1] and splits it into training, testing and validation data splits.
     Splitting will occur from largest to smallest cluster. Inspired by the great workshop code by Pat Walters,
@@ -23,7 +23,7 @@ def taylor_butina_clustering(data, threshold: float =0.35, nBits: int = 1024, ra
     threshold: float
         Distance threshold used for the Butina clustering [1]. Default: 0.35.
     nBits: int
-        The number of bits used for the Morgan fingerprints [2]. Default: 1024.
+        The number of bits used for the Morgan fingerprints [2]. Default: 2048.
     radius: int
         Atom radius used for the Morgan fingerprints [2]. Decides the size of the considered fragments. Default: 3.
     split_frac: list of float
@@ -54,7 +54,7 @@ def taylor_butina_clustering(data, threshold: float =0.35, nBits: int = 1024, ra
 
     # 2) Distance matrix for 1-similarity
     dist_matrix = []
-    for i in range(nPoints):
+    for i in range(1, nPoints):
         similarity = DataStructs.BulkTanimotoSimilarity(fingerprints[i],fingerprints[:i])
         dist_matrix.extend([1-sim for sim in similarity])
 
@@ -62,10 +62,14 @@ def taylor_butina_clustering(data, threshold: float =0.35, nBits: int = 1024, ra
     clusters = Butina.ClusterData(dist_matrix, nPts=nPoints, distThresh=threshold, isDistData=True)
 
     # 4) Assigning smiles to clustering
-    Idx = np.zeros([nPoints,], dtype=np.int8)
+    Idx = np.zeros([nPoints,], dtype=np.int32)
+    print(Idx)
 
-    for id, cluster in enumerate(clusters):
-        Idx[np.array(cluster)] = id
+
+    for mol_id, cluster in enumerate(clusters):
+        for mol in cluster:
+            print(mol)
+            Idx[mol] = mol_id
 
     splits = defaultdict()
     splits[0] = []
@@ -73,6 +77,16 @@ def taylor_butina_clustering(data, threshold: float =0.35, nBits: int = 1024, ra
     split = 0
 
     # Data split:
+    print(np.unique(Idx))
+
+    single = 0
+    for i in np.unique(Idx):
+        print(f'Number of SMILES in cluster {i} : {np.sum(Idx==i)}')
+        if np.sum(Idx==i) == 1:
+            single+=1
+
+    print(f'Number of single molecule clusters: {single} and the ratio is: {single/len(np.unique(Idx))}')
+
 
     split_frac = [0.8,0.1,0.1] if split_frac is None else split_frac
 
@@ -99,7 +113,7 @@ def split_data(data, split_type: str = None, split_frac: float = None, custom_sp
     Parameters
     ----------
     data: Any iterable
-        An object that can be accessed per an index and iterated upon. Ex: a DataSet or np.array object
+        An object that can be accessed per an index and iterated upon. Ex: a DataSet or array object
     split_type: str
         Indicates what split should be used. Default: random. The options are: ['consecutive', 'random',
         'molecular weight', 'scaffold', 'stratified', 'custom']
@@ -108,7 +122,7 @@ def split_data(data, split_type: str = None, split_frac: float = None, custom_sp
     custom_split: list
         The custom split that should be applied. Has to be an array matching the length of the filtered smiles,
         where 0 indicates a training sample, 1 a testing sample and 2 a validation sample. Default: None
-    labels: np.array
+    labels: array
         An array of shape (N,T) where N is the number of data points and T is the number of tasks. Used for the
         Stratified Splitter.
     task_id: int

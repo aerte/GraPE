@@ -153,7 +153,8 @@ def classify_compounds(smiles: list) -> tuple:
 
 def construct_dataset(smiles: list, target: list, allowed_atoms: list = None,
                       atom_feature_list: list = None, bond_feature_list: list = None) -> Data:
-    """Constructs a dataset out of the smiles and target lists based on the feature lists provided.
+    """Constructs a dataset out of the smiles and target lists based on the feature lists provided. The dataset will be
+    a list of torch geometric Data objects, using their conventions.
 
     Parameters
     ----------
@@ -193,7 +194,8 @@ def construct_dataset(smiles: list, target: list, allowed_atoms: list = None,
         edge_index = dense_to_sparse(torch.tensor(rdmolops.GetAdjacencyMatrix(mol)))[0]
         x = atom_featurizer(mol)
         edge_attr = bond_featurizer(mol)
-        data.append(Data(x = x, edge_index = edge_index, edge_attr = edge_attr, y=target[i]))
+        data.append(Data(x = Tensor(x), edge_index = Tensor(edge_index), edge_attr = Tensor(edge_attr),
+                         y=Tensor([target[i]])))
 
     return data
 
@@ -279,6 +281,9 @@ class DataSet(DataLoad):
 
             self.global_features = global_features
             self._indices = indices
+            self.num_node_features = self.data[0].num_node_features
+            self.num_edge_features = self.data[0].num_edge_features
+
 
 
     def save_data_set(self, filename=None):
