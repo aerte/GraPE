@@ -9,7 +9,6 @@ from functools import partial
 
 import numpy as np
 import torch
-from rdkit import Chem
 
 from dglchem.utils import feature_func as ff
 
@@ -97,7 +96,7 @@ class AtomFeaturizer(object):
      Molecular Property Models, 2023, https://doi.org/10.1021/acs.jcim.2c01091
 
     """
-    def __init__(self, allowed_atoms = None, atom_feature_list = None):
+    def __init__(self, allowed_atoms: list = None, atom_feature_list: list = None):
 
         self.allowable_set_symbols = allowed_atoms
 
@@ -108,11 +107,11 @@ class AtomFeaturizer(object):
         'atomic_number': ff.atom_number,
         'atom_degree_one_hot': partial(ff.atom_degree, type_='one_hot'),
         'atom_degree': ff.atom_degree,
-        'atom_total_degree_one_hot': partial(ff.atom_degree, type_='total_one_hot'),
+        'atom_total_degree_one_hot': partial(ff.atom_degree, type_='total_one_hot', encode_unknown=True),
         'atom_total_degree': partial(ff.atom_degree, type_='total'),
-        'atom_explicit_valence_one_hot': partial(ff.atom_valence, type_='ex_one_hot'),
+        'atom_explicit_valence_one_hot': partial(ff.atom_valence, type_='ex_one_hot', encode_unknown=True),
         'atom_explicit_valence': partial(ff.atom_valence, type_='ex'),
-        'atom_implicit_valence_one_hot': partial(ff.atom_valence, type_='im_one_hot'),
+        'atom_implicit_valence_one_hot': partial(ff.atom_valence, type_='im_one_hot', encode_unknown=True),
         'atom_implicit_valence': ff.atom_valence,
         'atom_hybridization_one_hot': ff.atom_hybridization,
         'atom_total_num_H_one_hot': partial(ff.atom_num_H, type_='one_hot'),
@@ -185,7 +184,7 @@ class BondFeaturizer(object):
     bond_feature_list: list of str
         List of features that will be applied. Default: All implemented features.
     """
-    def __init__(self, bond_feature_list=None):
+    def __init__(self, bond_feature_list =None):
 
         total_bond_feats = {
             'bond_type_one_hot': ff.bond_type,

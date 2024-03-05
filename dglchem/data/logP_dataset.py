@@ -58,7 +58,7 @@ class LogP(GraphDataSet):
     """
 
 
-    def __init__(self, root = None, target_string = None, global_features = None, allowed_atoms = None,
+    def __init__(self, root = None, allowed_atoms = None,
                  atom_feature_list = None, bond_feature_list = None, split = False, split_type = None,
                  split_frac = None, custom_split = None, log = False, save_data_filename=None):
 
@@ -71,10 +71,11 @@ class LogP(GraphDataSet):
 
         if not osp.exists(osp.join(self.raw_path, self.file_name)):
             download_url(
-    'https://github.com/nadinulrich/log_P_prediction/blob/30f2f6ad0d7806a3246a5b3da936aa02478d5202/Corrections.xlsx?raw=true',
-                         folder = self.raw_path,
-                         filename= self.file_name,
-                         log = True)
+                'https://github.com/nadinulrich/log_P_prediction/blob/30f2f6ad0d7806a3246a5b3da936aa02478d5202/Dataset_and_Predictions.xlsx?raw=true',
+                 folder = self.raw_path,
+                 filename= self.file_name,
+                 log = True
+            )
 
             path = osp.join(self.raw_path, self.file_name)
 
@@ -82,27 +83,10 @@ class LogP(GraphDataSet):
             path = osp.join(self.raw_path, self.file_name)
 
         df = pd.read_excel(path)
-        df.columns = ['chem_id','SMILES','name','initial','corrected','notation', 'reference','reference_mansouri']
-        print(df.head())
-        df[['SMILES','name','notation','reference','reference_mansouri']] = df[['SMILES','name','notation','reference','reference_mansouri']].astype(str)
-        df['corrected'] = df['corrected'].astype(float)
-        print(df.dtypes)
+        labels = df.columns[3]
+        self.target_name = 'logP'
 
-        target = 'corrected' if target_string is None else target_string
-
-        self.target_name = target
-
-        if global_features is not None:
-            for i in range(len(global_features)):
-                 if global_features[i] not in df.columns:
-                    print(f'Error: {global_features[i]} is a feature in the raw dataset.')
-                    del global_features[i]
-
-            global_features = df[global_features]
-
-
-
-        super().__init__(smiles = df.SMILES, target = df[target], global_features=global_features,
+        super().__init__(smiles = df.SMILES, target = df[labels],
                          allowed_atoms = allowed_atoms, atom_feature_list = atom_feature_list,
                          bond_feature_list = bond_feature_list, split=split, split_type=split_type,
                          split_frac=split_frac, custom_split=custom_split, log = log)

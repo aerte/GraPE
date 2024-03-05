@@ -42,8 +42,8 @@ def filter_smiles(smiles: list, target: list, allowed_atoms: list = None, log: b
     target: list
         Target of the graphs.
     allowed_atoms: list of str
-        Valid atom symbols, non-valid symbols will be discarded. Default: [``B``, ``C``, ``N``, ``O``,
-            ``F``, ``Si``, ``P``, ``S``, ``Cl``, ``As``, ``Se``, ``Br``, ``Te``, ``I``, ``At``]
+        Valid atom symbols, non-valid symbols will be discarded. Default: [``C``, ``N``, ``O``, ``S``, ``F``, ``Cl``,
+         ``Br``, ``I``, ``P``]
     log: bool
         Determines if there should be print-out statements to indicate why mols were filtered out. Default: False
 
