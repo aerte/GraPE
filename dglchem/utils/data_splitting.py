@@ -1,5 +1,6 @@
 # Module for data splitting
 from collections import defaultdict
+import numpy as np
 
 from rdkit.Chem import MolFromSmiles, rdMolDescriptors
 from rdkit.ML.Cluster import Butina
@@ -91,7 +92,8 @@ def taylor_butina_clustering(data, threshold: float =0.35, nBits: int = 1024, ra
 
 
 
-def split_data(data, split_type: str = None, split_frac = None, custom_split = None, task_id = None):
+def split_data(data, split_type: str = None, split_frac: float = None, custom_split: list = None,
+               labels: np.array = None, task_id: int = None, bucket_size: int = 10):
     """
 
     Parameters
@@ -101,11 +103,19 @@ def split_data(data, split_type: str = None, split_frac = None, custom_split = N
     split_type: str
         Indicates what split should be used. Default: random. The options are: ['consecutive', 'random',
         'molecular weight', 'scaffold', 'stratified', 'custom']
-    split_frac: array
+    split_frac: list
         Indicates what the split fractions should be. Default: [0.8, 0.1, 0.1]
-    custom_split: array
+    custom_split: list
         The custom split that should be applied. Has to be an array matching the length of the filtered smiles,
         where 0 indicates a training sample, 1 a testing sample and 2 a validation sample. Default: None
+    labels: np.array
+        An array of shape (N,T) where N is the number of data points and T is the number of tasks. Used for the
+        Stratified Splitter.
+    task_id: int
+        The task that will be used for the Stratified Splitter.
+    bucket_size: int
+        Size of the bucket that is used in the Stratified Splitter. Default: 10
+
 
     Returns
     -------
@@ -127,7 +137,7 @@ def split_data(data, split_type: str = None, split_frac = None, custom_split = N
         'random': splitters.RandomSplitter,
         'molecular_weight': splitters.MolecularWeightSplitter,
         'scaffold': splitters.ScaffoldSplitter,
-#        'stratified': splitters.SingleTaskStratifiedSplitter
+        'stratified': splitters.SingleTaskStratifiedSplitter
     }
 
     if split_type == 'custom' or custom_split is not None:
@@ -150,6 +160,6 @@ def split_data(data, split_type: str = None, split_frac = None, custom_split = N
         case 'scaffold':
             return split_func[split_type].train_val_test_split(data, frac_train=split_frac[0], frac_test=split_frac[1],
                                                     frac_val=split_frac[2], log_every_n=1000, scaffold_func='decompose')
-        #case 'stratified':
-        #    return split_func[split_type].train_val_test_split(data, frac_train=split_frac[0], frac_test=split_frac[1],
-        #                                            frac_val=split_frac[2], log_every_n=1000, scaffold_func='decompose')
+        case 'stratified':
+            return split_func[split_type].train_val_test_split(data, labels, task_id, frac_train=split_frac[0],
+                                                frac_test=split_frac[1],frac_val=split_frac[2], bucket_size=bucket_size)

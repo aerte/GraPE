@@ -130,7 +130,7 @@ def atom_degree(atom, type_='', allowed_set=None, encode_unknown=None):
 
 
 #### Atom valency
-def atom_valence(atom, type_='', allowed_set=None, encode_unknown=False):
+def atom_valence(atom, type_='', allowed_set=None, encode_unknown=True):
     assert type_ in ['ex_one_hot', 'ex', 'im_one_hot', 'im', ''], ('Wrong type, the options are: '
                                                                     '[ex_one_hot, ex, im_one_hot, im, ]')
 

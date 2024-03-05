@@ -179,20 +179,6 @@ def construct_dataset(smiles: list, target: list, allowed_atoms: list = None,
         list of Pytorch-Geometric Data objects
 
     """
-    if atom_feature_list is None:
-        atom_feature_list = ['atom_type_one_hot', 'atom_degree_one_hot', 'atom_formal_charge',
-         'atom_num_radical_electrons',
-         'atom_hybridization_one_hot',
-         'atom_is_aromatic',
-         'atom_total_num_H_one_hot',
-         'atom_is_chiral_center',
-         'atom_chirality_type_one_hot']
-
-    if bond_feature_list is None:
-        bond_feature_list = ['bond_type_one_hot',
-                      'bond_is_conjugated',
-                      'bond_is_in_ring',
-                      'bond_stereo_one_hot']
 
     atom_featurizer = AtomFeaturizer(allowed_atoms=allowed_atoms,
                                                 atom_feature_list = atom_feature_list)
