@@ -1,6 +1,6 @@
 # Atom and Bond featurizers
 #
-# Inspired by https://github.com/awslabs/dgl-lifesci
+# Inspired by the feature extractor of  https://github.com/awslabs/dgl-lifesci
 
 import itertools
 
@@ -9,10 +9,10 @@ from functools import partial
 
 import numpy as np
 import torch
+from rdkit import Chem
 
 from dglchem.utils import feature_func as ff
 
-# feature extraction functions from dgl life
 
 __all__ = [
     'AtomFeaturizer',
@@ -101,7 +101,7 @@ class AtomFeaturizer(object):
         self.allowable_set_symbols = allowed_atoms
 
         ### Dictionary for all features
-        total_atom_feat = {
+        self.total_atom_feat = {
         'atom_type_one_hot': ff.atom_symbol,
         'atomic_number_one_hot': partial(ff.atom_number, type_='one_hot'),
         'atomic_number': ff.atom_number,
@@ -129,13 +129,13 @@ class AtomFeaturizer(object):
         }
 
         if atom_feature_list is None:
-            atom_feature_list = list(total_atom_feat.keys())
+            atom_feature_list = list(self.total_atom_feat.keys())
         self.atom_feature_list = atom_feature_list
 
         self.feat_set = []
         for item in atom_feature_list:
-            if item in total_atom_feat.keys():
-                self.feat_set.append(total_atom_feat[item])
+            if item in self.total_atom_feat.keys():
+                self.feat_set.append(self.total_atom_feat[item])
             else:
                 print(f'Error: feature {item} is not an accepted feature.')
                 continue
@@ -159,6 +159,41 @@ class AtomFeaturizer(object):
         feats = np.array(feats)
 
         return torch.tensor(feats, dtype=torch.float32)
+
+    def extend_features(self, func_names: list, funcs: list):
+        """Adds the possibility of extending the featurizers function dictionary with new functions. While it tests if
+        the function output type is valid, it cannot test the true validity!
+
+        Parameters
+        ----------
+        func_names: list
+            Function names that will be the keys of the dictionary input.
+        funcs: list
+            Functions that will be executed in the featurizer if called in the feature_list or by default.
+
+        """
+
+        for name, func in zip(func_names, funcs):
+            try:
+                test = func(Chem.MolFromSmiles('COO').GetAtomWithIdx(0))
+                print(f'Testing the function. The output is: {test}')
+            except:
+                print('Function does not work.')
+                continue
+
+            assert isinstance(test, list), 'The added function output must be a one-dimensional list.'
+            assert np.array(test).ndim == 1, 'The added function must have one dimensional output'
+
+            try:
+                np.sum(np.array(test))
+            except:
+                print('Function output does not only consist of numbers or booleans.')
+                continue
+
+            self.atom_feature_list.append(name)
+            self.feat_set.append(func)
+
+
 
 
 class BondFeaturizer(object):
@@ -229,3 +264,36 @@ class BondFeaturizer(object):
         feats = np.array(feats)
 
         return torch.tensor(feats, dtype=torch.float32)
+
+    def extend_features(self, func_names: list, funcs: list):
+        """Adds the possibility of extending the featurizers function dictionary with new functions. While it tests if
+        the function output type is valid, it cannot test the true validity!
+
+        Parameters
+        ----------
+        func_names: list
+            Function names that will be the keys of the dictionary input.
+        funcs: list
+            Functions that will be executed in the featurizer if called in the feature_list or by default.
+
+        """
+
+        for name, func in zip(func_names, funcs):
+            try:
+                test = func(Chem.MolFromSmiles('COO').GetBondWithIdx(0))
+                print(f'Testing the function. The output is: {test}')
+            except:
+                print('Function does not work.')
+                continue
+
+            assert isinstance(test, list), 'The added function output must be a one-dimensional list.'
+            assert np.array(test).ndim == 1, 'The added function must have one dimensional output'
+
+            try:
+                np.sum(np.array(test))
+            except:
+                print('Function output does not only consist of numbers or booleans.')
+                continue
+
+            self.atom_feature_list.append(name)
+            self.feat_set.append(func)
