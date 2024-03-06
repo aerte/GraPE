@@ -176,7 +176,7 @@ def construct_dataset(smiles: list, target: list, allowed_atoms: list = None,
 
     Returns
     -------
-    data
+    datasets
         list of Pytorch-Geometric Data objects
 
     """
@@ -201,12 +201,12 @@ def construct_dataset(smiles: list, target: list, allowed_atoms: list = None,
 
 
 class DataLoad(object):
-    """The basic data-loading class. It holds the root as well as the raw  and processed files directories.
+    """The basic datasets-loading class. It holds the root as well as the raw  and processed files directories.
 
     """
     def __int__(self, root = None):
         if root is None:
-            root = './data'
+            root = './datasets'
         self.root = root
 
     @property
@@ -231,7 +231,7 @@ class DataLoad(object):
 
 
 class DataSet(DataLoad):
-    """A class that takes a path to a pickle file or a list of smiles and targets. The data is stored in
+    """A class that takes a path to a pickle file or a list of smiles and targets. The datasets is stored in
         Pytorch-Geometric Data instances and be accessed like an array.
 
         Heavily inspired by the PyTorch-Geometric Dataset class, especially indices and index_select.
@@ -239,7 +239,7 @@ class DataSet(DataLoad):
     Parameters
     ----------
     file_path: str
-        The path to a pickle file that should be loaded and the data therein used.
+        The path to a pickle file that should be loaded and the datasets therein used.
     smiles: list of str
         List of smiles to be made into a graph.
     target: list of in or float
@@ -265,7 +265,7 @@ class DataSet(DataLoad):
         if file_path is not None:
             with open(file_path, 'rb') as handle:
                 self.data = pickle.load(handle)
-                print('Loaded data.')
+                print('Loaded datasets.')
         else:
             self.smiles, self.raw_target = filter_smiles(smiles, target, allowed_atoms= allowed_atoms, log=log)
 
@@ -292,11 +292,11 @@ class DataSet(DataLoad):
         Parameters
         ----------
         filename: str
-            Name of the data file. Default: 'data'
+            Name of the datasets file. Default: 'datasets'
 
 
         """
-        filename='data' if filename is None else filename
+        filename='datasets' if filename is None else filename
 
         path = self.processed_dir
 
@@ -309,7 +309,7 @@ class DataSet(DataLoad):
         print(f'File saved at: {path}/{filename}.pickle')
 
 
-    def get_smiles(self, path=None):
+    def get_smiles(self, path: str =None):
         """
 
         Parameters
@@ -390,12 +390,12 @@ class DataSet(DataLoad):
         Parameters
         ----------
             idx: obj
-                Index list of data objects to retrieve.
+                Index list of datasets objects to retrieve.
 
         Returns
         -------
         list
-            Python list of data objects.
+            Python list of datasets objects.
 
         """
 
@@ -507,15 +507,15 @@ class DataSet(DataLoad):
 
 
 class GraphDataSet(DataSet):
-    """A class that takes a path to a pickle file or a list of smiles and targets. The data is stored in
-        Pytorch-Geometric Data instances and be accessed like an array. Additionally, if desired it splits the data and
-        prepares the splits for training and validation. **If you wish to split the data immediately, please set
+    """A class that takes a path to a pickle file or a list of smiles and targets. The datasets is stored in
+        Pytorch-Geometric Data instances and be accessed like an array. Additionally, if desired it splits the datasets and
+        prepares the splits for training and validation. **If you wish to split the datasets immediately, please set
         split to True. Per default, it will not split.**
 
     Parameters
     ----------
     file_path: str
-        The path to a pickle file that should be loaded and the data therein used.
+        The path to a pickle file that should be loaded and the datasets therein used.
     smiles: list of str
         List of smiles to be made into a graph.
     target: list of float
@@ -540,7 +540,7 @@ class GraphDataSet(DataSet):
     log: bool
         Decides if the filtering output and other outputs will be shown.
     indices: np.array
-        Can be used to override the indices of the data objects. Recommended not to use.
+        Can be used to override the indices of the datasets objects. Recommended not to use.
 
 
     """
@@ -592,7 +592,7 @@ class GraphDataSet(DataSet):
         Returns
         -------
         train, test, val
-            List containing the respective data objects.
+            List containing the respective datasets objects.
 
         """
 

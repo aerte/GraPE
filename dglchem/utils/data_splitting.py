@@ -1,4 +1,4 @@
-# Module for data splitting
+# Module for datasets splitting
 from collections import defaultdict
 import numpy as np
 
@@ -12,14 +12,14 @@ from dgllife.utils import splitters
 
 def taylor_butina_clustering(data, threshold: float =0.8, nBits: int = 2048, radius: int = 3,
                              split_frac: list =None) -> Data:
-    """Clusters the data based on Butina clustering [1] and splits it into training, testing and validation data splits.
+    """Clusters the datasets based on Butina clustering [1] and splits it into training, testing and validation datasets splits.
     Splitting will occur from largest to smallest cluster. Inspired by the great workshop code by Pat Walters,
     see https://github.com/PatWalters/workshop/blob/master/clustering/taylor_butina.ipynb.
 
     Parameters
     ----------
     data: object
-        An object like the DataSet class that can be indexed and stores the SMILES via data.smiles.
+        An object like the DataSet class that can be indexed and stores the SMILES via datasets.smiles.
     threshold: float
         Distance threshold used for the Butina clustering [1]. Default: 0.35.
     nBits: int
@@ -27,7 +27,7 @@ def taylor_butina_clustering(data, threshold: float =0.8, nBits: int = 2048, rad
     radius: int
         Atom radius used for the Morgan fingerprints [2]. Decides the size of the considered fragments. Default: 3.
     split_frac: list of float
-        List of data split fractions. Default: [0.8,0.1,0.1].
+        List of datasets split fractions. Default: [0.8,0.1,0.1].
 
     Returns
     -------
@@ -123,7 +123,7 @@ def split_data(data, split_type: str = None, split_frac: float = None, custom_sp
         The custom split that should be applied. Has to be an array matching the length of the filtered smiles,
         where 0 indicates a training sample, 1 a testing sample and 2 a validation sample. Default: None
     labels: array
-        An array of shape (N,T) where N is the number of data points and T is the number of tasks. Used for the
+        An array of shape (N,T) where N is the number of datasets points and T is the number of tasks. Used for the
         Stratified Splitter.
     task_id: int
         The task that will be used for the Stratified Splitter.
@@ -134,7 +134,7 @@ def split_data(data, split_type: str = None, split_frac: float = None, custom_sp
     Returns
     -------
     train, test, val
-        - Lists containing the respective data objects.
+        - Lists containing the respective datasets objects.
 
     """
 

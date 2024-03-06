@@ -15,7 +15,8 @@ from dglchem import utils
 __all__ = [
     'smiles_analysis',
     'mol_weight_vs_target',
-    'compound_nums_chart'
+    'compound_nums_chart',
+    'compounds_dataset_heatmap'
 ]
 
 def smiles_analysis(smiles: list, path_to_export: str =None, download: bool =False, plots: list = None,
@@ -162,7 +163,7 @@ def mol_weight_vs_target(smiles: list, target: list, target_name: str = None, sa
     return plot
 
 
-def compound_nums_chart(smiles: list, save_fig: bool = False, path_to_export: str = None) -> sns.barplot:
+def compound_nums_chart(smiles: list, fig_size: tuple = (14,8), save_fig: bool = False, path_to_export: str = None) -> sns.barplot:
     """
 
     Parameters:
@@ -186,17 +187,53 @@ def compound_nums_chart(smiles: list, save_fig: bool = False, path_to_export: st
     x = num_dict.keys()
     y = num_dict.values()
 
-    plt.rcParams.update({'font.size': 18})
+    plt.rcParams.update({'font.size': 12})
 
-    fig, ax = plt.subplots(figsize=(20,12))
-    palette = sns.color_palette('pastel', n_colors=len(num_dict.keys()))
+    fig, ax = plt.subplots(figsize=fig_size)
+    palette = sns.color_palette('muted', n_colors=len(num_dict.keys()))
     ax = sns.barplot(ax=ax, x = x, y= y, hue=x, legend=False, palette=palette)
     ax.tick_params('x', rotation=45)
     ax.set_xlabel('compound class')
     ax.set_ylabel('number of molecules')
 
     if path_to_export is not None:
-        fig.savefig(fname=f'{path_to_export}/compound_distribution.svg', format='svg')
+        fig.savefig(fname=f'{path_to_export}/compound_distribution.svg', format='svg', bbox_inches='tight')
+
+    return
+
+def compounds_dataset_heatmap(dataset_smiles: list, dataset_names: list,  fig_size: tuple = (10,10), save_fig: bool = False,
+                              path_to_export: str = None) -> sns.barplot:
+
+    if save_fig and (path_to_export is None):
+
+        path_to_export = os.getcwd() + '/analysis_results'
+
+        if not os.path.exists(path_to_export):
+            os.mkdir(path_to_export)
+
+
+    results = []
+    for smiles in dataset_smiles:
+        results_temp = utils.classify_compounds(smiles)[1]
+        for key in results_temp.keys():
+            results_temp[key] = round(results_temp[key]/len(smiles),2)*100
+        results.append(results_temp)
+    df = pd.DataFrame(results)
+    df.index = dataset_names
+
+    cmap = sns.cm.rocket
+    fig, ax = plt.subplots(figsize=fig_size)
+    ax = sns.heatmap(ax = ax, data = df, cmap=cmap)
+
+    if len(dataset_names) < 4:
+        ax.set_aspect("equal")
+
+    #ax.tick_params('x', rotation=45)
+    ax.set_xlabel('compound classes')
+    ax.set_ylabel('dataset')
+
+    if path_to_export is not None:
+        fig.savefig(fname=f'{path_to_export}/dataset_heatmap.svg', format='svg')
 
     return
 

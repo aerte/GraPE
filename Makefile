@@ -40,7 +40,7 @@ clean:
 # PROJECT RULES                                                                 #
 #################################################################################
 
-## Process raw data into processed data
+## Process raw datasets into processed datasets
 data:
 	python $(PROJECT_NAME)/data/make_dataset.py
 

@@ -49,7 +49,7 @@ class LogP(GraphDataSet):
     References
 
     [1] Ulrich, N., Goss, KU. & Ebert, A., Exploring the octanol–water partition coefficient dataset using deep learning
-    techniques and data augmentation., Commun Chem 4, 90 (2021), http://dx.doi.org/10.1038/s42004-021-00528-9
+    techniques and datasets augmentation., Commun Chem 4, 90 (2021), http://dx.doi.org/10.1038/s42004-021-00528-9
 
     [2] Mansouri K, Grulke CM, Richard AM, Judson RS, Williams AJ., An automated curation procedure for addressing
     chemical errors and inconsistencies in public datasets used in QSAR modelling., SAR QSAR Environ Res. (2016),
@@ -63,7 +63,7 @@ class LogP(GraphDataSet):
                  split_frac = None, custom_split = None, log = False, save_data_filename=None):
 
 
-        self.root = './data' if root is None else root
+        self.root = './datasets' if root is None else root
 
         self.file_name = 'logP'
 

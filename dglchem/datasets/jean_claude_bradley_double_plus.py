@@ -61,7 +61,7 @@ class BradleyDoublePlus(GraphDataSet):
                  split_frac = None, custom_split = None, log = False, save_data_filename=None):
 
 
-        self.root = './data' if root is None else root
+        self.root = './datasets' if root is None else root
 
         self.file_name = 'BradleyDoublePlus.xlsx'
 

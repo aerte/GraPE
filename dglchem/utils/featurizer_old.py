@@ -648,7 +648,7 @@ class ConcatFeaturizer(object):
     ----------
     func_list : list
         List of functions for computing molecular descriptors from objects of a same
-        particular data type, e.g. ``rdkit.Chem.rdchem.Atom``. Each function is of signature
+        particular datasets type, e.g. ``rdkit.Chem.rdchem.Atom``. Each function is of signature
         ``func(data_type) -> list of float or bool or int``. The resulting order of
         the features will follow that of the functions in the list.
     """
@@ -656,7 +656,7 @@ class ConcatFeaturizer(object):
         self.func_list = func_list
 
     def __call__(self, x):
-        """Featurize the input data.
+        """Featurize the input datasets.
 
         Parameters
         ----------
