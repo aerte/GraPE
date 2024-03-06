@@ -10,10 +10,12 @@ import numpy as np
 import seaborn as sns
 
 from dglchem.utils.feature_func import mol_weight
+from dglchem import utils
 
 __all__ = [
     'smiles_analysis',
-    'mol_weight_vs_target'
+    'mol_weight_vs_target',
+    'compound_nums_chart'
 ]
 
 def smiles_analysis(smiles: list, path_to_export: str =None, download: bool =False, plots: list = None,
@@ -158,6 +160,45 @@ def mol_weight_vs_target(smiles: list, target: list, target_name: str = None, sa
         plot.savefig(fname=f'{path_to_export}/molecular_weight_against_{target_name}.svg', format='svg')
 
     return plot
+
+
+def compound_nums_chart(smiles: list, save_fig: bool = False, path_to_export: str = None) -> sns.barplot:
+    """
+
+    Parameters:
+    ----------
+    smiles: list
+        The SMILES that will be classified into compounds and the plotted using a barchart.
+    save_fig: bool
+        Decides if the plot is saved, is overridden if a path is given. Default: False
+    path_to_export: str
+        File location to save. Default: None
+
+    """
+    if save_fig and (path_to_export is None):
+
+        path_to_export = os.getcwd() + '/analysis_results'
+
+        if not os.path.exists(path_to_export):
+            os.mkdir(path_to_export)
+
+    _, num_dict = utils.classify_compounds(smiles)
+    x = num_dict.keys()
+    y = num_dict.values()
+
+    plt.rcParams.update({'font.size': 18})
+
+    fig, ax = plt.subplots(figsize=(20,12))
+    palette = sns.color_palette('pastel', n_colors=len(num_dict.keys()))
+    ax = sns.barplot(ax=ax, x = x, y= y, hue=x, legend=False, palette=palette)
+    ax.tick_params('x', rotation=45)
+    ax.set_xlabel('compound class')
+    ax.set_ylabel('number of molecules')
+
+    if path_to_export is not None:
+        fig.savefig(fname=f'{path_to_export}/compound_distribution.svg', format='svg')
+
+    return
 
 
 
