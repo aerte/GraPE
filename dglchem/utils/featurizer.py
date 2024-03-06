@@ -19,6 +19,9 @@ __all__ = [
     'BondFeaturizer'
 ]
 
+class FunctionNotWellDefined(Exception):
+    pass
+
 
 class AtomFeaturizer(object):
     """An atom featurizer based on a flexible input list. Inspired by https://github.com/awslabs/dgl-lifesci.
@@ -203,8 +206,7 @@ class AtomFeaturizer(object):
                 test = func(Chem.MolFromSmiles('COO').GetAtomWithIdx(0))
                 print(f'Testing the function with C atom. The output is: {test}')
             except:
-                print('Function does not work.')
-                continue
+                raise FunctionNotWellDefined('Function to be added does not work.')
 
             assert isinstance(test, list), 'The added function output must be a one-dimensional list.'
             assert np.array(test).ndim == 1, 'The added function must have one dimensional output'
@@ -212,8 +214,7 @@ class AtomFeaturizer(object):
             try:
                 np.sum(np.array(test))
             except:
-                print('Function output does not only consist of numbers or booleans.')
-                continue
+                raise TypeError('The function must return only number or booleans')
 
             self.atom_feature_list.append(name)
             self.feat_set.append(func)
@@ -310,8 +311,7 @@ class BondFeaturizer(object):
                 test = func(Chem.MolFromSmiles('COO').GetBondWithIdx(0))
                 print(f'Testing the function CO bond. The output is: {test}')
             except:
-                print('Function does not work.')
-                continue
+                raise FunctionNotWellDefined('Function to be added does not work.')
 
             assert isinstance(test, list), 'The added function output must be a one-dimensional list.'
             assert np.array(test).ndim == 1, 'The added function must have one dimensional output'
@@ -319,8 +319,7 @@ class BondFeaturizer(object):
             try:
                 np.sum(np.array(test))
             except:
-                print('Function output does not only consist of numbers or booleans.')
-                continue
+                raise TypeError('The function must return only number or booleans')
 
             self.atom_feature_list.append(name)
             self.feat_set.append(func)
