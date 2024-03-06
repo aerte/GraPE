@@ -161,8 +161,10 @@ class AtomFeaturizer(object):
         return torch.tensor(feats, dtype=torch.float32)
 
     def extend_features(self, func_names: list, funcs: list):
-        """Adds the possibility of extending the featurizers function dictionary with new functions. While it tests if
-        the function output type is valid, it cannot test the true validity!
+        """Adds the possibility of extending the featurizers function dictionary with new functions. The additional functions
+        must take a RDKit Atom as input! For other features, please use global features of the Graph DataSet (fx. if you
+        wanted to add the total molecular weight). While it tests if the function output type is
+        valid, it cannot test the true validity!
 
         Parameters
         ----------
@@ -171,12 +173,35 @@ class AtomFeaturizer(object):
         funcs: list
             Functions that will be executed in the featurizer if called in the feature_list or by default.
 
+        Example
+        -------
+        >>> from dglchem.utils import AtomFeaturizer
+        >>> from rdkit.Chem import MolFromSmiles
+
+        >>> # Add a function that returns True if the molecular weight of an atom is above 15[u]
+        >>> def add_atom_mass_above_15(atom):
+        >>>     if atom.GetMass() > 15:
+        >>>         return [True]
+        >>>     else:
+        >>>         return [False]
+        >>> featurizer = AtomFeaturizer(['atom_type_one_hot'])
+        >>> featurizer.extend_features(['atom_mass_above_15'],[add_atom_mass_above_15])
+        >>> featurizer.atom_feature_list
+        ['atom_type_one_hot','atom_mass_above_30']
+        >>> featurizer(MolFromSmiles('COO'))
+        Testing the function with C atom. The output is: [False]
+        tensor([[1., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+                [0., 0., 1., 0., 0., 0., 0., 0., 0., 1.],
+                [0., 0., 1., 0., 0., 0., 0., 0., 0., 1.]])
+        >>> # We see that carbon did not fulfill the condition, while the two oxygen atoms did (as we expected).
+
+
         """
 
         for name, func in zip(func_names, funcs):
             try:
                 test = func(Chem.MolFromSmiles('COO').GetAtomWithIdx(0))
-                print(f'Testing the function. The output is: {test}')
+                print(f'Testing the function with C atom. The output is: {test}')
             except:
                 print('Function does not work.')
                 continue
@@ -266,8 +291,10 @@ class BondFeaturizer(object):
         return torch.tensor(feats, dtype=torch.float32)
 
     def extend_features(self, func_names: list, funcs: list):
-        """Adds the possibility of extending the featurizers function dictionary with new functions. While it tests if
-        the function output type is valid, it cannot test the true validity!
+        """Adds the possibility of extending the featurizers function dictionary with new functions. The additional functions
+        must take a RDKit Bond as input! For other features, please use global features of the Graph DataSet (fx. if you
+        wanted to add the total molecular weight). While it tests if the function output type is valid, it cannot test
+        the true validity!
 
         Parameters
         ----------
@@ -281,7 +308,7 @@ class BondFeaturizer(object):
         for name, func in zip(func_names, funcs):
             try:
                 test = func(Chem.MolFromSmiles('COO').GetBondWithIdx(0))
-                print(f'Testing the function. The output is: {test}')
+                print(f'Testing the function CO bond. The output is: {test}')
             except:
                 print('Function does not work.')
                 continue
