@@ -8,12 +8,14 @@ from collections.abc import Sequence
 import pickle
 import pandas as pd
 import numpy as np
+import rdkit.Chem.Draw
 import torch
 from torch import Tensor
 
 from rdkit import Chem
-from rdkit.Chem import rdmolops, MolFromSmiles
+from rdkit.Chem import rdmolops, MolFromSmiles, Draw
 from rdkit import RDLogger
+import seaborn as sns
 
 
 from torch_geometric.data import Data
@@ -255,8 +257,9 @@ class DataSet(DataLoad):
 
 
     """
-    def __init__(self, file_path = None, smiles = None, target = None, global_features = None, allowed_atoms = None,
-                 atom_feature_list = None, bond_feature_list = None, log = False, root = None, indices = None):
+    def __init__(self, file_path:str = None, smiles:list = None, target:list = None, global_features:list = None,
+                 allowed_atoms:list = None, atom_feature_list:list = None, bond_feature_list:list = None,
+                 log:bool = False, root:str = None, indices:list = None):
 
         assert (file_path is not None) or (smiles is not None and target is not None),'path or (smiles and target) must given.'
 
@@ -286,7 +289,7 @@ class DataSet(DataLoad):
 
 
 
-    def save_data_set(self, filename=None):
+    def save_dataset(self, filename:str=None):
         """Saves the dataset in the processed folder as a pickle file.
 
         Parameters
@@ -379,7 +382,7 @@ class DataSet(DataLoad):
         for i in range(len(self.data)):
             yield self.data[i]
 
-    def index_select(self, idx):
+    def index_select(self, idx:object):
         r"""Creates a subset of the dataset from specified indices :obj:`idx`.
         Indices :obj:`idx` can be a slicing object, *e.g.*, :obj:`[2:5]`, a
         list, a tuple, or a :obj:`torch.Tensor` or :obj:`np.ndarray` of type
@@ -437,9 +440,25 @@ class DataSet(DataLoad):
 
         return [self[i] for i in indices]
 
+    def draw_smile(self, index: int)->rdkit.Chem.Draw.MolDraw2D:
+        """Draw the smile at a desired index, best used in the jupyter environment.
 
-    def analysis(self, path_to_export=None, download=False, plots = None, save_plots = False, fig_size=None,
-                 output_filter = True):
+        Parameters
+        ----------
+        index: int
+            The index of the smile that should be drawn.
+
+        Returns
+        -------
+        Image
+
+        """
+        return Draw.MolToImage(MolFromSmiles(self.smiles[index]))
+
+
+
+    def analysis(self, path_to_export:str = None, download:bool=False, plots:list = None, save_plots:bool = False,
+                 fig_size:tuple=None, filter_output_txt:bool = True) -> tuple:
         """Returns an overview of different aspects of the smiles dataset **after filtering** according to:
         https://github.com/awslabs/dgl-lifesci/blob/master/python/dgllife/utils/analysis.py.
         This includes the frequency of symbols, degree frequency and more.
@@ -462,8 +481,9 @@ class DataSet(DataLoad):
             Decides if the plots are saved in the processed folder.
         fig_size: list
             2-D list to set the figure sizes. Default: [10,6]
-        output_filter: bool
-            Filters the output of excessive output.
+        filter_output_txt: bool
+            Filters the output text file of some excessive information. Default: True
+            .
 
         Returns
         -------
@@ -474,9 +494,10 @@ class DataSet(DataLoad):
 
         """
 
-        return smiles_analysis(self.smiles, path_to_export, download, plots, save_plots, fig_size, output_filter)
+        return smiles_analysis(self.smiles, path_to_export, download, plots, save_plots, fig_size, filter_output_txt)
 
-    def weight_vs_target_plot(self, target_name=None, save_fig = False, pre_standardization = True, path_to_export = None):
+    def weight_vs_target_plot(self, target_name:str=None, save_fig:bool = False,
+                              pre_standardization: bool = True, path_to_export:str = None)->sns.jointplot:
         """
 
         Parameters
@@ -505,9 +526,40 @@ class DataSet(DataLoad):
 
         return plot
 
+    def get_splits(self, split_type:str = None, split_frac:list = None, custom_split:list = None):
+        """ Returns the dataset split into training, testing and validation based on the given split type.
+
+        Parameters
+        ----------
+        split_type: str
+            Indicates what split should be used. It will either take a new argument or default
+             to the initialized split fractions. The default initialization is 'random'. The options are:
+             ['consecutive', 'random', 'molecular weight', 'scaffold', 'stratified', 'custom']
+        split_frac: array
+            Indicates what the split fractions should be. It will either take a new argument or default
+             to the initialized split fractions. The default initialization is [0.8,0.1,0.1].
+        custom_split: array
+            The custom split that should be applied. Has to be an array matching the length of the filtered smiles,
+            where 0 indicates a training sample, 1 a testing sample and 2 a validation sample. It will either take
+            a new argument of default to the initialized custom split. The default initialization is None.
+
+        Returns
+        -------
+        train, test, val
+            List containing the respective datasets objects.
+
+        """
+
+        split_type = self.split_type if split_type is None else split_type
+        split_frac = self.split_frac if split_frac is None else split_frac
+        custom_split = self.custom_split if custom_split is None else custom_split
+
+        return split_data(data = self, split_type = split_type,
+                            split_frac = split_frac, custom_split = custom_split)
+
 
 class GraphDataSet(DataSet):
-    """A class that takes a path to a pickle file or a list of smiles and targets. The datasets is stored in
+    """A class that takes a path to a pickle file or a list of smiles and targets. The dataset is stored in
         Pytorch-Geometric Data instances and be accessed like an array. Additionally, if desired it splits the datasets and
         prepares the splits for training and validation. **If you wish to split the datasets immediately, please set
         split to True. Per default, it will not split.**
@@ -545,9 +597,10 @@ class GraphDataSet(DataSet):
 
     """
 
-    def __init__(self, file_path = None, smiles=None, target=None, global_features = None,
-                 allowed_atoms = None, atom_feature_list = None, bond_feature_list = None, split = True,
-                 split_type = None, split_frac = None, custom_split = None, log = False, indices=None):
+    def __init__(self, file_path:str = None, smiles:list=None, target:list=None, global_features:list = None,
+                 allowed_atoms:list = None, atom_feature_list:list = None, bond_feature_list:list = None,
+                 split:bool = True, split_type:str = None, split_frac:list = None, custom_split:list = None,
+                 log:bool = False, indices:list = None):
 
         super().__init__(file_path=file_path, smiles=smiles, target=target, global_features=global_features,
                          allowed_atoms=allowed_atoms, atom_feature_list=atom_feature_list,
@@ -571,34 +624,3 @@ class GraphDataSet(DataSet):
         if split or (self.custom_split is not None):
             self.train, self.test, self.val = split_data(data = self.data, split_type = self.split_type,
                                                         split_frac = self.split_frac, custom_split = self.custom_split)
-
-    def get_splits(self, split_type = None, split_frac = None, custom_split = None):
-        """ Returns the dataset split into training, testing and validation based on the given split type.
-
-        Parameters
-        ----------
-        split_type: str
-            Indicates what split should be used. It will either take a new argument or default
-             to the initialized split fractions. The default initialization is 'random'. The options are:
-             ['consecutive', 'random', 'molecular weight', 'scaffold', 'stratified', 'custom']
-        split_frac: array
-            Indicates what the split fractions should be. It will either take a new argument or default
-             to the initialized split fractions. The default initialization is [0.8,0.1,0.1].
-        custom_split: array
-            The custom split that should be applied. Has to be an array matching the length of the filtered smiles,
-            where 0 indicates a training sample, 1 a testing sample and 2 a validation sample. It will either take
-            a new argument of default to the initialized custom split. The default initialization is None.
-
-        Returns
-        -------
-        train, test, val
-            List containing the respective datasets objects.
-
-        """
-
-        split_type = self.split_type if split_type is None else split_type
-        split_frac = self.split_frac if split_frac is None else split_frac
-        custom_split = self.custom_split if custom_split is None else custom_split
-
-        return split_data(data = self, split_type = split_type,
-                            split_frac = split_frac, custom_split = custom_split)

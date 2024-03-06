@@ -163,7 +163,8 @@ def mol_weight_vs_target(smiles: list, target: list, target_name: str = None, sa
     return plot
 
 
-def compound_nums_chart(smiles: list, fig_size: tuple = (14,8), save_fig: bool = False, path_to_export: str = None) -> sns.barplot:
+def compound_nums_chart(smiles: list, fig_size: tuple = (14,8), save_fig: bool = False, path_to_export: str = None) \
+        -> sns.barplot:
     """
 
     Parameters:
@@ -201,8 +202,22 @@ def compound_nums_chart(smiles: list, fig_size: tuple = (14,8), save_fig: bool =
 
     return
 
-def compounds_dataset_heatmap(dataset_smiles: list, dataset_names: list,  fig_size: tuple = (10,10), save_fig: bool = False,
-                              path_to_export: str = None) -> sns.barplot:
+def compounds_dataset_heatmap(dataset_smiles: list, dataset_names: list,  fig_size: tuple = (10,10),
+                              save_fig: bool = False, path_to_export: str = None) -> sns.barplot:
+    """
+
+    Parameters
+    ----------
+    dataset_smiles:
+    dataset_names:
+    fig_size:
+    save_fig:
+    path_to_export:
+
+    Returns
+    -------
+
+    """
 
     if save_fig and (path_to_export is None):
 
@@ -225,15 +240,15 @@ def compounds_dataset_heatmap(dataset_smiles: list, dataset_names: list,  fig_si
     fig, ax = plt.subplots(figsize=fig_size)
     ax = sns.heatmap(ax = ax, data = df, cmap=cmap)
 
-    if len(dataset_names) < 4:
-        ax.set_aspect("equal")
+    #if len(dataset_names) < 4:
+    #    ax.set_aspect("equal")
 
     #ax.tick_params('x', rotation=45)
     ax.set_xlabel('compound classes')
-    ax.set_ylabel('dataset')
+    ax.set_ylabel('datasets')
 
     if path_to_export is not None:
-        fig.savefig(fname=f'{path_to_export}/dataset_heatmap.svg', format='svg')
+        fig.savefig(fname=f'{path_to_export}/dataset_heatmap.svg', format='svg', bbox_inches='tight')
 
     return
 
