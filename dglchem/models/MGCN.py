@@ -1,3 +1,5 @@
+# Implements the Molecular Graph Convolutional Layer from Steven Kearnes et alhttp://dx.doi.org/10.1007/s10822-016-9938-8
+
 # Inspired by https://github.com/chaitjo/geometric-gnn-dojo/blob/main/geometric_gnn_101.ipynb
 
 import torch
@@ -8,8 +10,13 @@ from torch_geometric.nn import MessagePassing
 from torch.nn.init import kaiming_uniform_
 from torch_geometric.nn import global_mean_pool
 
+__all__ = [
+    'MGConv',
+    'MGConvLayer'
+]
 
-class MPNNModel(nn.Module):
+
+class MGConv(nn.Module):
     def __init__(self, num_layers=4, emb_dim=64, node_dim=11, edge_dim=4, out_dim=1):
         """Message Passing Neural Network model for graph property prediction
 
@@ -25,11 +32,12 @@ class MPNNModel(nn.Module):
         # Linear projection for initial node features
         # dim: d_n -> d
         self.lin_in = Linear(node_dim, emb_dim)
+        print(self.lin_in)
 
         # Stack of MPNN layers
         self.convs = torch.nn.ModuleList()
         for layer in range(num_layers):
-            self.convs.append(MGConvLayer(emb_dim, edge_dim, aggr='add'))
+            self.convs.append(MGConvLayer(emb_dim, edge_dim))
 
         # Global pooling/readout function `R` (mean pooling)
         # PyG handles the underlying logic via `global_mean_pool()`
@@ -69,17 +77,17 @@ class MGConvLayer(MessagePassing):
 
     """
     def __init__(self, emb_dim, edge_dim):
-        super().__init__(aggr='add')  # "Add" aggregation
+        super().__init__(aggr='sum')  # "Add" aggregation
         # shape (emb_dim, emb_dim)
-        self.lin0 = Linear(emb_dim, emb_dim)
+        self.lin0 = Linear(emb_dim, edge_dim)
         # shape (emb_dim + edge_dim, emb_dim)
-        self.lin1 = Linear(emb_dim+edge_dim, emb_dim)
+        self.lin1 = Linear(edge_dim, emb_dim)
         # shape (emb_dim, emb_dim)
-        self.lin2 = Parameter(torch.empty(emb_dim,emb_dim))
+        self.lin2 = Parameter(torch.empty(emb_dim,edge_dim))
         # shape (emb_dim*2, emb_dim)
         self.lin3 = Linear(emb_dim*2, emb_dim)
-        # shape (emb_dim*2 + edge_dim, edge_dim)
-        self.lin4 = Linear(emb_dim*2+edge_dim, edge_dim)
+        # shape (emb_dim*2 + edge_dim, edge_dim) For now I have embedding the edges into the emb dim
+        self.lin4 = Linear(emb_dim+edge_dim, emb_dim)
 
         self.relu = nn.ReLU()
         self.reset_parameters()
@@ -123,20 +131,23 @@ class MGConvLayer(MessagePassing):
         # Step 4: Normalize node features.
         return edge_attr
 
-    def aggregate(self, inputs):
-        return torch.sum(inputs)
+    #def aggregate(self, inputs):
+    #    print(inputs)
+    #    print(torch.sum(inputs))
+    #    return torch.sum(inputs)
 
     def update(self, aggr_out, x):
-
-        inner = torch.cat( (self.relu(self.lin0(x)), aggr_out) )
+        print(aggr_out)
+        inner = torch.cat( (self.relu(self.lin0(x)), aggr_out))
 
         return self.relu(self.lin1(inner))
 
     def edge_update(self, x_i, x_j, edge_attr):
 
-        cat_1 = torch.cat(self.lin2, edge_attr)
+        print(self.lin2.shape)
+
+        cat_1 = torch.cat((self.lin2, edge_attr))
         cat_2 = self.lin3(torch.cat((x_i, x_j)))
         cat_3 = torch.cat((self.relu(cat_1), self.relu(cat_2)))
 
         return self.relu(self.lin4(cat_3))
-

@@ -302,8 +302,8 @@ class DataSet(DataLoad):
 
     def save_dataset(self, filename:str=None):
         """Loads the dataset (specifically the smiles, target, global features and graphs) to a pandas DataFrame and
-        dumps it into a pickle file. Saving and loading the same is about 10x faster than recreating the same dataset
-        from scratch.
+        dumps it into a pickle file. Saving and loading the same dataset is about 20x faster than recreating it from
+        scratch.
 
         Parameters
         ----------
@@ -330,10 +330,6 @@ class DataSet(DataLoad):
 
         with open(path,'wb') as handle:
             pickle.dump(df_save, handle, protocol=pickle.HIGHEST_PROTOCOL)
-
-
-        #with open(path+'/'+filename+'.pickle', 'wb') as handle:
-        #    pickle.dump(self.data, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
         print(f'File saved at: {path}')
 
