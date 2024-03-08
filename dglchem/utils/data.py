@@ -208,7 +208,7 @@ class DataLoad(object):
     """
     def __int__(self, root = None):
         if root is None:
-            root = './datasets'
+            root = './data'
         self.root = root
 
     @property
@@ -267,8 +267,17 @@ class DataSet(DataLoad):
 
         if file_path is not None:
             with open(file_path, 'rb') as handle:
-                self.data = pickle.load(handle)
-                print('Loaded datasets.')
+                try:
+                    df = pd.read_pickle(handle)
+                    print('Loaded dataset.')
+                except:
+                    raise ValueError('A dataset is stored as a DataFrame.')
+
+            self.smiles = df.smiles
+            self.target = df.target
+            self.global_features = df.global_features
+            self.data = df.graphs
+
         else:
             self.smiles, self.raw_target = filter_smiles(smiles, target, allowed_atoms= allowed_atoms, log=log)
 
@@ -283,33 +292,50 @@ class DataSet(DataLoad):
                                           bond_feature_list = bond_feature_list)
 
             self.global_features = global_features
-            self._indices = indices
-            self.num_node_features = self.data[0].num_node_features
-            self.num_edge_features = self.data[0].num_edge_features
+
+        self._indices = indices
+        self.num_node_features = self.data[0].num_node_features
+        self.num_edge_features = self.data[0].num_edge_features
+        self.data_name=None
 
 
 
     def save_dataset(self, filename:str=None):
-        """Saves the dataset in the processed folder as a pickle file.
+        """Loads the dataset (specifically the smiles, target, global features and graphs) to a pandas DataFrame and
+        dumps it into a pickle file. Saving and loading the same is about 10x faster than recreating the same dataset
+        from scratch.
 
         Parameters
         ----------
         filename: str
-            Name of the datasets file. Default: 'datasets'
+            Name of the datasets file. Default: 'dataset'
 
 
         """
-        filename='datasets' if filename is None else filename
+        if filename is None:
+            if self.data_name is None:
+                filename = 'dataset'
+            else:
+                filename = self.data_name
 
         path = self.processed_dir
 
         if not os.path.exists(path):
             os.makedirs(path)
 
-        with open(path+'/'+filename+'.pickle', 'wb') as handle:
-            pickle.dump(self.data, handle, protocol=pickle.HIGHEST_PROTOCOL)
+        df_save = pd.DataFrame({'smiles':self.smiles,'target':self.target,'global_features':self.global_features,
+                   'graphs':self.data})
 
-        print(f'File saved at: {path}/{filename}.pickle')
+        path = os.path.join(path,filename+'.pickle')
+
+        with open(path,'wb') as handle:
+            pickle.dump(df_save, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+
+        #with open(path+'/'+filename+'.pickle', 'wb') as handle:
+        #    pickle.dump(self.data, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+        print(f'File saved at: {path}')
 
 
     def get_smiles(self, path: str =None):

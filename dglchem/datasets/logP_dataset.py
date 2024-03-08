@@ -63,24 +63,24 @@ class LogP(GraphDataSet):
                  split_frac = None, custom_split = None, log = False, save_data_filename=None):
 
 
-        self.root = './datasets' if root is None else root
+        self.root = './data' if root is None else root
 
-        self.file_name = 'logP'
+        file_name = 'LogP'
 
         self.raw_path = self.raw_dir
 
-        if not osp.exists(osp.join(self.raw_path, self.file_name)):
+        if not osp.exists(osp.join(self.raw_path, file_name)):
             download_url(
                 'https://github.com/nadinulrich/log_P_prediction/blob/30f2f6ad0d7806a3246a5b3da936aa02478d5202/Dataset_and_Predictions.xlsx?raw=true',
                  folder = self.raw_path,
-                 filename= self.file_name,
+                 filename= file_name,
                  log = True
             )
 
-            path = osp.join(self.raw_path, self.file_name)
+            path = osp.join(self.raw_path, file_name)
 
         else:
-            path = osp.join(self.raw_path, self.file_name)
+            path = osp.join(self.raw_path, file_name)
 
         df = pd.read_excel(path)
         labels = df.columns[3]
@@ -90,6 +90,8 @@ class LogP(GraphDataSet):
                          allowed_atoms = allowed_atoms, atom_feature_list = atom_feature_list,
                          bond_feature_list = bond_feature_list, split=split, split_type=split_type,
                          split_frac=split_frac, custom_split=custom_split, log = log)
+
+        self.data_name = 'LogP'
 
 
         if save_data_filename is not None:
