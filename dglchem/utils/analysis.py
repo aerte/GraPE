@@ -16,7 +16,8 @@ __all__ = [
     'smiles_analysis',
     'mol_weight_vs_target',
     'compound_nums_chart',
-    'compounds_dataset_heatmap'
+    'compounds_dataset_heatmap',
+    'loss_plot'
 ]
 
 def smiles_analysis(smiles: list, path_to_export: str =None, download: bool =False, plots: list = None,
@@ -165,16 +166,22 @@ def mol_weight_vs_target(smiles: list, target: list, target_name: str = None, sa
 
 def compound_nums_chart(smiles: list, fig_size: tuple = (14,8), save_fig: bool = False, path_to_export: str = None) \
         -> sns.barplot:
-    """
+    """Creates a barchart visualizing the number of molecules classified into different compound types.
 
-    Parameters:
+    Parameters
     ----------
     smiles: list
         The SMILES that will be classified into compounds and the plotted using a barchart.
+    fig_size: tuple
+        The output figure size. Default: (14,8)
     save_fig: bool
         Decides if the plot is saved, is overridden if a path is given. Default: False
     path_to_export: str
         File location to save. Default: None
+
+    Returns
+    -------
+    sns.barplot
 
     """
     if save_fig and (path_to_export is None):
@@ -203,19 +210,26 @@ def compound_nums_chart(smiles: list, fig_size: tuple = (14,8), save_fig: bool =
     return
 
 def compounds_dataset_heatmap(dataset_smiles: list, dataset_names: list,  fig_size: tuple = (10,10),
-                              save_fig: bool = False, path_to_export: str = None) -> sns.barplot:
-    """
+                              save_fig: bool = False, path_to_export: str = None) -> sns.heatmap:
+    """Creates a heatmap visualizing the number elements in different compounds classes between multiple datasets.
 
     Parameters
     ----------
-    dataset_smiles:
-    dataset_names:
-    fig_size:
-    save_fig:
-    path_to_export:
+    dataset_smiles: list
+        A list containing the smiles of the datasets to be considered. Should have the shape like:
+        [[smiles_1],[smiles_2]]
+    dataset_names: list
+        List of the dataset names.
+    fig_size: tuple
+        The output figure size. Default: (10,10)
+    save_fig: bool
+        Decides if the plot is saved, is overridden if a path is given. Default: False
+    path_to_export: str
+        File location to save. Default: None
 
     Returns
     -------
+    sns.heatmap
 
     """
 
@@ -252,8 +266,28 @@ def compounds_dataset_heatmap(dataset_smiles: list, dataset_names: list,  fig_si
 
     return
 
-def loss_plot(losses, model_names, fig_size: tuple = (10,10),
+def loss_plot(losses, model_names, fig_size: tuple = (10,5),
                               save_fig: bool = False, path_to_export: str = None) -> sns.lineplot:
+    """Creates a line plot of different losses on the same scale.
+
+    Parameters
+    ----------
+    losses: list
+        A list containing the losses.
+    model_names: list
+        List of the dataset names or loss type.
+    fig_size: tuple
+        The output figure size. Default: (10,10)
+    save_fig: bool
+        Decides if the plot is saved, is overridden if a path is given. Default: False
+    path_to_export: str
+        File location to save. Default: None
+
+    Returns
+    -------
+    sns.lineplot
+
+    """
 
     if save_fig and (path_to_export is None):
 
@@ -262,7 +296,21 @@ def loss_plot(losses, model_names, fig_size: tuple = (10,10),
         if not os.path.exists(path_to_export):
             os.mkdir(path_to_export)
 
-    sns.lineplot(x = loss)
+    loss_dic = dict()
+    for idx, name in enumerate(model_names):
+        loss_dic[name] = losses[idx]
+
+    df = pd.DataFrame(loss_dic)
+
+    fig, ax = plt.subplots(figsize=fig_size)
+    sns.lineplot(data=df)
+    ax.set_xlabel('Epochs')
+    ax.set_ylabel('Loss')
+
+    if path_to_export is not None:
+        fig.savefig(fname=f'{path_to_export}/loss_plot.svg', format='svg')
+
+    return
 
 
 
