@@ -1,8 +1,8 @@
-from time import sleep
-
+from typing import Callable
 import torch
 import numpy as np
 from torch_geometric.loader import DataLoader
+from torch_geometric.data import Data
 from tqdm import tqdm
 
 __all__ = [
@@ -10,8 +10,41 @@ __all__ = [
 ]
 
 # Should be used after the model is initialized
-def train_model(model, loss_func, optimizer, train_data_loader, test_data_loader, device = None, epochs = 50,  batch_size = 32,
-                early_stopping: bool = True, patience = 3):
+def train_model(model: torch.nn.Module, loss_func: Callable, optimizer: torch.optim.Optimizer,
+                train_data_loader: list or DataLoader, test_data_loader: list or DataLoader,
+                device: str = None, epochs: int = 50, batch_size: int = 32,
+                early_stopping: bool = True, patience: int = 3) -> tuple:
+    """Function to train and test a given model. Can initialize DataLoaders if only list of Data objects are given.
+
+    Parameters
+    ----------
+    model: torch.nn.Module
+        Model that will be trained and tested. Has to be a torch Module.
+    loss_func: Callable
+        Loss function like F.mse_loss that will be used as a loss.
+    optimizer: torch.optim.Optimizer
+        Torch optimization algorithm like Adam or SDG.
+    train_data_loader: list of Data or DataLoader
+        A list of Data objects or the DataLoader directly to be used as the training data.
+    test_data_loader: list of Data or DataLoader
+        A list of Data objects or the DataLoader directly to be used as the test data.
+    device: str
+        Torch device to be used ('cpu','cuda' or 'mps'). Default: 'cpu'
+    epochs: int
+        Training epochs. Default: 50
+    batch_size: int
+        Batch size of the DataLoader if not given directly. Default: 32
+    early_stopping: bool
+        Decides if early stopping should be used. Default: True
+    patience: int
+        Decides how many 'bad' epochs can pass before early stopping takes effect. Default: 3
+
+    Returns
+    -------
+    tuple
+        Training and test loss arrays.
+
+    """
 
     device = torch.device('cpu') if device is None else device
 
@@ -54,14 +87,15 @@ def train_model(model, loss_func, optimizer, train_data_loader, test_data_loader
             test_loss.append(loss_test)
 
             if i%5 == 0:
-                pbar.set_description(f"epoch={i}, training loss= {loss_train:.1f}, validation loss= {loss_test}")
+                pbar.set_description(f"epoch={i}, training loss= {loss_train:.3f}, validation loss= {loss_test:.3f}")
 
             if loss_test < loss_cut:
                 loss_cut = loss_test
+                counter = 0
             else:
                 counter+=1
 
-            if counter==3:
+            if counter==patience and early_stopping:
                 print('Model hit early stop threshold. Ending training.')
                 break
 
