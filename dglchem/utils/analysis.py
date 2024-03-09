@@ -252,6 +252,18 @@ def compounds_dataset_heatmap(dataset_smiles: list, dataset_names: list,  fig_si
 
     return
 
+def loss_plot(losses, model_names, fig_size: tuple = (10,10),
+                              save_fig: bool = False, path_to_export: str = None) -> sns.lineplot:
+
+    if save_fig and (path_to_export is None):
+
+        path_to_export = os.getcwd() + '/analysis_results'
+
+        if not os.path.exists(path_to_export):
+            os.mkdir(path_to_export)
+
+    sns.lineplot(x = loss)
+
 
 
 

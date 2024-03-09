@@ -25,18 +25,19 @@ class MGConvLayer(MessagePassing):
     [2] Justin Gilmer et al., Neural Message Passing for Quantum Chemistry, http://proceedings.mlr.press/v70/gilmer17a/gilmer17a.pdf
 
     """
-    def __init__(self, num_edges, node_in_feats, edge_in_feats, hidden_nodes, hidden_edges):
+    def __init__(self, node_in_feats, edge_in_feats, hidden_nodes, hidden_edges):
         super().__init__(aggr='sum')  # "Add" aggregation
         # -> It has to have the edge dimension to be concat. with the message (sum of edges)
         self.lin0 = Linear(node_in_feats, edge_in_feats)
         # -> edge_in x2
         self.lin1 = Linear(edge_in_feats*2, hidden_nodes)
         # -> Depends on the number of edges in
-        self.lin2 = Parameter(torch.empty(num_edges, edge_in_feats))
+        #self.lin2 = Parameter(torch.empty(hidden_edges, edge_in_feats))
+        self.lin2 = Linear(edge_in_feats, hidden_edges)
         # -> only works for bidirectional edges (num_nodes = num_edges) ### NEEDS CLARIFICATION
         self.lin3 = Linear(node_in_feats*2, edge_in_feats)
         # shape (emb_dim*2 + edge_dim, edge_dim) For now I have embedding the edges into the emb dim
-        self.lin4 = Linear(edge_in_feats*3, hidden_edges)
+        self.lin4 = Linear(hidden_edges+edge_in_feats, hidden_edges)
 
         self.relu = nn.ReLU()
         self.reset_parameters()
@@ -44,7 +45,8 @@ class MGConvLayer(MessagePassing):
     def reset_parameters(self):
         self.lin0.reset_parameters()
         self.lin1.reset_parameters()
-        kaiming_uniform_(self.lin2)
+        self.lin2.reset_parameters()
+        #kaiming_uniform_(self.lin2)
         self.lin3.reset_parameters()
         self.lin4.reset_parameters()
 
@@ -75,7 +77,7 @@ class MGConvLayer(MessagePassing):
         #print(self.lin2.shape)
         #print(x_i)
 
-        cat_1 = torch.cat((self.lin2, edge_attr),dim=1)
+        cat_1 = self.lin2(edge_attr)
         #print('cat 1 shape',cat_1.shape)
         #print('xv shape', x_i.shape)
         #print('xw shape', x_j.shape)

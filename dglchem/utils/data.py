@@ -10,7 +10,7 @@ import pandas as pd
 import numpy as np
 import rdkit.Chem.Draw
 import torch
-from torch import Tensor
+from torch import tensor, Tensor
 
 from rdkit import Chem
 from rdkit.Chem import rdmolops, MolFromSmiles, Draw
@@ -196,8 +196,10 @@ def construct_dataset(smiles: list, target: list, allowed_atoms: list = None,
         edge_index = dense_to_sparse(torch.tensor(rdmolops.GetAdjacencyMatrix(mol)))[0]
         x = atom_featurizer(mol)
         edge_attr = bond_featurizer(mol)
-        data.append(Data(x = Tensor(x), edge_index = Tensor(edge_index), edge_attr = Tensor(edge_attr),
-                         y=Tensor([target[i]])))
+        data.append(Data(x = x,
+                         edge_index = edge_index,
+                         edge_attr = edge_attr,
+                         y=tensor([target[i]], dtype=torch.float32)))
 
     return data
 

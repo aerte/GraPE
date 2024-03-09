@@ -15,7 +15,7 @@ __all__ = [
 
 
 class MGConv(nn.Module):
-    def __init__(self, num_edges = 10, num_layers=4, node_dim=11, edge_dim=4, node_hidden_dim = 64,
+    def __init__(self, num_layers=4, node_dim=11, edge_dim=4, node_hidden_dim = 64,
                  edge_hidden_dim = 64, out_dim=1):
         """Message Passing Neural Network model for graph property prediction
 
@@ -31,14 +31,12 @@ class MGConv(nn.Module):
         self.gnn_layers = torch.nn.ModuleList()
         for layer in range(num_layers):
             if layer==0:
-                self.gnn_layers.append(MGConvLayer(num_edges=num_edges,
-                                                   node_in_feats=node_dim,
+                self.gnn_layers.append(MGConvLayer(node_in_feats=node_dim,
                                                    edge_in_feats=edge_dim,
                                                    hidden_nodes=node_hidden_dim,
                                                    hidden_edges=edge_hidden_dim))
             else:
-                self.gnn_layers.append(MGConvLayer(num_edges=num_edges,
-                                                   node_in_feats=node_hidden_dim,
+                self.gnn_layers.append(MGConvLayer(node_in_feats=node_hidden_dim,
                                                    edge_in_feats=edge_hidden_dim,
                                                    hidden_nodes=node_hidden_dim,
                                                    hidden_edges=edge_hidden_dim))
