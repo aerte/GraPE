@@ -1,5 +1,3 @@
-# Implements the Molecular Graph Convolutional Layer from Steven Kearnes et alhttp://dx.doi.org/10.1007/s10822-016-9938-8
-
 # Inspired by https://github.com/chaitjo/geometric-gnn-dojo/blob/main/geometric_gnn_101.ipynb
 
 import torch

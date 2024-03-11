@@ -275,10 +275,10 @@ class DataSet(DataLoad):
                 except:
                     raise ValueError('A dataset is stored as a DataFrame.')
 
-            self.smiles = df.smiles
-            self.target = df.target
-            self.global_features = df.global_features
-            self.data = df.graphs
+            self.smiles = list(df.smiles)
+            self.target = list(df.target)
+            self.global_features = list(df.global_features)
+            self.data = list(df.graphs)
 
         else:
             self.smiles, self.raw_target = filter_smiles(smiles, target, allowed_atoms= allowed_atoms, log=log)
@@ -520,8 +520,8 @@ class DataSet(DataLoad):
 
         return smiles_analysis(self.smiles, path_to_export, download, plots, save_plots, fig_size, filter_output_txt)
 
-    def weight_vs_target_plot(self, target_name:str=None, save_fig:bool = False,
-                              pre_standardization: bool = True, path_to_export:str = None)->sns.jointplot:
+    def weight_vs_target_plot(self, target_name:str=None, fig_height = 8, save_fig:bool = False,
+                              pre_standardization: bool = False, path_to_export:str = None)->sns.jointplot:
         """
 
         Parameters
@@ -530,6 +530,8 @@ class DataSet(DataLoad):
             The title of the y-axis in the plot. Default: 'target'
         save_fig: bool
             Decides if the figure is saved in the processed directory.
+        fig_height: int
+            Determines the figure size of the plot.
         pre_standardization: bool
             Decides if the pre- or post-standardization target variable is used. Will only affect the scale,
             not the distribution. Default: True.
@@ -542,8 +544,13 @@ class DataSet(DataLoad):
             A seaborn jointplot of the molecular weight and target distributions.
 
         """
-
-        target = self.raw_target if pre_standardization else self.target
+        if pre_standardization:
+            try:
+                target = self.raw_target
+            except:
+                raise ValueError('Data was not loaded in from a raw file, this configuration is not possible.')
+        else:
+            target = self.target
 
         plot = mol_weight_vs_target(self.smiles, target, target_name=target_name, save_fig=save_fig,
                                     path_to_export=path_to_export)

@@ -116,9 +116,9 @@ def smiles_analysis(smiles: list, path_to_export: str =None, download: bool =Fal
 
     return dic
 
-def mol_weight_vs_target(smiles: list, target: list, target_name: str = None, save_fig: bool = False,
-                         path_to_export: str =None) -> sns.jointplot:
-    """Plots a seaborn jointplot of the target distribution against the molecular weight distribution.
+def mol_weight_vs_target(smiles: list, target: list, target_name: str = None, fig_height: int = 8,
+                         save_fig: bool = False, path_to_export: str =None) -> sns.jointplot:
+    """Plots a seaborn jointplot of the target distribution against the molecular weight distributionxs.
 
     Parameters
     ----------
@@ -128,6 +128,8 @@ def mol_weight_vs_target(smiles: list, target: list, target_name: str = None, sa
         Prediction target.
     target_name: str
         Title of the y-axis in the plot.
+    fig_height: int
+        Determines the figure size of the plot.
     save_fig: bool
         Decides if the figure is saved as a svg (unless a path is given, then it will save the image). Default: False
     path_to_export: str
@@ -156,12 +158,12 @@ def mol_weight_vs_target(smiles: list, target: list, target_name: str = None, sa
 
     df = pd.DataFrame({'molecular weight in [g/mol]': weight, target_name: target})
 
-    plot = sns.jointplot(data=df, x='molecular weight in [g/mol]',y=target_name, color='orange')
+    plot = sns.jointplot(height=fig_height, data=df, x='molecular weight in [g/mol]',y=target_name, color='orange')
 
     if path_to_export is not None:
         plot.savefig(fname=f'{path_to_export}/molecular_weight_against_{target_name}.svg', format='svg')
 
-    return plot
+    return
 
 
 def compound_nums_chart(smiles: list, fig_size: tuple = (14,8), save_fig: bool = False, path_to_export: str = None) \

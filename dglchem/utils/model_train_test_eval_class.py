@@ -9,12 +9,13 @@ __all__ = [
     'train_model'
 ]
 
-# Should be used after the model is initialized
+
 def train_model(model: torch.nn.Module, loss_func: Callable, optimizer: torch.optim.Optimizer,
                 train_data_loader: list or DataLoader, test_data_loader: list or DataLoader,
                 device: str = None, epochs: int = 50, batch_size: int = 32,
                 early_stopping: bool = True, patience: int = 3) -> tuple:
-    """Function to train and test a given model. Can initialize DataLoaders if only list of Data objects are given.
+    """Auxiliary function to train and test a given model and return the (training, test) losses.
+    Can initialize DataLoaders if only list of Data objects are given.
 
     Parameters
     ----------
