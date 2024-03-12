@@ -581,9 +581,8 @@ class DataSet(DataLoad):
 
         """
 
-        split_type = self.split_type if split_type is None else split_type
-        split_frac = self.split_frac if split_frac is None else split_frac
-        custom_split = self.custom_split if custom_split is None else custom_split
+        split_type = 'random' if split_type is None else split_type
+        split_frac = [0.8, 0.1, 0.1] if split_frac is None else split_frac
 
         return split_data(data = self, split_type = split_type,
                             split_frac = split_frac, custom_split = custom_split)
@@ -653,5 +652,5 @@ class GraphDataSet(DataSet):
         assert np.sum(self.split_frac), 'Split fractions should add to 1.'
 
         if split or (self.custom_split is not None):
-            self.train, self.test, self.val = split_data(data = self.data, split_type = self.split_type,
+            self.train, self.val, self.test = split_data(data = self.data, split_type = self.split_type,
                                                         split_frac = self.split_frac, custom_split = self.custom_split)

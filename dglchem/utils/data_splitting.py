@@ -107,7 +107,7 @@ def taylor_butina_clustering(data, threshold: float =0.8, nBits: int = 2048, rad
 
 
 def split_data(data, split_type: str = None, split_frac: float = None, custom_split: list = None,
-               labels: np.array = None, task_id: int = None, bucket_size: int = 10):
+               labels: np.array = None, task_id: int = None, bucket_size: int = 10) -> tuple:
     """
 
     Parameters
@@ -133,7 +133,7 @@ def split_data(data, split_type: str = None, split_frac: float = None, custom_sp
 
     Returns
     -------
-    train, test, val
+    (train, val, test)
         - Lists containing the respective datasets objects.
 
     """

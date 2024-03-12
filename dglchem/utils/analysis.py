@@ -118,7 +118,7 @@ def smiles_analysis(smiles: list, path_to_export: str =None, download: bool =Fal
 
 def mol_weight_vs_target(smiles: list, target: list, target_name: str = None, fig_height: int = 8,
                          save_fig: bool = False, path_to_export: str =None) -> sns.jointplot:
-    """Plots a seaborn jointplot of the target distribution against the molecular weight distributionxs.
+    """Plots a seaborn jointplot of the target distribution against the molecular weight distributions.
 
     Parameters
     ----------
@@ -158,7 +158,7 @@ def mol_weight_vs_target(smiles: list, target: list, target_name: str = None, fi
 
     df = pd.DataFrame({'molecular weight in [g/mol]': weight, target_name: target})
 
-    plot = sns.jointplot(height=fig_height, data=df, x='molecular weight in [g/mol]',y=target_name, color='orange')
+    plot = sns.jointplot(height=fig_height, data=df, x='molecular weight in [g/mol]',y=target_name, color='blue')
 
     if path_to_export is not None:
         plot.savefig(fname=f'{path_to_export}/molecular_weight_against_{target_name}.svg', format='svg')
