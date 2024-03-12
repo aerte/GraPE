@@ -13,11 +13,9 @@ __all__ = [
     'MGConvLayer'
 ]
 
-from torch_geometric.typing import Adj
-
-
 class MGConvLayer(MessagePassing):
-    """Implements teh Molecular Graph Convolutional Layer from Steven Kearnes at al. [1] as described in [2].
+    """Implements the Molecular Graph Convolutional Layer (sometimes called Weave) from Steven Kearnes at al. [1]
+    as described in [2].
 
     References
     ----------
@@ -25,7 +23,7 @@ class MGConvLayer(MessagePassing):
     [2] Justin Gilmer et al., Neural Message Passing for Quantum Chemistry, http://proceedings.mlr.press/v70/gilmer17a/gilmer17a.pdf
 
     """
-    def __init__(self, node_in_feats, edge_in_feats, hidden_nodes, hidden_edges):
+    def __init__(self, node_in_feats: int, edge_in_feats: int, hidden_nodes: int = 64, hidden_edges: int = 64):
         super().__init__(aggr='sum')  # "Add" aggregation
         # -> It has to have the edge dimension to be concat. with the message (sum of edges)
         self.lin0 = Linear(node_in_feats, edge_in_feats)
