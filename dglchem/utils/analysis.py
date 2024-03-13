@@ -1,8 +1,14 @@
 # analysis tools
 
 import os
+import time
+import json
+import urllib.request
+import math
 
+from tqdm import tqdm
 import pandas as pd
+import rdkit.Chem
 from rdkit import Chem
 from dgllife.utils.analysis import analyze_mols
 import matplotlib.pyplot as plt
@@ -10,10 +16,13 @@ import numpy as np
 import seaborn as sns
 
 from dglchem.utils.feature_func import mol_weight
-from dglchem import utils
 
 __all__ = [
     'smiles_analysis',
+    'classify_compounds',
+    'classyfire',
+    'classyfire_result_analysis',
+    'num_chart',
     'mol_weight_vs_target',
     'compound_nums_chart',
     'compounds_dataset_heatmap',
@@ -116,6 +125,172 @@ def smiles_analysis(smiles: list, path_to_export: str =None, download: bool =Fal
 
     return dic
 
+def classify_compounds(smiles: list) -> tuple:
+    """Function that classifies compounds into the following classes:
+        ['Hydrocarbons', 'Oxygenated', 'Nitrogenated', 'Chlorinated', 'Fluorinated', 'Brominated', 'Iodinated',
+        'Phosphorous containing', 'Sulfonated', 'Silicon containing']
+
+    Author: arnaou
+
+    Parameters
+    ----------
+    smiles
+        List of smiles that will be classified into the families.
+
+    Returns
+    -------
+    class_dictionary, length_dictionary
+        The class dictionary contains the classes and associated indices, the length dictionary contains the
+        summarized lengths
+
+
+    """
+
+    df = pd.DataFrame({'SMILES': smiles})
+
+    # Defining the class names
+    class_names = ['Hydrocarbons', 'Oxygenated', 'Nitrogenated', 'Chlorinated', 'Fluorinated', 'Brominated',
+                   'Iodinated', 'Phosphorous containing', 'Sulfonated', 'Silicon containing']
+    # Defining the class tags
+    class_patterns = ['C', 'CO', 'CN', 'CCL', "CF", "CBR", "CI", "CP", "CS", "CSI"]
+
+    class_dict = {}
+    for i in class_names:
+        class_dict[i] = []
+    for j, smi in enumerate(df['SMILES']):
+        s = ''.join(filter(str.isalpha, smi)).upper()
+        for n in range(len(class_names)):
+            allowed_char = set(class_patterns[n])
+            if set(s) == allowed_char:
+                if class_names[n] == 'Chlorinated':
+                    if 'CL' in s:
+                        class_dict[class_names[n]].append(j)
+                elif class_names[n] == 'Brominated':
+                    if 'BR' in s:
+                        class_dict[class_names[n]].append(j)
+                elif class_names[n] == "Silicon containing":
+                    if 'SI' in s:
+                        class_dict[class_names[n]].append(j)
+                else:
+                    class_dict[class_names[n]].append(j)
+
+    sum_lst = []
+    for key in class_dict:
+        sum_lst.extend(class_dict[key])
+
+        # check the consistence
+    if len(sum_lst) == len(list(set(sum_lst))):
+        multi_lst = list(set(range(len(df))) - set(sum_lst))
+        class_dict['Multifunctional'] = multi_lst
+        length_dict = {key: len(value) for key, value in class_dict.items()}
+    else:
+        raise ValueError('The sum is not matching')
+
+    return class_dict, length_dict
+
+def print_report(string, file=None):
+    file.write('\n' + string)
+
+def classyfire(mols: list[rdkit.Chem.Mol], path_to_export: str = None):
+    """Applies the classyfire procedure given in [1] to the input molecules and generates json files with the
+    information. The procedure will take about ~10min for 100 mols.
+
+    Author: arnaou
+
+    Parameters
+    ----------
+    mols: list[rdkit.Chem.Mol]
+        The input mol objects, their information will be attempted to retrieve from the classyfire database.
+    path_to_export: str
+        Path where the classyfire results should be stored.
+
+    References
+    ----------
+    [1] Djoumbou Feunang et al., ClassyFire: automated chemical classification with a comprehensive, computable taxonomy.,
+    2016, https://doi.org/10.1186/s13321-016-0174-y
+
+    """
+
+    if path_to_export is None:
+
+        path_to_export = os.getcwd() + '/analysis_results'
+
+        if not os.path.exists(path_to_export):
+            os.mkdir(path_to_export)
+
+    inchikey_rdkit = []
+    for mol in mols:
+        try:
+            inchikey_rdkit.append(Chem.inchi.MolToInchiKey(mol))
+        except:
+            inchikey_rdkit.append('')
+
+    # download classification using inchikey
+    path_folder = os.path.join(path_to_export,'classyfire')
+    if not os.path.exists(path_folder):
+        os.makedirs(path_folder)
+
+    missing_keys = False
+    path_report = 'missing_keys.txt'
+    report = open(path_report, 'w')
+
+    for i in tqdm(range(len(inchikey_rdkit))):
+        key = inchikey_rdkit[i]
+        url = 'https://cfb.fiehnlab.ucdavis.edu/entities/' + str(key) + '.json'
+        try:
+            with urllib.request.urlopen(url) as webpage:
+                data = json.loads(webpage.read().decode())
+
+            with open(path_folder + '/' + str(i) + '.json', 'w') as f:
+                json.dump(data, f)
+        except:
+            print_report(str(i) + '    ' + str(key))
+            missing_keys = True
+            pass
+
+        time.sleep(math.ceil(len(inchikey_rdkit) / 12 / 60))
+
+    report.close()
+
+    if missing_keys:
+        print('Some InChikeys were not available. Please check "Missing_ichikeys.txt" file.')
+    else:
+        os.remove(path_report)
+
+
+def classyfire_result_analysis(path_to_classyfire: str = None) -> dict:
+    """
+
+    Args:
+        path_to_classyfire:
+
+    Returns:
+
+    """
+
+    if path_to_classyfire is None:
+        path_to_classyfire = os.getcwd() + '/analysis_results' + '/classyfire'
+
+    classes = dict()
+    for file in os.listdir(path_to_classyfire):
+        file_path = os.path.join(path_to_classyfire, file)
+        try:
+            class_name = json.load(open(file_path))['class']['name']
+            if class_name in classes.keys():
+                classes[class_name] += 1
+            else:
+                classes[class_name] = 1
+        except:
+            print(f'No class name in the first layer for file: {file}')
+            pass
+
+    return classes
+
+
+
+
+
+
 def mol_weight_vs_target(smiles: list, target: list, target_name: str = None, fig_height: int = 8,
                          save_fig: bool = False, path_to_export: str =None) -> sns.jointplot:
     """Plots a seaborn jointplot of the target distribution against the molecular weight distributions.
@@ -166,6 +341,34 @@ def mol_weight_vs_target(smiles: list, target: list, target_name: str = None, fi
     return
 
 
+def num_chart(num_dict: dict, fig_size: tuple = (14,8), save_fig: bool = False,
+                         path_to_export: str = None) -> sns.barplot:
+
+    if save_fig and (path_to_export is None):
+
+        path_to_export = os.getcwd() + '/analysis_results'
+
+        if not os.path.exists(path_to_export):
+            os.mkdir(path_to_export)
+
+    x = num_dict.keys()
+    y = num_dict.values()
+
+    plt.rcParams.update({'font.size': 10})
+
+    fig, ax = plt.subplots(figsize=fig_size)
+    palette = sns.color_palette('muted', n_colors=len(num_dict.keys()))
+    ax = sns.barplot(ax=ax, x = x, y= y, hue=x, legend=False, palette=palette)
+    ax.tick_params('x', rotation=60)
+    ax.set_xlabel('compound class')
+    ax.set_ylabel('number of molecules')
+
+    if path_to_export is not None:
+        fig.savefig(fname=f'{path_to_export}/compound_distribution.svg', format='svg', bbox_inches='tight')
+
+    return
+
+
 def compound_nums_chart(smiles: list, fig_size: tuple = (14,8), save_fig: bool = False, path_to_export: str = None) \
         -> sns.barplot:
     """Creates a barchart visualizing the number of molecules classified into different compound types.
@@ -193,7 +396,7 @@ def compound_nums_chart(smiles: list, fig_size: tuple = (14,8), save_fig: bool =
         if not os.path.exists(path_to_export):
             os.mkdir(path_to_export)
 
-    _, num_dict = utils.classify_compounds(smiles)
+    _, num_dict = classify_compounds(smiles)
     x = num_dict.keys()
     y = num_dict.values()
 
@@ -245,7 +448,7 @@ def compounds_dataset_heatmap(dataset_smiles: list, dataset_names: list,  fig_si
 
     results = []
     for smiles in dataset_smiles:
-        results_temp = utils.classify_compounds(smiles)[1]
+        results_temp = classify_compounds(smiles)[1]
         for key in results_temp.keys():
             results_temp[key] = round(results_temp[key]/len(smiles),2)*100
         results.append(results_temp)
@@ -313,6 +516,8 @@ def loss_plot(losses, model_names, fig_size: tuple = (10,5),
         fig.savefig(fname=f'{path_to_export}/loss_plot.svg', format='svg')
 
     return
+
+
 
 
 

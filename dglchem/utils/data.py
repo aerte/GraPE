@@ -29,7 +29,6 @@ RDLogger.DisableLog('rdApp.*')
 
 __all__ = ['filter_smiles',
            'construct_dataset',
-           'classify_compounds',
            'DataLoad',
            'DataSet',
            'GraphDataSet']
@@ -93,67 +92,6 @@ def filter_smiles(smiles: list, target: list, allowed_atoms: list = None, log: b
     df.smiles = mols.map(lambda x: MolToSmiles(x))
 
     return list(df.smiles), list(df.target)
-
-def classify_compounds(smiles: list) -> tuple:
-    """Function that classifies compounds into the following classes:
-        ['Hydrocarbons', 'Oxygenated', 'Nitrogenated', 'Chlorinated', 'Fluorinated', 'Brominated', 'Iodinated',
-        'Phosphorous containing', 'Sulfonated', 'Silicon containing']
-
-    Parameters
-    ----------
-    smiles
-        List of smiles that will be classified into the families.
-
-    Returns
-    -------
-    class_dictionary, length_dictionary
-        The class dictionary contains the classes and associated indices, the length dictionary contains the
-        summarized lengths
-
-
-    """
-
-    df = pd.DataFrame({'SMILES': smiles})
-
-    # Defining the class names
-    class_names = ['Hydrocarbons', 'Oxygenated', 'Nitrogenated', 'Chlorinated', 'Fluorinated', 'Brominated',
-                   'Iodinated', 'Phosphorous containing', 'Sulfonated', 'Silicon containing']
-    # Defining the class tags
-    class_patterns = ['C', 'CO', 'CN', 'CCL', "CF", "CBR", "CI", "CP", "CS", "CSI"]
-
-    class_dict = {}
-    for i in class_names:
-        class_dict[i] = []
-    for j, smi in enumerate(df['SMILES']):
-        s = ''.join(filter(str.isalpha, smi)).upper()
-        for n in range(len(class_names)):
-            allowed_char = set(class_patterns[n])
-            if set(s) == allowed_char:
-                if class_names[n] == 'Chlorinated':
-                    if 'CL' in s:
-                        class_dict[class_names[n]].append(j)
-                elif class_names[n] == 'Brominated':
-                    if 'BR' in s:
-                        class_dict[class_names[n]].append(j)
-                elif class_names[n] == "Silicon containing":
-                    if 'SI' in s:
-                        class_dict[class_names[n]].append(j)
-                else:
-                    class_dict[class_names[n]].append(j)
-
-    sum_lst = []
-    for key in class_dict:
-        sum_lst.extend(class_dict[key])
-
-        # check the consistence
-    if len(sum_lst) == len(list(set(sum_lst))):
-        multi_lst = list(set(range(len(df))) - set(sum_lst))
-        class_dict['Multifunctional'] = multi_lst
-        length_dict = {key: len(value) for key, value in class_dict.items()}
-    else:
-        raise ValueError('The sum is not matching')
-
-    return class_dict, length_dict
 
 
 
