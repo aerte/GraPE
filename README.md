@@ -1,6 +1,6 @@
 # dgl_chem
 
-An implementation of D-MPNN, MegNET and AGC.
+A chemical property prediction pipeline.
 
 Documentation at: 
 
