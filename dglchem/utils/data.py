@@ -13,7 +13,7 @@ import torch
 from torch import tensor, Tensor
 
 from rdkit import Chem
-from rdkit.Chem import rdmolops, MolFromSmiles, Draw
+from rdkit.Chem import rdmolops, MolFromSmiles, Draw, MolToSmiles
 from rdkit import RDLogger
 import seaborn as sns
 
@@ -87,6 +87,10 @@ def filter_smiles(smiles: list, target: list, allowed_atoms: list = None, log: b
 
     df.drop(indices_to_drop, inplace=True)
     df.reset_index(drop=True, inplace=True)
+
+    # map smiles to mol and back to ensure SMILE notation consistency
+    mols = df.smiles.map(lambda x: MolFromSmiles(x))
+    df.smiles = mols.map(lambda x: MolToSmiles(x))
 
     return list(df.smiles), list(df.target)
 
@@ -336,8 +340,8 @@ class DataSet(DataLoad):
         print(f'File saved at: {path}')
 
 
-    def get_smiles(self, path: str =None):
-        """
+    def save_smiles(self, path: str =None):
+        """Save the smiles as a text file in a given location.
 
         Parameters
         ----------
@@ -352,6 +356,29 @@ class DataSet(DataLoad):
             os.makedirs(path)
 
         np.savetxt(path+'/filtered_smiles.txt', X = np.array(self.smiles), fmt='%s')
+
+    def get_mol(self) -> list[rdkit.Chem.Mol]:
+        """Return a list containing all rdkit.Chem.Mol of the SMILES in the DataSet.
+
+        Returns
+        -------
+        list(rdkit.Chem.Mol)
+
+        Example
+        -------
+        >>> from dglchem.datasets import BradleyDoublePlus
+        >>> dataset = BradleyDoublePlus()
+        >>> # Return the first 5 mol objects:
+        >>> dataset.get_mol()[:5]
+        [<rdkit.Chem.rdchem.Mol at 0x31cee26c0>,
+         <rdkit.Chem.rdchem.Mol at 0x31cee2960>,
+         <rdkit.Chem.rdchem.Mol at 0x31cee27a0>,
+         <rdkit.Chem.rdchem.Mol at 0x31cee28f0>,
+         <rdkit.Chem.rdchem.Mol at 0x31cee2a40>]
+
+        """
+
+        return list(map(lambda x: MolFromSmiles(x), self.smiles))
 
     def indices(self):
         """

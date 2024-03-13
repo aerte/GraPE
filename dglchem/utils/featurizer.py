@@ -89,7 +89,23 @@ class AtomFeaturizer(object):
         List of allowed atoms symbols. The default follows the choice of atom symbols allowed in [1, 2]. Default:
         [``C``, ``N``, ``O``, ``S``, ``F``, ``Cl``, ``Br``, ``I``, ``P``].
     atom_feature_list: list of str
-        List of features to be applied. Default: All implemented features.
+        List of features to be applied. Default are the features used in [1,2], which are: [``atom_type_one_hot``,
+        ``atom_total_num_H_one_hot``, ``atom_total_degree_one_hot``, ``atom_explicit_valence_one_hot``,
+        ``atom_hybridization_one_hot``, ``atom_is_aromatic``, ``atom_is_chiral_center``, ``atom_chirality_type_one_hot``,
+        ``atom_chiral_tag_one_hot``, ``atom_formal_charge``].
+
+    Example
+    -------
+    >>> from rdkit.Chem import MolFromSmiles
+    >>> from dglchem.utils import AtomFeaturizer
+
+    >>> mol = MolFromSmiles('CO')
+    >>> atom_featurizer = AtomFeaturizer(['atom_type_one_hot', 'atom_total_degree_one_hot'])
+    >>> atom_featurizer(mol)
+    tensor([[1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 1., 0., 0.],
+        [0., 0., 1., 0., 0., 0., 0., 0., 0., 0., 0., 1., 0., 0., 0., 0.]])
+    >>> # We see in the output that C has 3 more bonds than O, which matches our expectation.
+
 
     References
     -----
@@ -99,7 +115,7 @@ class AtomFeaturizer(object):
      Molecular Property Models, 2023, https://doi.org/10.1021/acs.jcim.2c01091
 
     """
-    def __init__(self, allowed_atoms: list = None, atom_feature_list: list = None):
+    def __init__(self, atom_feature_list: list = None, allowed_atoms: list = None, ):
 
         self.allowable_set_symbols = allowed_atoms
 
@@ -132,7 +148,19 @@ class AtomFeaturizer(object):
         }
 
         if atom_feature_list is None:
-            atom_feature_list = list(self.total_atom_feat.keys())
+            atom_feature_list = [
+                'atom_type_one_hot',
+                'atom_total_num_H_one_hot',
+                'atom_total_degree_one_hot',
+                'atom_explicit_valence_one_hot',
+                'atom_hybridization_one_hot',
+                'atom_is_aromatic',
+                'atom_is_chiral_center',
+                'atom_chirality_type_one_hot',
+                'atom_chiral_tag_one_hot',
+                'atom_formal_charge'
+            ]
+
         self.atom_feature_list = atom_feature_list
 
         self.feat_set = []
@@ -238,12 +266,45 @@ class BondFeaturizer(object):
     * **One hot encoding of bond direction**.
       ---> *['bond_direction_one_hot']*
 
-    **The input feature list determines the order of the features.**
+    **The input feature list determines the order of the features. All bonds are saved bidirectionally (twice) by
+    default to adhere to the PyTorch Geometric structure.**
 
     Parameters
     ----------
     bond_feature_list: list of str
-        List of features that will be applied. Default: All implemented features.
+        List of features that will be applied. Default: The features used in [1,2], which are: [``bond_type_one_hot``,
+        ``bond_is_conjugated``, ``bond_is_in_ring``,``bond_stereo_one_hot``]
+
+    Example
+    -------
+    >>> from rdkit.Chem import MolFromSmiles
+    >>> from dglchem.utils import BondFeaturizer
+
+    >>> mol = MolFromSmiles('Clc1cccs1')
+    >>> bond_featurizer = BondFeaturizer(['bond_type_one_hot','bond_is_in_ring'])
+    >>> bond_featurizer(mol)
+    tensor([[1., 0., 0., 0., 0.],
+        [1., 0., 0., 0., 0.],
+        [0., 0., 0., 1., 1.],
+        [0., 0., 0., 1., 1.],
+        [0., 0., 0., 1., 1.],
+        [0., 0., 0., 1., 1.],
+        [0., 0., 0., 1., 1.],
+        [0., 0., 0., 1., 1.],
+        [0., 0., 0., 1., 1.],
+        [0., 0., 0., 1., 1.],
+        [0., 0., 0., 1., 1.],
+        [0., 0., 0., 1., 1.]])
+    >>> # We see that the first chlorine and carbon are connected via a single bond which is not part of the ring,
+    while all the remaining bonds are part of a ring.
+
+    References
+    ----------
+    [1] Adem R.N. Aouichaoui et al., Application of interpretable group-embedded graph neural networks for pure compound
+    properties, 2023, https://doi.org/10.1016/j.compchemeng.2023.108291
+    [2] Adem R.N. Aouichaoui et al., Combining Group-Contribution Concept and Graph Neural Networks Toward Interpretable
+    Molecular Property Models, 2023, https://doi.org/10.1021/acs.jcim.2c01091
+
     """
     def __init__(self, bond_feature_list =None):
 
@@ -256,7 +317,12 @@ class BondFeaturizer(object):
         }
 
         if bond_feature_list is None:
-            bond_feature_list = list(total_bond_feats.keys())
+            bond_feature_list = [
+                'bond_type_one_hot',
+                'bond_is_conjugated',
+                'bond_is_in_ring',
+                'bond_stereo_one_hot'
+            ]
 
         self.bond_feature_list = bond_feature_list
 
