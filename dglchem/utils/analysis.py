@@ -130,8 +130,6 @@ def classify_compounds(smiles: list) -> tuple:
         ['Hydrocarbons', 'Oxygenated', 'Nitrogenated', 'Chlorinated', 'Fluorinated', 'Brominated', 'Iodinated',
         'Phosphorous containing', 'Sulfonated', 'Silicon containing']
 
-    Author: arnaou
-
     Parameters
     ----------
     smiles
@@ -191,18 +189,24 @@ def classify_compounds(smiles: list) -> tuple:
 def print_report(string, file=None):
     file.write('\n' + string)
 
-def classyfire(mols: list[rdkit.Chem.Mol], path_to_export: str = None):
-    """Applies the classyfire procedure given in [1] to the input molecules and generates json files with the
-    information. The procedure will take about ~10min for 100 mols.
-
-    Author: arnaou
+def classyfire(smiles: list[str], path_to_export: str = None, log: bool = True) -> list[str]:
+    """Applies the classyfire procedure given in [1] to the input smiles and generates json files with the
+    information. The procedure will take about ~10min for 100 molecules. For large datasets, consider subsampling the
+    smiles or using the less informative compound classifier.
 
     Parameters
     ----------
-    mols: list[rdkit.Chem.Mol]
-        The input mol objects, their information will be attempted to retrieve from the classyfire database.
+    smiles: list[str]
+        The input smiles, their information will be attempted to retrieve from the classyfire database.
     path_to_export: str
         Path where the classyfire results should be stored.
+    log: bool
+        Prints out issues in the classyfire procedure, fx. a failed attempt at retrieving a molecule's information.
+
+    Returns
+    -------
+    ids_out: list[int]
+        The indices of the SMILES where data was successfully retrieved. Could be used for an output analysis.
 
     References
     ----------
@@ -210,6 +214,9 @@ def classyfire(mols: list[rdkit.Chem.Mol], path_to_export: str = None):
     2016, https://doi.org/10.1186/s13321-016-0174-y
 
     """
+
+    mols = list(map(lambda x: Chem.MolFromSmiles(x), smiles))
+    ids = []
 
     if path_to_export is None:
 
@@ -219,10 +226,13 @@ def classyfire(mols: list[rdkit.Chem.Mol], path_to_export: str = None):
             os.mkdir(path_to_export)
 
     inchikey_rdkit = []
-    for mol in mols:
+    for idx, mol in mols:
         try:
             inchikey_rdkit.append(Chem.inchi.MolToInchiKey(mol))
+            ids.append(idx)
         except:
+            if log:
+                print(f'No inchikey generated from SMILE index {idx}, possibly due to a faulty SMILE.')
             inchikey_rdkit.append('')
 
     # download classification using inchikey
@@ -234,8 +244,11 @@ def classyfire(mols: list[rdkit.Chem.Mol], path_to_export: str = None):
     path_report = 'missing_keys.txt'
     report = open(path_report, 'w')
 
+    ids_out = []
+
     for i in tqdm(range(len(inchikey_rdkit))):
         key = inchikey_rdkit[i]
+        idx = ids[i]
         url = 'https://cfb.fiehnlab.ucdavis.edu/entities/' + str(key) + '.json'
         try:
             with urllib.request.urlopen(url) as webpage:
@@ -243,7 +256,11 @@ def classyfire(mols: list[rdkit.Chem.Mol], path_to_export: str = None):
 
             with open(path_folder + '/' + str(i) + '.json', 'w') as f:
                 json.dump(data, f)
+            ids_out.append(idx)
+
         except:
+            if log:
+                print(f'Failure to retrieve information for SMILE at index {idx}')
             print_report(str(i) + '    ' + str(key))
             missing_keys = True
             pass
@@ -257,34 +274,54 @@ def classyfire(mols: list[rdkit.Chem.Mol], path_to_export: str = None):
     else:
         os.remove(path_report)
 
+    return ids_out
 
-def classyfire_result_analysis(path_to_classyfire: str = None) -> dict:
-    """
 
-    Args:
-        path_to_classyfire:
+def classyfire_result_analysis(path_to_classyfire: str = None, idx: list[int] = None, log: bool = False) -> tuple[dict,dict]:
+    """Uses the json files generated through the classyfire procedure to perform a 1st layer data analysis. It will
+    return two dictionaries, one with the molecules class and the corresponding id, and the other with the class
+    frequencies. It is assumed that one molecule correspond to one json file.
 
-    Returns:
+    Parameters
+    ----------
+    path_to_classyfire: str
+        The path to the directory containing the json files generated from the classyfire procedure. By default, it will
+        assume that the json files are located in the working directory under '/analysis_results/classyfire'
+    idx: list[int]
+        Optional input to specify the SMILE indices used for performing the classyfire. Default: None
+    log: bool
+        Prints out an error message should a molecule not contain a class name. Default: False
+
+    Returns
+    -------
+    mols_class, class_freq: tuple[dict,dict]
+        The molecule-class and class frequency dictionaries respectively.
 
     """
 
     if path_to_classyfire is None:
         path_to_classyfire = os.getcwd() + '/analysis_results' + '/classyfire'
+    if idx is None:
+        idx = range(len(os.listdir(path_to_classyfire)))
 
-    classes = dict()
-    for file in os.listdir(path_to_classyfire):
+    class_freq = dict()
+    mols_class = dict()
+    for id_mol, file in zip(idx, os.listdir(path_to_classyfire)):
         file_path = os.path.join(path_to_classyfire, file)
         try:
             class_name = json.load(open(file_path))['class']['name']
-            if class_name in classes.keys():
-                classes[class_name] += 1
+            if class_name in class_freq.keys():
+                class_freq[class_name] += 1
             else:
-                classes[class_name] = 1
+                class_freq[class_name] = 1
+            mols_class[id_mol] = class_name
+
         except:
-            print(f'No class name in the first layer for file: {file}')
+            if log:
+                print(f'No class name in the first layer for file: {file} and index: {id_mol}')
             pass
 
-    return classes
+    return mols_class, class_freq
 
 
 
