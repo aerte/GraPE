@@ -33,7 +33,8 @@ __all__ = ['filter_smiles',
            'DataSet',
            'GraphDataSet']
 
-def filter_smiles(smiles: list, target: list, allowed_atoms: list = None, log: bool = False) -> (list,list):
+def filter_smiles(smiles: list, target: list, allowed_atoms: list = None,
+                  only_organic: bool = True, log: bool = False) -> (list,list):
     """Filters a list of smiles based on the allowed atom symbols.
 
     Args
@@ -45,6 +46,9 @@ def filter_smiles(smiles: list, target: list, allowed_atoms: list = None, log: b
     allowed_atoms: list of str
         Valid atom symbols, non-valid symbols will be discarded. Default: [``C``, ``N``, ``O``, ``S``, ``F``, ``Cl``,
          ``Br``, ``I``, ``P``]
+    only_organic: bool
+        Checks if a molecule is ``organic`` counting the number of ``C`` atoms. If set to True, then molecules with less
+        than one carbon will be discarded. Default: True
     log: bool
         Determines if there should be print-out statements to indicate why mols were filtered out. Default: False
 
@@ -77,12 +81,22 @@ def filter_smiles(smiles: list, target: list, allowed_atoms: list = None, log: b
                 indices_to_drop.append(list(df.smiles).index(element))
 
             else:
+                carbon_count = 0
                 for atoms in mol.GetAtoms():
                     if atoms.GetSymbol() not in allowed_atoms:
                         if log:
                             print(f'SMILES {element} in index {list(df.smiles).index(element)} contains the atom {atoms.GetSymbol()} that is not'
                                 f' permitted and will be ignored.')
                         indices_to_drop.append(list(df.smiles).index(element))
+                    else:
+                        if atoms.GetSymbol() == 'C':
+                            carbon_count += 1
+
+                if carbon_count < 1 and only_organic:
+                    if log:
+                        print(f'SMILES {element} in index {list(df.smiles).index(element)} does not contain at least one'
+                            f' carbon and will be ignored.')
+
 
     df.drop(indices_to_drop, inplace=True)
     df.reset_index(drop=True, inplace=True)
@@ -192,6 +206,9 @@ class DataSet(DataLoad):
         List of target values that will act as the graphs 'y'.
     allowed_atoms: list of str
         List of allowed atom symbols.
+    only_organic: bool
+        Checks if a molecule is ``organic`` counting the number of ``C`` atoms. If set to True, then molecules with less
+        than one carbon will be discarded. Default: True
     atom_feature_list: list of str
         List of features to be applied. Default: All implemented features.
     bond_feature_list: list of str
@@ -202,8 +219,8 @@ class DataSet(DataLoad):
 
     """
     def __init__(self, file_path:str = None, smiles:list = None, target:list = None, global_features:list = None,
-                 allowed_atoms:list = None, atom_feature_list:list = None, bond_feature_list:list = None,
-                 log:bool = False, root:str = None, indices:list = None):
+                 allowed_atoms:list = None, only_organic: bool = True, atom_feature_list:list = None,
+                 bond_feature_list:list = None, log:bool = False, root:str = None, indices:list = None):
 
         assert (file_path is not None) or (smiles is not None and target is not None),'path or (smiles and target) must given.'
 
@@ -223,7 +240,8 @@ class DataSet(DataLoad):
             self.data = list(df.graphs)
 
         else:
-            self.smiles, self.raw_target = filter_smiles(smiles, target, allowed_atoms= allowed_atoms, log=log)
+            self.smiles, self.raw_target = filter_smiles(smiles, target, allowed_atoms= allowed_atoms,
+                                                         only_organic= True, log=log)
 
             # standardize target
             target_ = np.array(self.raw_target)
@@ -563,15 +581,15 @@ class GraphDataSet(DataSet):
     ----------
     file_path: str
         The path to a pickle file that should be loaded and the datasets therein used.
-    smiles: list of str
+    smiles: list[str]
         List of smiles to be made into a graph.
-    target: list of float
+    target: list[float]
         List of target values that will act as the graphs 'y'.
-    allowed_atoms: list of str
+    allowed_atoms: list[str]
         List of allowed atom symbols.
-    atom_feature_list: list of str
+    atom_feature_list: list[str]
         List of features to be applied. Default are the AFP atom features.
-    bond_feature_list: list of str
+    bond_feature_list: list[str]
         List of features that will be applied. Default are the AFP features
     split: bool
         An indicator if the dataset should be split. Only takes effect if nothing else regarding the split is specified
@@ -579,26 +597,28 @@ class GraphDataSet(DataSet):
     split_type: str
         Indicates what split should be used. Default: random. The options are:
         [consecutive, random, molecular weight, scaffold, stratified, custom]
-    split_frac: list of float
+    split_frac: list[float]
         Indicates what the split fractions should be. Default: [0.8, 0.1, 0.1]
-    custom_split: array
+    custom_split: list
         The custom split that should be applied. Has to be an array matching the length of the filtered smiles,
         where 0 indicates a training sample, 1 a testing sample and 2 a validation sample.
     log: bool
         Decides if the filtering output and other outputs will be shown.
-    indices: np.array
+    indices: list[int]
         Can be used to override the indices of the datasets objects. Recommended not to use.
 
-
+    # TODO: Consider removing indices option
     """
 
-    def __init__(self, file_path:str = None, smiles:list=None, target:list=None, global_features:list = None,
-                 allowed_atoms:list = None, atom_feature_list:list = None, bond_feature_list:list = None,
-                 split:bool = True, split_type:str = None, split_frac:list = None, custom_split:list = None,
-                 log:bool = False, indices:list = None):
+    def __init__(self, file_path:str = None, smiles:list[str]=None, target:list =None, global_features:list = None,
+                 allowed_atoms:list[str] = None, only_organic: bool = True,
+                 atom_feature_list:list[str] = None, bond_feature_list:list[str] = None,
+                 split: bool = True, split_type:str = None, split_frac:list[float] = None,
+                 custom_split: list[int] = None, log: bool = False, indices:list[int] = None):
 
         super().__init__(file_path=file_path, smiles=smiles, target=target, global_features=global_features,
-                         allowed_atoms=allowed_atoms, atom_feature_list=atom_feature_list,
+                         allowed_atoms=allowed_atoms, only_organic=only_organic,
+                         atom_feature_list=atom_feature_list,
                          bond_feature_list=bond_feature_list, log=log, indices=indices)
 
         if split_type is None:

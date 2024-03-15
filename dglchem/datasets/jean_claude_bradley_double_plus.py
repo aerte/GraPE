@@ -22,11 +22,14 @@ class BradleyDoublePlus(GraphDataSet):
         A string that indicates which of the features from the dataset should be the 'target'.
     global_features: list of str
         A list of strings indicating any additional features that should be included as global features.
-    allowed_atoms: list of str
+    allowed_atoms: list[str]
         List of allowed atom symbols. Default are the AFP atoms.
-    atom_feature_list: list of str
+    only_organic: bool
+        Checks if a molecule is ``organic`` counting the number of ``C`` atoms. If set to True, then molecules with less
+        than one carbon will be discarded. Default: True
+    atom_feature_list: list[str]
         List of features to be applied. Default are the AFP atom features.
-    bond_feature_list: list of str
+    bond_feature_list: list[str]
         List of features that will be applied. Default are the AFP features
     split: bool
         An indicator if the dataset should be split. Only takes effect if nothing else regarding the split is specified
@@ -34,7 +37,7 @@ class BradleyDoublePlus(GraphDataSet):
     split_type: str
         Indicates what split should be used. Default: random. The options are:
         [consecutive, random, molecular weight, scaffold, stratified, custom]
-    split_frac: array
+    split_frac: list[float]
         Indicates what the split fractions should be. Default: [0.8, 0.1, 0.1]
     custom_split: array
         The custom split that should be applied. Has to be an array matching the length of the filtered smiles,
@@ -56,9 +59,11 @@ class BradleyDoublePlus(GraphDataSet):
     """
 
 
-    def __init__(self, root = None, target_string = None, global_features = None, allowed_atoms = None,
-                 atom_feature_list = None, bond_feature_list = None, split = False, split_type = None,
-                 split_frac = None, custom_split = None, log = False, save_data_filename=None):
+    def __init__(self, root: str = None, target_string: str = None, global_features: list or str = None,
+                 allowed_atoms: list[str] = None, only_organic: bool = True,
+                 atom_feature_list: list[str] = None, bond_feature_list: list[str] = None,
+                 split: bool = False, split_type: str = None, split_frac: list[float] = None,
+                 custom_split: list[int] = None, log: bool = False, save_data_filename: str =None):
 
 
         self.root = './data' if root is None else root
@@ -95,7 +100,8 @@ class BradleyDoublePlus(GraphDataSet):
 
 
         super().__init__(smiles = df.smiles, target = df[target], global_features=global_features,
-                         allowed_atoms = allowed_atoms, atom_feature_list = atom_feature_list,
+                         allowed_atoms = allowed_atoms, only_organic = only_organic,
+                         atom_feature_list = atom_feature_list,
                          bond_feature_list = bond_feature_list, split=split, split_type=split_type,
                          split_frac=split_frac, custom_split=custom_split, log = log)
 

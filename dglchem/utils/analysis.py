@@ -126,7 +126,7 @@ def smiles_analysis(smiles: list, path_to_export: str =None, download: bool =Fal
     return dic
 
 def classify_compounds(smiles: list) -> tuple:
-    """Function that classifies compounds into the following classes:
+    """Function that classifies compounds based on SMILES string into the following classes:
         ['Hydrocarbons', 'Oxygenated', 'Nitrogenated', 'Chlorinated', 'Fluorinated', 'Brominated', 'Iodinated',
         'Phosphorous containing', 'Sulfonated', 'Silicon containing']
 
@@ -149,6 +149,7 @@ def classify_compounds(smiles: list) -> tuple:
     # Defining the class names
     class_names = ['Hydrocarbons', 'Oxygenated', 'Nitrogenated', 'Chlorinated', 'Fluorinated', 'Brominated',
                    'Iodinated', 'Phosphorous containing', 'Sulfonated', 'Silicon containing']
+
     # Defining the class tags
     class_patterns = ['C', 'CO', 'CN', 'CCL', "CF", "CBR", "CI", "CP", "CS", "CSI"]
 
@@ -226,7 +227,7 @@ def classyfire(smiles: list[str], path_to_export: str = None, log: bool = True) 
             os.mkdir(path_to_export)
 
     inchikey_rdkit = []
-    for idx, mol in mols:
+    for idx, mol in enumerate(mols):
         try:
             inchikey_rdkit.append(Chem.inchi.MolToInchiKey(mol))
             ids.append(idx)
@@ -259,9 +260,13 @@ def classyfire(smiles: list[str], path_to_export: str = None, log: bool = True) 
             ids_out.append(idx)
 
         except:
+            print(key)
             if log:
                 print(f'Failure to retrieve information for SMILE at index {idx}')
-            print_report(str(i) + '    ' + str(key))
+            if key is None:
+                print_report(str(i) + '    ' + 'NULL KEY')
+            else:
+                print_report(str(i) + '    ' + str(key))
             missing_keys = True
             pass
 
@@ -277,7 +282,8 @@ def classyfire(smiles: list[str], path_to_export: str = None, log: bool = True) 
     return ids_out
 
 
-def classyfire_result_analysis(path_to_classyfire: str = None, idx: list[int] = None, log: bool = False) -> tuple[dict,dict]:
+def classyfire_result_analysis(path_to_classyfire: str = None, idx: list[int] = None,
+                               layer:int = 1, log: bool = False) -> tuple[dict,dict]:
     """Uses the json files generated through the classyfire procedure to perform a 1st layer data analysis. It will
     return two dictionaries, one with the molecules class and the corresponding id, and the other with the class
     frequencies. It is assumed that one molecule correspond to one json file.
@@ -289,13 +295,21 @@ def classyfire_result_analysis(path_to_classyfire: str = None, idx: list[int] = 
         assume that the json files are located in the working directory under '/analysis_results/classyfire'
     idx: list[int]
         Optional input to specify the SMILE indices used for performing the classyfire. Default: None
+    layer: int
+        Decides the layer of information accessed, see [1] for more information. The layers are: ``0``- Kingdom,
+        ``1``- Super-Class, ``2``- Class. Default: 1.
     log: bool
-        Prints out an error message should a molecule not contain a class name. Default: False
+        Prints out an error message should a molecule not contain the layer 2 class. Default: False
 
     Returns
     -------
     mols_class, class_freq: tuple[dict,dict]
         The molecule-class and class frequency dictionaries respectively.
+
+    References
+    ----------
+    [1] Djoumbou Feunang et al., ClassyFire: automated chemical classification with a comprehensive, computable taxonomy.,
+    2016, https://doi.org/10.1186/s13321-016-0174-y
 
     """
 
@@ -304,22 +318,31 @@ def classyfire_result_analysis(path_to_classyfire: str = None, idx: list[int] = 
     if idx is None:
         idx = range(len(os.listdir(path_to_classyfire)))
 
+    if layer == 0:
+        layer_name = 'kingdom'
+    elif layer == 1:
+        layer_name = 'superclass'
+    elif layer == 2:
+        layer_name = 'class'
+
     class_freq = dict()
     mols_class = dict()
     for id_mol, file in zip(idx, os.listdir(path_to_classyfire)):
         file_path = os.path.join(path_to_classyfire, file)
-        try:
-            class_name = json.load(open(file_path))['class']['name']
-            if class_name in class_freq.keys():
-                class_freq[class_name] += 1
-            else:
-                class_freq[class_name] = 1
-            mols_class[id_mol] = class_name
 
-        except:
-            if log:
-                print(f'No class name in the first layer for file: {file} and index: {id_mol}')
-            pass
+        # TODO: if ['class']['name'] is null, then use ['alternative_parents']
+
+        class_name = json.load(open(file_path))[layer_name]['name']
+        if class_name is None:
+            print(f'No class name in the first layer for file: {file} and index: {id_mol}')
+            class_name = json.load(open(file_path))['alternative_parents']['name']
+
+        if class_name in class_freq.keys():
+            class_freq[class_name] += 1
+        else:
+            class_freq[class_name] = 1
+        mols_class[id_mol] = class_name
+
 
     return mols_class, class_freq
 
@@ -396,7 +419,7 @@ def num_chart(num_dict: dict, fig_size: tuple = (14,8), save_fig: bool = False,
     fig, ax = plt.subplots(figsize=fig_size)
     palette = sns.color_palette('muted', n_colors=len(num_dict.keys()))
     ax = sns.barplot(ax=ax, x = x, y= y, hue=x, legend=False, palette=palette)
-    ax.tick_params('x', rotation=60)
+    ax.tick_params('x', rotation=90)
     ax.set_xlabel('compound class')
     ax.set_ylabel('number of molecules')
 
