@@ -11,7 +11,7 @@ from torch_geometric.data import Data
 from dgllife.utils import splitters
 
 def taylor_butina_clustering(data, threshold: float =0.8, nBits: int = 2048, radius: int = 3,
-                             split_frac: list =None) -> Data:
+                             split_frac: list[float] = None) -> Data:
     """Clusters the datasets based on Butina clustering [1] and splits it into training, testing and validation datasets splits.
     Splitting will occur from largest to smallest cluster. Inspired by the great workshop code by Pat Walters,
     see https://github.com/PatWalters/workshop/blob/master/clustering/taylor_butina.ipynb.
@@ -26,7 +26,7 @@ def taylor_butina_clustering(data, threshold: float =0.8, nBits: int = 2048, rad
         The number of bits used for the Morgan fingerprints [2]. Default: 2048.
     radius: int
         Atom radius used for the Morgan fingerprints [2]. Decides the size of the considered fragments. Default: 3.
-    split_frac: list of float
+    split_frac: list[float]
         List of datasets split fractions. Default: [0.8,0.1,0.1].
 
     Returns
@@ -63,8 +63,6 @@ def taylor_butina_clustering(data, threshold: float =0.8, nBits: int = 2048, rad
 
     # 4) Assigning smiles to clustering
     Idx = np.zeros([nPoints,], dtype=np.int32)
-    print(Idx)
-
 
     for mol_id, cluster in enumerate(clusters):
         for mol in cluster:
@@ -96,11 +94,11 @@ def taylor_butina_clustering(data, threshold: float =0.8, nBits: int = 2048, rad
             if split == 3: break
 
             splits[split] = []
-            # print('next split')
+            #print('next split')
 
         splits[split].append([point for point in data[Idx==cluster]])
         processed_len += np.sum(Idx==cluster)
-        # print(f'{processed_len/nPoints*100}% processed.')
+        #print(f'{processed_len/nPoints*100}% processed.')
 
     return splits[0], splits[1], splits[2]
 

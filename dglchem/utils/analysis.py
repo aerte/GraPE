@@ -190,10 +190,13 @@ def classify_compounds(smiles: list) -> tuple:
 def print_report(string, file=None):
     file.write('\n' + string)
 
-def classyfire(smiles: list[str], path_to_export: str = None, log: bool = True) -> list[str]:
+def classyfire(smiles: list[str], path_to_export: str = None,
+               record_log_file: bool = True, existing_log_file: str = None,
+                log: bool = True) -> tuple[list[str]]:
     """Applies the classyfire procedure given in [1] to the input smiles and generates json files with the
-    information. The procedure will take about ~10min for 100 molecules. For large datasets, consider subsampling the
-    smiles or using the less informative compound classifier.
+    information. It can also generate a csv file recording the names of the json files and the corresponding SMILES to
+    avoid retrieving the same information multiple times. The procedure will take about ~10min for 100 molecules. For
+    large datasets, consider subsampling the smiles or using the less informative compound classifier.
 
     Parameters
     ----------
@@ -201,8 +204,16 @@ def classyfire(smiles: list[str], path_to_export: str = None, log: bool = True) 
         The input smiles, their information will be attempted to retrieve from the classyfire database.
     path_to_export: str
         Path where the classyfire results should be stored.
+    record_log_file: bool
+        Decides if a log file should be created. Will check if an existing log file is given and use it if True.
+        Default: True
+    existing_log_file: str
+        The path to a log file recording the json file names and the corresponding molecule Will be overridden with by
+        a new file if record_lof_file is set to True. The existing file have to be saved with 'filename' and 'smiles'
+        columns. Default: None
     log: bool
         Prints out issues in the classyfire procedure, fx. a failed attempt at retrieving a molecule's information.
+        Default: True
 
     Returns
     -------
@@ -216,7 +227,10 @@ def classyfire(smiles: list[str], path_to_export: str = None, log: bool = True) 
 
     """
 
+    # TODO: Optimize and clean code
+
     mols = list(map(lambda x: Chem.MolFromSmiles(x), smiles))
+    standard_smiles = list(map(lambda  x: Chem.MolToSmiles(x), mols))
     ids = []
 
     if path_to_export is None:
@@ -226,23 +240,52 @@ def classyfire(smiles: list[str], path_to_export: str = None, log: bool = True) 
         if not os.path.exists(path_to_export):
             os.mkdir(path_to_export)
 
+    if record_log_file and existing_log_file is None:
+        log_file = os.path.join(path_to_export, 'recorded_SMILES.csv')
+        log_frame = pd.DataFrame({'filename':[], 'smiles':[]})
+    elif existing_log_file is not None:
+        try:
+            log_frame = pd.read_csv(existing_log_file)
+            log_file = existing_log_file
+
+            if log:
+                print('Loaded existing log_file. Here is the data head:')
+                print(log_frame.head(10))
+        except:
+            print('Passed log_file is not valid, creating a new one.')
+            log_file = os.path.join(path_to_export, 'recorded_SMILES.csv')
+            log_frame = pd.DataFrame({'filename': [], 'smiles': []})
+
+
     inchikey_rdkit = []
+    existing_log = 0
     for idx, mol in enumerate(mols):
+        print(standard_smiles[idx])
+        if standard_smiles[idx] in log_frame.smiles.values:
+            existing_log += 1
+            print('check true')
+            continue
         try:
             inchikey_rdkit.append(Chem.inchi.MolToInchiKey(mol))
             ids.append(idx)
         except:
             if log:
                 print(f'No inchikey generated from SMILE index {idx}, possibly due to a faulty SMILE.')
+                del standard_smiles[idx]
             inchikey_rdkit.append('')
+
+    if existing_log == len(standard_smiles):
+        print('All passed smiles are already in the passed log_file.')
+        return
 
     # download classification using inchikey
     path_folder = os.path.join(path_to_export,'classyfire')
     if not os.path.exists(path_folder):
         os.makedirs(path_folder)
 
+    # Output report
     missing_keys = False
-    path_report = 'missing_keys.txt'
+    path_report = os.path.join(path_to_export,'missing_keys.txt')
     report = open(path_report, 'w')
 
     ids_out = []
@@ -255,8 +298,11 @@ def classyfire(smiles: list[str], path_to_export: str = None, log: bool = True) 
             with urllib.request.urlopen(url) as webpage:
                 data = json.loads(webpage.read().decode())
 
+            filename = str(i) + '.json'
             with open(path_folder + '/' + str(i) + '.json', 'w') as f:
                 json.dump(data, f)
+
+            log_frame = pd.concat([log_frame, pd.DataFrame({'filename': [filename], 'smiles': [standard_smiles[i]]})])
             ids_out.append(idx)
 
         except:
@@ -264,9 +310,9 @@ def classyfire(smiles: list[str], path_to_export: str = None, log: bool = True) 
             if log:
                 print(f'Failure to retrieve information for SMILE at index {idx}')
             if key is None:
-                print_report(str(i) + '    ' + 'NULL KEY')
+                print_report(str(i) + '    ' + 'NULL KEY', file=report)
             else:
-                print_report(str(i) + '    ' + str(key))
+                print_report(str(i) + '    ' + str(key), file=report)
             missing_keys = True
             pass
 
@@ -278,6 +324,8 @@ def classyfire(smiles: list[str], path_to_export: str = None, log: bool = True) 
         print('Some InChikeys were not available. Please check "Missing_ichikeys.txt" file.')
     else:
         os.remove(path_report)
+
+    log_frame.to_csv(log_file,index=False)
 
     return ids_out
 

@@ -22,22 +22,21 @@ class MPNNLayer(MessagePassing):
         # shape (emb_dim, emb_dim)
         self.lin0 = Linear(edge_in_feats, node_in_feats)
 
-        self.gru = nn.GRU(node_in_feats, node_in_feats)
         self.reset_parameters()
 
     def reset_parameters(self):
         self.lin0.reset_parameters()
 
-    def forward(self, x, edge_index, edge_attr):
+    def forward(self, x, edge_index, edge_attr, gru):
 
-        nodes_out = self.propagate(edge_index=edge_index, x=x, edge_attr = edge_attr)
+        nodes_out = self.propagate(edge_index=edge_index, x=x, edge_attr = edge_attr, gru=gru)
 
         return nodes_out
 
     def message(self, x, edge_attr):
-        mm = self.lin0(edge_attr)*x
+        mm = torch.matmul(self.lin0(edge_attr),x)
         return mm
 
-    def update(self, aggr_out, x):
+    def update(self, aggr_out, x, gru):
 
-        return self.gru(x, aggr_out)
+        return gru(x, aggr_out)

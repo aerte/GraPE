@@ -1,4 +1,4 @@
-# A compilation of all the layers implemented in PyTorch Geometric
+# Weave layer
 
 import torch
 
