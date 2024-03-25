@@ -15,7 +15,7 @@ class BradleyDoublePlus(GraphDataSet):
     initializes it into a **GraphDataSet** class.
 
     Parameters:
-    ----------
+    -------------
     root: str
         Indicates what the root or working directory is. Default: None
     target_string: str

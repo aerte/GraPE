@@ -34,7 +34,7 @@ __all__ = ['filter_smiles',
            'GraphDataSet']
 
 def filter_smiles(smiles: list, target: list, allowed_atoms: list = None,
-                  only_organic: bool = True, log: bool = False) -> (list,list):
+                  only_organic: bool = True, allow_dupes: bool = False, log: bool = False) -> (list,list):
     """Filters a list of smiles based on the allowed atom symbols.
 
     Args
@@ -51,6 +51,8 @@ def filter_smiles(smiles: list, target: list, allowed_atoms: list = None,
         than one carbon will be discarded. Default: True
     log: bool
         Determines if there should be print-out statements to indicate why mols were filtered out. Default: False
+    allow_dupes: bool
+        Decides if duplicate smiles should be allowed. Default: False
 
     Returns
     ----------
@@ -104,6 +106,9 @@ def filter_smiles(smiles: list, target: list, allowed_atoms: list = None,
     # map smiles to mol and back to ensure SMILE notation consistency
     mols = df.smiles.map(lambda x: MolFromSmiles(x))
     df.smiles = mols.map(lambda x: MolToSmiles(x))
+
+    if not allow_dupes:
+        df.drop_duplicates(subset='smiles', inplace=True)
 
     return list(df.smiles), list(df.target)
 
