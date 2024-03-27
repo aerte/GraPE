@@ -13,29 +13,34 @@ __all__ = [
 
 
 class MGConv(nn.Module):
+    """Implements the Molecular Graph Convolutional Layer (sometimes called Weave) from Steven Kearnes at al. [1]
+    as described in [2].
+
+    ----
+
+    References
+
+    [1] Steven Kearnes at al., Molecular graph convolutions: moving beyond fingerprints, http://dx.doi.org/10.1007/s10822-016-9938-8
+
+    [2] Justin Gilmer et al., Neural Message Passing for Quantum Chemistry, http://proceedings.mlr.press/v70/gilmer17a/gilmer17a.pdf
+
+    ----
+
+    Parameters:
+    ------------
+    node_in_dim: int
+        The number of input node features.
+    edge_in_dim: int
+        The number of input edge features.
+    node_hidden_dim: int
+        The dimension of the hidden node features. Default: 64
+    edge_hidden_dim: int
+        The dimension of the hidden edge features. Default: 64
+    num_layers: int
+        The number of Weave layers that will be used. Default: 4
+    """
     def __init__(self, node_in_dim: int, edge_in_dim: int, node_hidden_dim: int = 64,
                  edge_hidden_dim: int = 64, num_layers: int = 4):
-        """Implements the Molecular Graph Convolutional Layer (sometimes called Weave) from Steven Kearnes at al. [1]
-        as described in [2].
-
-        Parameters
-        ----------
-        node_in_dim: int
-            The number of input node features.
-        edge_in_dim: int
-            The number of input edge features.
-        node_hidden_dim: int
-            The dimension of the hidden node features. Default: 64
-        edge_hidden_dim: int
-            The dimension of the hidden edge features. Default: 64
-        num_layers: int
-            The number of Weave layers that will be used. Default: 4
-
-        References
-        ----------
-        [1] Steven Kearnes at al., Molecular graph convolutions: moving beyond fingerprints, http://dx.doi.org/10.1007/s10822-016-9938-8
-        [2] Justin Gilmer et al., Neural Message Passing for Quantum Chemistry, http://proceedings.mlr.press/v70/gilmer17a/gilmer17a.pdf
-        """
 
         super().__init__()
 

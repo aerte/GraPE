@@ -11,10 +11,19 @@ from torch_geometric.data import Data
 from dgllife.utils import splitters
 
 def taylor_butina_clustering(data, threshold: float =0.8, nBits: int = 2048, radius: int = 3,
-                             split_frac: list[float] = None) -> Data:
-    """Clusters the datasets based on Butina clustering [1] and splits it into training, testing and validation datasets splits.
-    Splitting will occur from largest to smallest cluster. Inspired by the great workshop code by Pat Walters,
-    see https://github.com/PatWalters/workshop/blob/master/clustering/taylor_butina.ipynb.
+                             split_frac: list[float] = None, log:bool = True) -> tuple[Data]:
+    """Clusters the datasets based on Butina clustering [1] and splits it into training, validation and test datasets
+    splits. After the molecules are clustered, they are assigned to the train split from largest to smallest until it is
+    filled up, then the val split and finally the rest is assigned to the test split. Inspired by the great workshop
+    code by Pat Walters, see https://github.com/PatWalters/workshop/blob/master/clustering/taylor_butina.ipynb.
+
+    ----
+
+    References:\n
+    [1] Darko Butina, Unsupervised Data Base Clustering Based on Daylight's Fingerprint and Tanimoto Similarity: A Fast
+    and Automated Way To Cluster Small and Large Data Sets, https://doi.org/10.1021/ci9803381 \n
+    [2] Rogers, D. & Hahn, M. Extended-Connectivity Fingerprints. J. Chem. Inf. Model. 50, 742-754 (2010),
+    https://doi.org/10.1021/ci100050t
 
     Parameters
     ----------
@@ -28,19 +37,13 @@ def taylor_butina_clustering(data, threshold: float =0.8, nBits: int = 2048, rad
         Atom radius used for the Morgan fingerprints [2]. Decides the size of the considered fragments. Default: 3.
     split_frac: list[float]
         List of datasets split fractions. Default: [0.8,0.1,0.1].
+    log: bool
+        If true, prints a short summary of many single molecule clusters are in the butina clustering. Default: True
 
     Returns
     -------
-    train, test, val -
-        Returns the respective lists of Data lists that be fed into a DataLoader.
-
-    ----
-
-    References: \n
-    [1] Darko Butina, Unsupervised Data Base Clustering Based on Daylight's Fingerprint and Tanimoto Similarity: A Fast
-    and Automated Way To Cluster Small and Large Data Sets, https://doi.org/10.1021/ci9803381 \n
-    [2] Rogers, D. & Hahn, M. Extended-Connectivity Fingerprints. J. Chem. Inf. Model. 50, 742-754 (2010),
-    https://doi.org/10.1021/ci100050t
+    train, test, val
+        Returns the respective lists of Data objects that be fed into a DataLoader.
 
 
     """
@@ -66,7 +69,6 @@ def taylor_butina_clustering(data, threshold: float =0.8, nBits: int = 2048, rad
 
     for mol_id, cluster in enumerate(clusters):
         for mol in cluster:
-            print(mol)
             Idx[mol] = mol_id
 
     splits = defaultdict()
@@ -74,16 +76,13 @@ def taylor_butina_clustering(data, threshold: float =0.8, nBits: int = 2048, rad
     processed_len = 0
     split = 0
 
-    # Data split:
-    print(np.unique(Idx))
-
     single = 0
     for i in np.unique(Idx):
-        print(f'Number of SMILES in cluster {i} : {np.sum(Idx==i)}')
         if np.sum(Idx==i) == 1:
             single+=1
-
-    print(f'Number of single molecule clusters: {single} and the ratio is: {single/len(np.unique(Idx))}')
+    if log:
+        print(f'Number of single molecule clusters: {single} and the ratio is: {single/len(np.unique(Idx)):.3f} of '
+              f'single molecule clusters.')
 
 
     split_frac = [0.8,0.1,0.1] if split_frac is None else split_frac

@@ -14,7 +14,7 @@ Contents
 
     installation
     quickstart
-    tutorial
+    Demonstration
     api
     usage
 

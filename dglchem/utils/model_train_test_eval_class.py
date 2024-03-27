@@ -18,8 +18,8 @@ def train_model(model: torch.nn.Module, loss_func: Callable, optimizer: torch.op
     """Auxiliary function to train and test a given model and return the (training, test) losses.
     Can initialize DataLoaders if only list of Data objects are given.
 
-    Parameters
-    ----------
+    Parameters:
+    -------------
     model: torch.nn.Module
         Model that will be trained and tested. Has to be a torch Module.
     loss_func: Callable
@@ -41,8 +41,8 @@ def train_model(model: torch.nn.Module, loss_func: Callable, optimizer: torch.op
     patience: int
         Decides how many 'bad' epochs can pass before early stopping takes effect. Default: 3
 
-    Returns
-    -------
+    Returns:
+    ---------
     tuple
         Training and test loss arrays.
 

@@ -12,31 +12,37 @@ __all__ = [
 ]
 
 class MPNN(nn.Module):
+    """Implements the MPNN network described by Justin Gilmer et al. in [1]. It uses a simple, 3 layered MLP as the
+    free neural network that projects the edge features. The MPNN layer itself is the native pytorch geometric
+    implementation (NNConv).
+
+    ----
+
+    References
+
+    [1] Justin Gilmer et al., Neural Message Passing for Quantum Chemistry, http://proceedings.mlr.press/v70/gilmer17a/gilmer17a.pdf
+
+    ----
+
+    Parameters:
+    ----------------
+    node_in_dim: int
+        The number of input node features.
+    edge_in_dim: int
+        The number of input edge features.
+    node_hidden_dim: int
+        The dimension of the hidden node features. Default: 64
+    edge_hidden_dim: int
+        The dimension of the hidden edge features. Default: 64
+    num_layers: int
+        The number of MPNN layers that will be used. Default: 4
+    num_gru_layers: int
+        The number of GRU layers that will be used for each layer. Default: 4
+
+    """
     def __init__(self, node_in_dim: int, edge_in_dim: int, node_hidden_dim: int = 64,
                  edge_hidden_dim: int = 64, num_layers: int = 4, num_gru_layers: int = 10):
-        """Implements the MPNN network described by Justin Gilmer et al. in [1]. It used a simple, 3 layered MLP as the
-        free neural network that projects the edge features. The MPNN layer itself is the native pytorch geometric
-        implementation (NNConv)
 
-        Parameters
-        ----------
-        node_in_dim: int
-            The number of input node features.
-        edge_in_dim: int
-            The number of input edge features.
-        node_hidden_dim: int
-            The dimension of the hidden node features. Default: 64
-        edge_hidden_dim: int
-            The dimension of the hidden edge features. Default: 64
-        num_layers: int
-            The number of MPNN layers that will be used. Default: 4
-        num_gru_layers: int
-            The number of GRU layers that will be used for each layer. Default: 4
-
-        References
-        ----------
-        [1] Justin Gilmer et al., Neural Message Passing for Quantum Chemistry, http://proceedings.mlr.press/v70/gilmer17a/gilmer17a.pdf
-        """
         super().__init__()
 
         self.lin_in = Linear(node_in_dim, node_hidden_dim)
@@ -57,13 +63,13 @@ class MPNN(nn.Module):
 
     def forward(self, data):
         """
-        Parameters
-        ----------
+        Parameters:
+        ------------
         data: Data or DataLoader
             A singular graph Data object or a batch of graphs in the form of a DataLoader object.
 
-        Returns
-        -------
+        Returns:
+        ---------
         h: Tensor
             Returns the final hidden node representation of shape (num nodes, nodes_hidden_features).
         """

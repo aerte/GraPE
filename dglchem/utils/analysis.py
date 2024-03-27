@@ -260,10 +260,10 @@ def classyfire(smiles: list[str], path_to_export: str = None,
     inchikey_rdkit = []
     existing_log = 0
     for idx, mol in enumerate(mols):
-        print(standard_smiles[idx])
+        #print(standard_smiles[idx])
         if standard_smiles[idx] in log_frame.smiles.values:
             existing_log += 1
-            print('check true')
+            #print('check true')
             continue
         try:
             inchikey_rdkit.append(Chem.inchi.MolToInchiKey(mol))

@@ -8,22 +8,22 @@ __all__ = [
 ]
 
 class SimpleGNN(nn.Module):
+    """A simple model to assist testing model development. It takes a defined message passing algorith such as MPNN
+    and adds a simple global pooling layer as well as an output layer. Made for continuous output such as mpC or
+    logP.
+
+    Parameters:
+    ------------
+    model_message: nn.Module
+        The message passing layers that will be used to generate the node embedding.
+    input_pool_size: int
+        The output dimension of the defined model, usually just the hidden dimension of that model.
+    output_size: int
+        The prediction dimension of the overall model. Default: 1
+
+    """
+
     def __init__(self, model_message: nn.Module, input_pool_size: int, output_size: int = 1):
-
-        """A simple model to assist testing model development. It takes a defined message passing algorith such as MPNN
-        and adds a simple global pooling layer as well as an output layer. Made for continuous output such as mpC or
-        logP.
-
-        Parameters
-        ----------
-        model_message: nn.Module
-            The message passing layers that will be used to generate the node embedding.
-        input_pool_size: int
-            The output dimension of the defined model, usually just the hidden dimension of that model.
-        output_size: int
-            The prediction dimension of the overall model. Default: 1
-
-        """
 
         super().__init__()
         self.model = model_message
@@ -31,13 +31,13 @@ class SimpleGNN(nn.Module):
         self.pool = global_mean_pool
     def forward(self, data):
         """
-        Parameters
-        ----------
+        Parameters:
+        ------------
         data: Data or DataLoader
             A singular graph Data object or a batch of graphs in the form of a DataLoader object.
 
-        Returns
-        -------
+        Returns:
+        ---------
         prediction
             The continuous variable prediction of the shape (batch_size).
 
