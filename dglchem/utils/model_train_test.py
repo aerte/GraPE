@@ -18,7 +18,7 @@ def train_model(model: torch.nn.Module, loss_func: Callable, optimizer: torch.op
     """Auxiliary function to train and test a given model and return the (training, test) losses.
     Can initialize DataLoaders if only list of Data objects are given.
 
-    Parameters:
+    Parameters
     -------------
     model: torch.nn.Module
         Model that will be trained and tested. Has to be a torch Module.
@@ -41,7 +41,7 @@ def train_model(model: torch.nn.Module, loss_func: Callable, optimizer: torch.op
     patience: int
         Decides how many 'bad' epochs can pass before early stopping takes effect. Default: 3
 
-    Returns:
+    Returns
     ---------
     tuple
         Training and test loss arrays.
@@ -113,7 +113,7 @@ def test_model(model: torch.nn.Module, loss_func: Callable, test_data_loader: li
     Can initialize DataLoaders if only list of Data objects are given.
 
     Parameters
-    ----------
+    ------------
     model: torch.nn.Module
         Model that will be trained and tested. Has to be a torch Module.
     loss_func: Callable
@@ -126,7 +126,7 @@ def test_model(model: torch.nn.Module, loss_func: Callable, test_data_loader: li
         Batch size of the DataLoader if not given directly. Default: 32
 
     Returns
-    -------
+    ---------
     float
         Mean test loss over the test set batches.
 
@@ -138,8 +138,6 @@ def test_model(model: torch.nn.Module, loss_func: Callable, test_data_loader: li
         test_data_loader = DataLoader(test_data_loader, batch_size = batch_size)
 
     model.eval()
-
-    test_loss = []
 
     with tqdm(total = len(test_data_loader)) as pbar:
 

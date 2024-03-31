@@ -4,4 +4,4 @@ from .featurizer import *
 from .analysis import *
 from .feature_func import *
 from .data_splitting import *
-from .model_train_test_eval_class import *
+from .model_train_test import *

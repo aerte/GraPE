@@ -1,5 +1,8 @@
 Graph Neural Networks
-================
+======================
+
+Below, the implemented message passing algorithms and message passing layers,
+as well as a few complete models are described. All of these rely on `PyTorch <link>`_ as a backbone.
 
 .. contents:: Contents
     :local:

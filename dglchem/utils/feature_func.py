@@ -31,7 +31,7 @@ def one_hot(input_, mapping, encode_unknown = False):
     """One hot encodes an arbitrary input given a mapping.
 
     Parameters
-    ----------
+    ------------
     input_: Any
         The input value that will be encoded. Could be an integer, a string or rdkit bond type.
     mapping: list
@@ -41,7 +41,7 @@ def one_hot(input_, mapping, encode_unknown = False):
         the end. Default: False
 
     Returns
-    -------
+    ---------
     list
         One hot encoding.
 
@@ -70,13 +70,13 @@ def mol_weight(mol):
     """Returns the molecular weight of a smile.
 
     Parameters
-    ----------
+    ------------
     mol: rdkit.Chem.rdkit.Mol
         RDKit molecule object.
 
 
     Returns
-    -------
+    ---------
     float
         The molecular weight of the SMILES molecule.
 

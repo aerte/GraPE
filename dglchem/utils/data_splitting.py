@@ -25,8 +25,10 @@ def taylor_butina_clustering(data, threshold: float =0.8, nBits: int = 2048, rad
     [2] Rogers, D. & Hahn, M. Extended-Connectivity Fingerprints. J. Chem. Inf. Model. 50, 742-754 (2010),
     https://doi.org/10.1021/ci100050t
 
+    -----
+
     Parameters
-    ----------
+    -----------
     data: object
         An object like the DataSet class that can be indexed and stores the SMILES via datasets.smiles.
     threshold: float
@@ -41,7 +43,7 @@ def taylor_butina_clustering(data, threshold: float =0.8, nBits: int = 2048, rad
         If true, prints a short summary of many single molecule clusters are in the butina clustering. Default: True
 
     Returns
-    -------
+    ---------
     train, test, val
         Returns the respective lists of Data objects that be fed into a DataLoader.
 
@@ -108,7 +110,7 @@ def split_data(data, split_type: str = None, split_frac: float = None, custom_sp
     """
 
     Parameters
-    ----------
+    ------------
     data: Any iterable
         An object that can be accessed per an index and iterated upon. Ex: a DataSet or array object
     split_type: str
@@ -129,7 +131,7 @@ def split_data(data, split_type: str = None, split_frac: float = None, custom_sp
 
 
     Returns
-    -------
+    ---------
     (train, val, test)
         - Lists containing the respective datasets objects.
 

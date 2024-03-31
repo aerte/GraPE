@@ -83,8 +83,20 @@ class AtomFeaturizer(object):
 
     **Virtual nodes still have to be implemented.**
 
+    ----
+
+    References
+
+    [1] Adem R.N. Aouichaoui et al., Application of interpretable group-embedded graph neural networks for pure compound
+    properties, 2023, https://doi.org/10.1016/j.compchemeng.2023.108291
+
+    [2] Adem R.N. Aouichaoui et al., Combining Group-Contribution Concept and Graph Neural Networks Toward Interpretable
+    Molecular Property Models, 2023, https://doi.org/10.1021/acs.jcim.2c01091
+
+    -----
+
     Parameters
-    ----------
+    -----------
     allowed_atoms : list of str
         List of allowed atoms symbols. The default follows the choice of atom symbols allowed in [1, 2]. Default:
         [``C``, ``N``, ``O``, ``S``, ``F``, ``Cl``, ``Br``, ``I``, ``P``].
@@ -95,7 +107,7 @@ class AtomFeaturizer(object):
         ``atom_chiral_tag_one_hot``, ``atom_formal_charge``].
 
     Example
-    -------
+    ---------
     >>> from rdkit.Chem import MolFromSmiles
     >>> from dglchem.utils import AtomFeaturizer
 
@@ -105,14 +117,6 @@ class AtomFeaturizer(object):
     tensor([[1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 1., 0., 0.],
         [0., 0., 1., 0., 0., 0., 0., 0., 0., 0., 0., 1., 0., 0., 0., 0.]])
     >>> # We see in the output that C has 3 more bonds than O, which matches our expectation.
-
-
-    References
-    -----
-    [1] Adem R.N. Aouichaoui et al., Application of interpretable group-embedded graph neural networks for pure compound
-     properties, 2023, https://doi.org/10.1016/j.compchemeng.2023.108291
-    [2] Adem R.N. Aouichaoui et al., Combining Group-Contribution Concept and Graph Neural Networks Toward Interpretable
-     Molecular Property Models, 2023, https://doi.org/10.1021/acs.jcim.2c01091
 
     """
     def __init__(self, atom_feature_list: list = None, allowed_atoms: list = None, ):
@@ -198,14 +202,14 @@ class AtomFeaturizer(object):
         valid, it cannot test the true validity!
 
         Parameters
-        ----------
+        -----------
         func_names: list
             Function names that will be the keys of the dictionary input.
         funcs: list
             Functions that will be executed in the featurizer if called in the feature_list or by default.
 
         Example
-        -------
+        ---------
         >>> from dglchem.utils import AtomFeaturizer
         >>> from rdkit.Chem import MolFromSmiles
 
@@ -269,14 +273,26 @@ class BondFeaturizer(object):
     **The input feature list determines the order of the features. All bonds are saved bidirectionally (twice) by
     default to adhere to the PyTorch Geometric structure.**
 
+    ------
+
+    References
+
+    [1] Adem R.N. Aouichaoui et al., Application of interpretable group-embedded graph neural networks for pure compound
+    properties, 2023, https://doi.org/10.1016/j.compchemeng.2023.108291
+
+    [2] Adem R.N. Aouichaoui et al., Combining Group-Contribution Concept and Graph Neural Networks Toward Interpretable
+    Molecular Property Models, 2023, https://doi.org/10.1021/acs.jcim.2c01091
+
+    -----
+
     Parameters
-    ----------
+    ------------
     bond_feature_list: list of str
         List of features that will be applied. Default: The features used in [1,2], which are: [``bond_type_one_hot``,
         ``bond_is_conjugated``, ``bond_is_in_ring``,``bond_stereo_one_hot``]
 
     Example
-    -------
+    ---------
     >>> from rdkit.Chem import MolFromSmiles
     >>> from dglchem.utils import BondFeaturizer
 
@@ -364,7 +380,7 @@ class BondFeaturizer(object):
         the true validity!
 
         Parameters
-        ----------
+        -----------
         func_names: list
             Function names that will be the keys of the dictionary input.
         funcs: list

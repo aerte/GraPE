@@ -37,8 +37,8 @@ def filter_smiles(smiles: list, target: list, allowed_atoms: list = None,
                   only_organic: bool = True, allow_dupes: bool = False, log: bool = False) -> (list,list):
     """Filters a list of smiles based on the allowed atom symbols.
 
-    Args
-    ----------
+    Parameters
+    ------------
     smiles: list of str
         Smiles to be filtered.
     target: list
@@ -120,7 +120,7 @@ def construct_dataset(smiles: list, target: list, allowed_atoms: list = None,
     a list of torch geometric Data objects, using their conventions.
 
     Parameters
-    ----------
+    ------------
     smiles : list of str
         Smiles that are featurized and passed into a PyG DataSet.
 
@@ -138,7 +138,7 @@ def construct_dataset(smiles: list, target: list, allowed_atoms: list = None,
         Bond features of the bond featurizer, see utils.featurizer for more details. Default: All implemented features.
 
     Returns
-    -------
+    --------
     datasets
         list of Pytorch-Geometric Data objects
 
@@ -197,12 +197,12 @@ class DataLoad(object):
 
 class DataSet(DataLoad):
     """A class that takes a path to a pickle file or a list of smiles and targets. The datasets is stored in
-        Pytorch-Geometric Data instances and be accessed like an array.
+    Pytorch-Geometric Data instances and be accessed like an array.
 
-        Heavily inspired by the PyTorch-Geometric Dataset class, especially indices and index_select.
+    Heavily inspired by the PyTorch-Geometric Dataset class, especially indices and index_select.
 
     Parameters
-    ----------
+    ------------
     file_path: str
         The path to a pickle file that should be loaded and the datasets therein used.
     smiles: list of str
@@ -273,7 +273,7 @@ class DataSet(DataLoad):
         scratch.
 
         Parameters
-        ----------
+        ------------
         filename: str
             Name of the datasets file. Default: 'dataset'
 
@@ -305,7 +305,7 @@ class DataSet(DataLoad):
         """Save the smiles as a text file in a given location.
 
         Parameters
-        ----------
+        ------------
         path: str
             Path where the smiles should be saved. Default: The processed files' directory.
 
@@ -322,7 +322,7 @@ class DataSet(DataLoad):
         """Return a list containing all rdkit.Chem.Mol of the SMILES in the DataSet.
 
         Returns
-        -------
+        ---------
         list(rdkit.Chem.Mol)
 
         Example
@@ -345,7 +345,7 @@ class DataSet(DataLoad):
         """
 
         Returns
-        -------
+        ---------
         list
             Indices of the dataset
 
@@ -357,7 +357,7 @@ class DataSet(DataLoad):
         """
 
         Returns
-        -------
+        ---------
         int
             Length of the dataset.
 

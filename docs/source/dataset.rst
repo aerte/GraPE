@@ -1,6 +1,12 @@
 Datasets
 ==================
 
+Inspired by the PyTorch dataset like MNIST and CIFAR, we implemented a few common
+chemical properties datasets that use the ``DataSet`` class.
+
+This means, that for each of the datasets, the data is downloaded from the web (if not easily found
+in the working directory). It is also filtered (through ``DataSet`` and a functional graph ``Data`` set
+is generated.
 
 
 Bradley Double Plus
