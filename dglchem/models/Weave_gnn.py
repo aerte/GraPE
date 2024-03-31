@@ -26,7 +26,7 @@ class MGConv(nn.Module):
 
     ----
 
-    Parameters:
+    Parameters
     ------------
     node_in_dim: int
         The number of input node features.

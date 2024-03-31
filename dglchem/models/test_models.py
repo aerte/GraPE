@@ -12,7 +12,7 @@ class SimpleGNN(nn.Module):
     and adds a simple global pooling layer as well as an output layer. Made for continuous output such as mpC or
     logP.
 
-    Parameters:
+    Parameters
     ------------
     model_message: nn.Module
         The message passing layers that will be used to generate the node embedding.
@@ -31,14 +31,14 @@ class SimpleGNN(nn.Module):
         self.pool = global_mean_pool
     def forward(self, data):
         """
-        Parameters:
+        Parameters
         ------------
         data: Data or DataLoader
             A singular graph Data object or a batch of graphs in the form of a DataLoader object.
 
-        Returns:
+        Returns
         ---------
-        prediction
+        prediction: np.array[float]
             The continuous variable prediction of the shape (batch_size).
 
         """

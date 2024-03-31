@@ -13,7 +13,17 @@ class LogP(GraphDataSet):
     from https://github.com/nadinulrich/log_P_prediction/blob/30f2f6ad0d7806a3246a5b3da936aa02478d5202/Dataset_and_Predictions.xlsx
     [1], first introduced in [2], should it not already exist. It then initializes it into a **GraphDataSet** class.
 
-    Parameters:
+     ----
+
+    References
+
+    [1] Ulrich, N., Goss, KU. & Ebert, A., Exploring the octanol–water partition coefficient dataset using deep learning techniques and datasets augmentation., Commun Chem 4, 90 (2021), http://dx.doi.org/10.1038/s42004-021-00528-9
+
+    [2] Mansouri K, Grulke CM, Richard AM, Judson RS, Williams AJ., An automated curation procedure for addressing chemical errors and inconsistencies in public datasets used in QSAR modelling., SAR QSAR Environ Res. (2016), http://dx.doi.org/10.1080/1062936X.2016.1253611
+
+    ----
+
+    Parameters
     ------------
     root: str
         Indicates what the root or working directory is. Default: None
@@ -46,14 +56,6 @@ class LogP(GraphDataSet):
     save_data_filename: str
         The filename of the saved dataset. If given, the dataset will be automatically saved after processing.
         Default: None
-
-    ----
-
-    References
-
-    [1] Ulrich, N., Goss, KU. & Ebert, A., Exploring the octanol–water partition coefficient dataset using deep learning techniques and datasets augmentation., Commun Chem 4, 90 (2021), http://dx.doi.org/10.1038/s42004-021-00528-9
-
-    [2] Mansouri K, Grulke CM, Richard AM, Judson RS, Williams AJ., An automated curation procedure for addressing chemical errors and inconsistencies in public datasets used in QSAR modelling., SAR QSAR Environ Res. (2016), http://dx.doi.org/10.1080/1062936X.2016.1253611
 
     """
 

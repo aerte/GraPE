@@ -24,7 +24,7 @@ class MPNN(nn.Module):
 
     ----
 
-    Parameters:
+    Parameters
     ----------------
     node_in_dim: int
         The number of input node features.
@@ -63,12 +63,12 @@ class MPNN(nn.Module):
 
     def forward(self, data):
         """
-        Parameters:
+        Parameters
         ------------
         data: Data or DataLoader
             A singular graph Data object or a batch of graphs in the form of a DataLoader object.
 
-        Returns:
+        Returns
         ---------
         h: Tensor
             Returns the final hidden node representation of shape (num nodes, nodes_hidden_features).

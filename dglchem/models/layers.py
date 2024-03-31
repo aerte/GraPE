@@ -19,7 +19,17 @@ class Weave(MessagePassing):
     """Implements the Molecular Graph Convolutional Layer (sometimes called Weave) from Steven Kearnes at al. [1]
     as described in [2].
 
-    Parameters:
+    ----
+
+    References
+
+    [1] Steven Kearnes at al., Molecular graph convolutions: moving beyond fingerprints, http://dx.doi.org/10.1007/s10822-016-9938-8
+
+    [2] Justin Gilmer et al., Neural Message Passing for Quantum Chemistry, http://proceedings.mlr.press/v70/gilmer17a/gilmer17a.pdf
+
+    -----
+
+    Parameters
     ------------
     node_in_dim: int
         The number of input node features.
@@ -30,13 +40,6 @@ class Weave(MessagePassing):
     edge_hidden_dim: int
         The dimension of the hidden edge features. Default: 64
 
-    ----
-
-    References
-
-    [1] Steven Kearnes at al., Molecular graph convolutions: moving beyond fingerprints, http://dx.doi.org/10.1007/s10822-016-9938-8
-
-    [2] Justin Gilmer et al., Neural Message Passing for Quantum Chemistry, http://proceedings.mlr.press/v70/gilmer17a/gilmer17a.pdf
     """
     def __init__(self, node_in_dim: int, edge_in_dim: int, node_hidden_dim: int = 64, edge_hidden_dim: int = 64):
         super().__init__(aggr='sum')
@@ -60,7 +63,7 @@ class Weave(MessagePassing):
     def forward(self, x: Tensor, edge_index: Adj, edge_attr: Tensor) -> tuple[Tensor,Tensor]:
         """Returns the new node and edge representations computed by the Weave model.
 
-        Parameters:
+        Parameters
         ------------
         x: Tensor
             The node representation of a singular graph or batch of graphs.
@@ -69,7 +72,7 @@ class Weave(MessagePassing):
         edge_attr: Tensor
             The edge representation of a singular graph or batch of graphs
 
-        Returns:
+        Returns
         ---------
         (nodes_out, edges_out)
             The updates node and edge representation.

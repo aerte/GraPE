@@ -14,7 +14,16 @@ class BradleyDoublePlus(GraphDataSet):
     Double Plus Good (Highly Curated and Validated) Melting Point* Dataset [1] should it not already exist, and then
     initializes it into a **GraphDataSet** class.
 
-    Parameters:
+    ----
+
+    References
+
+    [1] Jean-Claude Bradley and Andrew Lang and Antony Williams, Jean-Claude Bradley Double Plus Good (Highly Curated
+    and Validated) Melting Point Dataset, 2014, http://dx.doi.org/10.6084/m9.figshare.1031637
+
+    -----
+
+    Parameters
     -------------
     root: str
         Indicates what the root or working directory is. Default: None
@@ -47,13 +56,6 @@ class BradleyDoublePlus(GraphDataSet):
     save_data_filename: str
         The filename of the saved dataset. If given, the dataset will be automatically saved after processing.
         Default: None
-
-    ----
-
-    References
-
-    [1] Jean-Claude Bradley and Andrew Lang and Antony Williams, Jean-Claude Bradley Double Plus Good (Highly Curated
-    and Validated) Melting Point Dataset, 2014, http://dx.doi.org/10.6084/m9.figshare.1031637
 
 
     """
