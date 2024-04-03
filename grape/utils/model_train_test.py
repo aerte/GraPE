@@ -18,7 +18,7 @@ __all__ = [
 def train_model(model: torch.nn.Module, loss_func: Callable, optimizer: torch.optim.Optimizer,
                 train_data_loader: list or DataLoader, val_data_loader: list or DataLoader,
                 device: str = None, epochs: int = 50, batch_size: int = 32,
-                early_stopping: bool = True, patience: int = 3) -> tuple:
+                early_stopping: bool = True, patience: int = 3) -> tuple[list,list]:
     """Auxiliary function to train and test a given model and return the (training, test) losses.
     Can initialize DataLoaders if only list of Data objects are given.
 
