@@ -6,9 +6,10 @@ import json
 import urllib.request
 import math
 
+from torch import Tensor
+from numpy import ndarray
 from tqdm import tqdm
 import pandas as pd
-import rdkit.Chem
 from rdkit import Chem
 from dgllife.utils.analysis import analyze_mols
 import matplotlib.pyplot as plt
@@ -26,8 +27,16 @@ __all__ = [
     'mol_weight_vs_target',
     'compound_nums_chart',
     'compounds_dataset_heatmap',
-    'loss_plot'
+    'loss_plot',
+    'parity_plot'
 ]
+
+
+def file_in_dir(directory, filename):
+    for root, dirs, files in os.walk(directory):
+        if filename in files:
+            return True
+
 
 def smiles_analysis(smiles: list, path_to_export: str =None, download: bool =False, plots: list = None,
                     save_plots:bool = False, fig_size: list = None, output_filter: bool =True) -> (dict, plt.figure):
@@ -195,7 +204,7 @@ def classyfire(smiles: list[str], path_to_export: str = None,
                 log: bool = True) -> tuple[list[str]]:
     """Applies the classyfire procedure given in [1] to the input smiles and generates json files with the
     information. It can also generate a csv file recording the names of the json files and the corresponding SMILES to
-    avoid retrieving the same information multiple times. The procedure will take about ~10min for 100 molecules. For
+    avoid retrieving the same information multiple times. The procedure will take about ~10min for 300 molecules. For
     large datasets, consider subsampling the smiles or using the less informative compound classifier.
 
     Parameters
@@ -240,9 +249,16 @@ def classyfire(smiles: list[str], path_to_export: str = None,
         if not os.path.exists(path_to_export):
             os.mkdir(path_to_export)
 
+        if existing_log_file is None:
+            if file_in_dir(path_to_export, 'recorded_SMILES.csv'):
+                if log:
+                    print('Found log file in working directory.')
+                existing_log_file = os.path.join(path_to_export,'recorded_SMILES.csv')
+
     if record_log_file and existing_log_file is None:
         log_file = os.path.join(path_to_export, 'recorded_SMILES.csv')
         log_frame = pd.DataFrame({'filename':[], 'smiles':[]})
+
     elif existing_log_file is not None:
         try:
             log_frame = pd.read_csv(existing_log_file)
@@ -256,6 +272,7 @@ def classyfire(smiles: list[str], path_to_export: str = None,
             log_file = os.path.join(path_to_export, 'recorded_SMILES.csv')
             log_frame = pd.DataFrame({'filename': [], 'smiles': []})
 
+    ids_out = []
 
     inchikey_rdkit = []
     existing_log = 0
@@ -263,7 +280,9 @@ def classyfire(smiles: list[str], path_to_export: str = None,
         #print(standard_smiles[idx])
         if standard_smiles[idx] in log_frame.smiles.values:
             existing_log += 1
-            #print('check true')
+            ids_out.append(list(log_frame.smiles.values).index(standard_smiles[idx]))
+            if log:
+                print(f'Mol {idx} in log datafile, so skipping it.')
             continue
         try:
             inchikey_rdkit.append(Chem.inchi.MolToInchiKey(mol))
@@ -288,7 +307,7 @@ def classyfire(smiles: list[str], path_to_export: str = None,
     path_report = os.path.join(path_to_export,'missing_keys.txt')
     report = open(path_report, 'w')
 
-    ids_out = []
+    max_list = max(log_frame.index)
 
     for i in tqdm(range(len(inchikey_rdkit))):
         key = inchikey_rdkit[i]
@@ -298,8 +317,8 @@ def classyfire(smiles: list[str], path_to_export: str = None,
             with urllib.request.urlopen(url) as webpage:
                 data = json.loads(webpage.read().decode())
 
-            filename = str(i) + '.json'
-            with open(path_folder + '/' + str(i) + '.json', 'w') as f:
+            filename = str(max_list+i) + '.json'
+            with open(path_folder + '/' + filename, 'w') as f:
                 json.dump(data, f)
 
             log_frame = pd.concat([log_frame, pd.DataFrame({'filename': [filename], 'smiles': [standard_smiles[i]]})])
@@ -328,6 +347,8 @@ def classyfire(smiles: list[str], path_to_export: str = None,
     log_frame.to_csv(log_file,index=False)
 
     return ids_out
+
+
 
 
 def classyfire_result_analysis(path_to_classyfire: str = None, idx: list[int] = None,
@@ -375,10 +396,10 @@ def classyfire_result_analysis(path_to_classyfire: str = None, idx: list[int] = 
 
     class_freq = dict()
     mols_class = dict()
+
     for id_mol, file in zip(idx, os.listdir(path_to_classyfire)):
         file_path = os.path.join(path_to_classyfire, file)
 
-        # TODO: if ['class']['name'] is null, then use ['alternative_parents']
 
         class_name = json.load(open(file_path))[layer_name]['name']
         if class_name is None:
@@ -393,8 +414,6 @@ def classyfire_result_analysis(path_to_classyfire: str = None, idx: list[int] = 
 
 
     return mols_class, class_freq
-
-
 
 
 
@@ -624,6 +643,95 @@ def loss_plot(losses, model_names, fig_size: tuple = (10,5),
         fig.savefig(fname=f'{path_to_export}/loss_plot.svg', format='svg')
 
     return
+
+def parity_plot(prediction: Tensor or ndarray, target: Tensor or ndarray, fig_size: tuple = (10,5),
+                                        save_fig: bool = False, path_to_export: str = None) -> plt.axes:
+    """Generates a parity plot based on the given predictions and targets.
+
+    Parameters
+    -----------
+    prediction: Tensor or ndarray
+        A prediction array or tensor generated by some sort of model.
+    target: Tensor or ndarray
+        The target array or tensor corresponding to the prediction.
+    fig_size: tuple
+        The output figure size. Default: (10,10)
+    save_fig: bool
+        Decides if the plot is saved, is overridden if a path is given. Default: False
+    path_to_export: str
+        File location to save. Default: None
+
+    Returns
+    -------
+    plt.axes
+
+    """
+
+    assert len(prediction) == len(target), 'Predictions and targets are not the same size.'
+
+    if save_fig and (path_to_export is None):
+
+        path_to_export = os.getcwd() + '/analysis_results'
+
+        if not os.path.exists(path_to_export):
+            os.mkdir(path_to_export)
+
+    if isinstance(prediction, Tensor):
+        prediction = prediction.cpu().detach().numpy()
+    if isinstance(target, Tensor):
+        target = target.cpu().detach().numpy()
+
+    fig, ax = plt.subplots(1,1,figsize=fig_size)
+    ax.scatter(target, prediction, linewidth = 1.5)
+    ax.axline((0,0), slope=1, color='black')
+    ax.set_title('Parity plot')
+    ax.set_xlabel('Ground truth')
+    ax.set_ylabel('Prediction')
+
+    if path_to_export is not None:
+        fig.savefig(fname=f'{path_to_export}/parity_plot.svg', format='svg')
+
+    return ax
+
+
+def pca_2d_plot(latents: Tensor or ndarray or list, labels: list = None, fig_size: tuple = (10, 5),
+                save_fig: bool = False, path_to_export: str = None, log: bool = True) -> plt.axes:
+    """
+
+    Parameters
+    ----------
+    latents: Tensor or ndarray or list
+        Latents or any other matrix that will be used for a PCA model and projected on the two first principal
+        components. The first dimension should be the observations and the second the features.
+    labels: list
+        Optional list of labels that will be used for the plot. Default: None
+    fig_size: tuple
+        The output figure size. Default: (10,10)
+    save_fig: bool
+        Decides if the plot is saved, is overridden if a path is given. Default: False
+    path_to_export: str
+        File location to save. Default: None
+    log: bool
+        Decides if additional PCA output like the explained variance should be printed out. Default: True
+
+    Returns
+    -------
+    plt.axes
+
+    """
+
+    if labels is not None:
+        assert latents.shape[0] == len(labels), 'The given label list must match the latents.'
+
+    if save_fig and (path_to_export is None):
+
+        path_to_export = os.getcwd() + '/analysis_results'
+
+        if not os.path.exists(path_to_export):
+            os.mkdir(path_to_export)
+
+
+
 
 
 

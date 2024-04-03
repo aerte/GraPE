@@ -1,17 +1,65 @@
 # Module for datasets splitting
 from collections import defaultdict
 import numpy as np
+import dgl
+import torch
 
 from rdkit.Chem import MolFromSmiles, rdMolDescriptors
 from rdkit.ML.Cluster import Butina
 from rdkit import DataStructs
 
 from torch_geometric.data import Data
-
 from dgllife.utils import splitters
 
+__all__ = [
+    'SubSet',
+    'torch_subset_to_SubSet',
+    'taylor_butina_clustering',
+    'split_data'
+]
+
+class SubSet(object):
+    """An adaptation of the Pytorch Subset (https://pytorch.org/docs/stable/data.html#torch.utils.data.Subset) to fit
+    into the GraPE workflow.
+
+    Parameters
+    -----------
+    dataset
+        The full dataset, where dataset[i] should return the ith datapoint.
+    indices: list
+        Full list of indices of the subset to be constructed.
+
+    """
+
+    def __init__(self, dataset, indices: list):
+        self.dataset = dataset
+        self.indices = indices
+        self.y = dataset.target[indices]
+        self.smiles = dataset.smiles[indices]
+
+    def __len__(self):
+        return len(self.indices)
+
+    def __getitem__(self, item):
+        if isinstance(item, list):
+            return self.dataset[[self.indices[i] for i in item]]
+        return self.dataset[self.indices[item]]
+
+def torch_subset_to_SubSet(subset: dgl.data.Subset or torch.utils.data.Subset):
+    """Returns the GraPE SubSet from the DGL or PyTorch Subset.
+
+    Parameters
+    ----------
+    subset: dgl.data.Subset or torch.utils.data.Subset
+
+    Returns
+    -------
+    SubSet
+    """
+    return SubSet(subset.dataset, subset. indices)
+
 def taylor_butina_clustering(data, threshold: float =0.8, nBits: int = 2048, radius: int = 3,
-                             split_frac: list[float] = None, log:bool = True) -> tuple[Data]:
+                             split_frac: list[float] = None, log:bool = True) -> tuple[SubSet, SubSet, SubSet]:
     """Clusters the datasets based on Butina clustering [1] and splits it into training, validation and test datasets
     splits. After the molecules are clustered, they are assigned to the train split from largest to smallest until it is
     filled up, then the val split and finally the rest is assigned to the test split. Inspired by the great workshop
@@ -44,7 +92,7 @@ def taylor_butina_clustering(data, threshold: float =0.8, nBits: int = 2048, rad
 
     Returns
     ---------
-    train, test, val
+    SubSet, SubSet, SubSet
         Returns the respective lists of Data objects that be fed into a DataLoader.
 
 
@@ -101,7 +149,7 @@ def taylor_butina_clustering(data, threshold: float =0.8, nBits: int = 2048, rad
         processed_len += np.sum(Idx==cluster)
         #print(f'{processed_len/nPoints*100}% processed.')
 
-    return splits[0], splits[1], splits[2]
+    return SubSet(data, splits[0]), SubSet(data, splits[1]), SubSet(data, splits[2])
 
 
 

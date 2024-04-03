@@ -6,6 +6,8 @@ import os
 from collections.abc import Sequence
 
 import pickle
+
+import dgl.data
 import pandas as pd
 import numpy as np
 import rdkit.Chem.Draw
@@ -239,9 +241,9 @@ class DataSet(DataLoad):
                 except:
                     raise ValueError('A dataset is stored as a DataFrame.')
 
-            self.smiles = list(df.smiles)
-            self.target = list(df.target)
-            self.global_features = list(df.global_features)
+            self.smiles = np.array(df.smiles)
+            self.target = np.array(df.target)
+            self.global_features = np.array(df.global_features)
             self.data = list(df.graphs)
 
         else:
@@ -638,9 +640,10 @@ class GraphDataSet(DataSet):
         self.split_type = split_type
         self.split_frac = split_frac
 
-
         assert np.sum(self.split_frac), 'Split fractions should add to 1.'
+
 
         if split or (self.custom_split is not None):
             self.train, self.val, self.test = split_data(data = self.data, split_type = self.split_type,
                                                         split_frac = self.split_frac, custom_split = self.custom_split)
+
