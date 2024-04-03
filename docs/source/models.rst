@@ -10,7 +10,7 @@ as well as a few complete models are described. All of these rely on `PyTorch <l
 Layers
 ------
 
-.. automodule:: dglchem.models.layers
+.. automodule:: grape.models.layers
    :members:
    :undoc-members:
    :show-inheritance:
@@ -20,7 +20,7 @@ Message Passing Models
 
 **MPNN**
 
-.. automodule:: dglchem.models.MPNN_gnn
+.. automodule:: grape.models.MPNN_gnn
    :members:
    :undoc-members:
    :show-inheritance:
@@ -28,7 +28,7 @@ Message Passing Models
 
 **Weave**
 
-.. automodule:: dglchem.models.Weave_gnn
+.. automodule:: grape.models.Weave_gnn
    :members:
    :undoc-members:
    :show-inheritance:
@@ -37,7 +37,7 @@ Message Passing Models
 Output Models
 ---------------
 
-.. automodule:: dglchem.models.test_models
+.. automodule:: grape.models.test_models
    :members:
    :undoc-members:
    :show-inheritance:

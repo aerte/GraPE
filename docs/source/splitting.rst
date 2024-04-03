@@ -18,7 +18,7 @@ but also:
 * Butina Clustering
 
 
-.. automodule:: dglchem.utils.data_splitting
+.. automodule:: grape.utils.data_splitting
    :members:
    :undoc-members:
    :show-inheritance:

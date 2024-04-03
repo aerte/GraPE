@@ -8,7 +8,7 @@ feature functions.
 
 Additionally, the classes offer the option of extending the featurizer with a *new* function.
 
-.. automodule:: dglchem.utils.featurizer
+.. automodule:: grape.utils.featurizer
    :members:
    :undoc-members:
    :show-inheritance:
@@ -19,7 +19,7 @@ Feature Functions
 
 This is the collection of feature functions that can be used in the featurization (or separately).
 
-.. automodule:: dglchem.utils.feature_func
+.. automodule:: grape.utils.feature_func
    :members:
    :undoc-members:
    :show-inheritance:

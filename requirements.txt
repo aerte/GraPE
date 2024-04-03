@@ -7,8 +7,6 @@ numpy~=1.26.3
 pyarrow
 openpyxl
 dgllife~=0.3.2
-sphinx-gallery
-sphinx_rtd_theme
 matplotlib~=3.8.3
 seaborn~=0.13.2
 CIRpy~=1.0.2

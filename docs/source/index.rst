@@ -1,5 +1,5 @@
-DGL CHEM
-====================
+GraPE - Graph Property Estimation
+==================================
 
 This is a python package to support Chemical property prediction using `PyTorch <link>`_.
 The ambition of this project is to build a flexible pipeline that lets users go from molecule

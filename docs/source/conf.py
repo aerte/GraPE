@@ -22,7 +22,7 @@ sys.path.insert(0, os.path.abspath('../..'))
 
 # -- Project information -----------------------------------------------------
 
-project = 'DGL-Chem'
+project = 'GraPE'
 author = 'aerte'
 
 
@@ -145,7 +145,7 @@ latex_elements = {
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    (master_doc, 'dglchem', 'DGL CHEM documentation',
+    (master_doc, 'grape', 'GraPE Documentation',
      [author], 1)
 ]
 
@@ -184,7 +184,7 @@ epub_exclude_files = ['search.html']
 autosummary_generate = True
 
 intersphinx_mapping = {
-    'python': ('https://docs.python.org/{.major}'.format(sys.version_info), None),
+    'grape': ('https://docs.python.org/{.major}'.format(sys.version_info), None),
     'numpy': ('http://docs.scipy.org/doc/numpy/', None),
     'scipy': ('http://docs.scipy.org/doc/scipy/reference', None),
     'matplotlib': ('http://matplotlib.org/', None),

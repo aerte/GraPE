@@ -9,7 +9,7 @@ Geometric ``Data`` objects (molecule graphs).
 Other features include the fast loading of a saved ``DataSet``, easy saving and some
 data analysis features.
 
-.. automodule:: dglchem.utils.data
+.. automodule:: grape.utils.data
    :members:
    :undoc-members:
    :show-inheritance:
