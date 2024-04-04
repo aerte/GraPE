@@ -6,6 +6,7 @@ import json
 import urllib.request
 import math
 
+import sklearn.preprocessing
 from torch import Tensor
 from numpy import ndarray
 from tqdm import tqdm
@@ -30,12 +31,6 @@ __all__ = [
     'loss_plot',
     'parity_plot'
 ]
-
-
-def file_in_dir(directory, filename):
-    for root, dirs, files in os.walk(directory):
-        if filename in files:
-            return True
 
 
 def smiles_analysis(smiles: list, path_to_export: str =None, download: bool =False, plots: list = None,
@@ -199,6 +194,11 @@ def classify_compounds(smiles: list) -> tuple:
 def print_report(string, file=None):
     file.write('\n' + string)
 
+def file_in_dir(directory, filename):
+    for root, dirs, files in os.walk(directory):
+        if filename in files:
+            return True
+
 def classyfire(smiles: list[str], path_to_export: str = None,
                record_log_file: bool = True, existing_log_file: str = None,
                 log: bool = True) -> tuple[list[str]]:
@@ -307,7 +307,10 @@ def classyfire(smiles: list[str], path_to_export: str = None,
     path_report = os.path.join(path_to_export,'missing_keys.txt')
     report = open(path_report, 'w')
 
-    max_list = max(log_frame.index)
+    if len(log_frame) == 0:
+        max_list = 0
+    else:
+        max_list = max(log_frame.index)
 
     for i in tqdm(range(len(inchikey_rdkit))):
         key = inchikey_rdkit[i]
@@ -720,6 +723,11 @@ def pca_2d_plot(latents: Tensor or ndarray or list, labels: list = None, fig_siz
 
     """
 
+    if isinstance(latents, Tensor):
+        latents = latents.cpu().detach().numpy()
+    if isinstance(latents, list):
+        latents = np.array(latents)
+
     if labels is not None:
         assert latents.shape[0] == len(labels), 'The given label list must match the latents.'
 
@@ -729,6 +737,32 @@ def pca_2d_plot(latents: Tensor or ndarray or list, labels: list = None, fig_siz
 
         if not os.path.exists(path_to_export):
             os.mkdir(path_to_export)
+
+    model_pca = sklearn.decomposition.PCA(n_components=2)
+    model_pca.fit(latents)
+
+    V = model_pca.components_.T
+    projection = latents @ V
+
+    if labels is not None and isinstance(labels[0], str):
+        enc = sklearn.preprocessing.LabelEncoder()
+        labels = enc.fit_transform(labels)
+
+    fig, ax = plt.subplots(figsize=fig_size)
+
+    if labels is not None:
+        ax.scatter(projection[:, 0], projection[:, 1], c=labels)
+    else:
+        ax.scatter(projection[:, 0], projection[:, 1])
+
+    if path_to_export is not None:
+        fig.savefig(fname=f'{path_to_export}/latent_plot.svg', format='svg')
+
+
+
+
+
+
 
 
 

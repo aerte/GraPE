@@ -112,7 +112,7 @@ def filter_smiles(smiles: list, target: list, allowed_atoms: list = None,
     if not allow_dupes:
         df.drop_duplicates(subset='smiles', inplace=True)
 
-    return list(df.smiles), list(df.target)
+    return np.array(df.smiles), np.array(df.target)
 
 
 

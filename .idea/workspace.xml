@@ -4,206 +4,14 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="115446f6-db4f-461b-90f9-f367678daa67" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/.gitignore" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/.name" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/GraPE.iml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/dgl_chem.iml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/modules.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/modules.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/source/Demonstration.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/Demonstration.ipynb" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/source/analysis_results/molecular_weight_against_target.svg" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/analysis_results/molecular_weight_against_target.svg" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/source/analysis_results/summary.txt" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/analysis_results/summary.txt" afterDir="false" />
+    <list default="true" id="115446f6-db4f-461b-90f9-f367678daa67" name="Changes" comment="bug fixes, SubSet, pca tests, expansion of classyfire">
+      <change beforePath="$PROJECT_DIR$/.idea/GraPE.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/GraPE.iml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/docs/source/conf.py" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/conf.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/source/data/processed/LogP.pickle" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/data/processed/LogP.pickle" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/grape/models/test_models.py" beforeDir="false" afterPath="$PROJECT_DIR$/grape/models/test_models.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/grape/utils/analysis.py" beforeDir="false" afterPath="$PROJECT_DIR$/grape/utils/analysis.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/grape/utils/data.py" beforeDir="false" afterPath="$PROJECT_DIR$/grape/utils/data.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/grape/utils/data_splitting.py" beforeDir="false" afterPath="$PROJECT_DIR$/grape/utils/data_splitting.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/grape/utils/model_train_test.py" beforeDir="false" afterPath="$PROJECT_DIR$/grape/utils/model_train_test.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/0.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/0.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/1.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/1.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/10.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/10.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/100.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/100.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/101.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/101.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/102.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/102.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/103.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/103.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/104.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/104.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/105.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/105.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/106.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/106.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/107.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/107.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/108.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/108.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/109.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/109.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/11.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/11.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/110.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/110.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/111.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/111.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/112.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/112.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/113.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/113.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/114.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/114.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/115.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/115.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/116.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/116.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/117.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/117.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/118.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/118.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/119.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/119.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/12.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/12.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/120.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/120.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/121.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/121.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/122.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/122.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/123.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/123.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/124.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/124.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/125.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/125.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/126.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/126.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/127.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/127.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/128.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/128.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/129.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/129.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/13.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/13.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/130.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/130.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/131.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/131.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/132.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/132.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/133.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/133.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/134.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/134.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/135.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/135.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/136.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/136.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/137.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/137.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/138.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/138.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/139.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/139.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/14.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/14.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/140.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/140.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/141.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/141.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/142.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/142.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/143.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/143.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/144.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/144.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/145.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/145.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/146.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/146.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/147.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/147.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/148.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/148.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/149.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/149.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/15.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/15.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/150.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/150.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/151.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/151.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/152.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/152.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/153.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/153.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/154.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/154.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/155.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/155.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/156.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/156.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/157.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/157.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/158.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/158.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/159.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/159.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/16.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/16.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/160.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/160.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/161.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/161.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/162.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/162.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/163.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/163.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/164.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/164.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/165.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/165.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/166.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/166.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/167.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/167.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/168.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/168.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/169.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/169.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/17.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/17.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/170.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/170.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/171.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/171.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/172.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/172.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/173.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/173.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/174.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/174.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/175.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/175.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/176.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/176.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/177.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/177.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/178.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/178.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/179.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/179.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/18.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/18.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/19.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/19.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/2.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/2.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/20.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/20.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/21.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/21.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/22.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/22.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/23.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/23.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/24.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/24.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/25.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/25.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/26.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/26.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/27.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/27.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/28.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/28.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/29.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/29.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/3.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/3.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/30.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/30.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/31.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/31.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/32.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/32.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/33.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/33.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/34.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/34.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/35.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/35.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/36.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/36.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/37.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/37.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/38.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/38.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/39.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/39.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/4.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/4.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/40.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/40.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/41.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/41.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/42.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/42.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/43.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/43.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/44.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/44.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/45.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/45.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/46.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/46.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/47.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/47.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/48.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/48.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/49.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/49.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/5.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/5.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/50.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/50.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/51.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/51.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/52.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/52.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/53.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/53.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/54.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/54.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/55.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/55.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/56.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/56.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/57.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/57.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/58.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/58.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/59.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/59.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/6.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/6.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/60.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/60.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/61.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/61.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/62.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/62.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/63.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/63.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/64.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/64.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/65.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/65.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/66.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/66.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/67.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/67.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/68.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/68.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/69.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/69.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/7.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/7.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/70.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/70.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/71.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/71.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/72.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/72.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/73.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/73.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/74.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/74.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/75.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/75.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/76.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/76.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/77.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/77.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/78.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/78.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/79.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/79.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/8.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/8.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/80.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/80.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/81.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/81.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/82.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/82.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/83.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/83.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/84.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/84.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/85.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/85.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/86.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/86.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/87.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/87.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/88.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/88.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/89.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/89.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/9.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/9.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/90.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/90.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/91.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/91.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/92.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/92.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/93.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/93.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/94.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/94.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/95.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/95.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/96.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/96.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/97.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/97.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/98.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/98.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/99.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/classyfire/99.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/missing_keys.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/analysis_results/recorded_SMILES.csv" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/analysis_results/recorded_SMILES.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/notebooks/test2.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/test2.ipynb" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -223,10 +31,10 @@
   <component name="MarkdownSettingsMigration">
     <option name="stateVersion" value="1" />
   </component>
-  <component name="ProjectColorInfo"><![CDATA[{
-  "customColor": "",
-  "associatedIndex": 4
-}]]></component>
+  <component name="ProjectColorInfo">{
+  &quot;customColor&quot;: &quot;&quot;,
+  &quot;associatedIndex&quot;: 4
+}</component>
   <component name="ProjectId" id="2eaeX7qp8F3ShlqcdplS250FQ6a" />
   <component name="ProjectLevelVcsManager">
     <ConfirmationsSetting value="1" id="Add" />
@@ -235,20 +43,20 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "RunOnceActivity.OpenProjectViewOnStart": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "WebServerToolWindowFactoryState": "false",
-    "git-widget-placeholder": "main",
-    "node.js.detected.package.eslint": "true",
-    "node.js.detected.package.tslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "node.js.selected.package.tslint": "(autodetect)",
-    "nodejs_package_manager_path": "npm",
-    "vue.rearranger.settings.migration": "true"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;WebServerToolWindowFactoryState&quot;: &quot;false&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
-}]]></component>
+}</component>
   <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
   <component name="TaskManager">
     <task active="true" id="Default" summary="Default task">
@@ -257,11 +65,26 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1712147154310</updated>
-      <workItem from="1712147156518" duration="18422000" />
+      <workItem from="1712147156518" duration="18785000" />
+      <workItem from="1712210384837" duration="4386000" />
     </task>
+    <task id="LOCAL-00001" summary="bug fixes, SubSet, pca tests, expansion of classyfire">
+      <option name="closed" value="true" />
+      <created>1712174741437</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1712174741437</updated>
+    </task>
+    <option name="localTasksCounter" value="2" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="documentation, metric function and name-change&#10;&#10;Signed-off-by: aerte &lt;62424399+aerte@users.noreply.github.com&gt;" />
+    <MESSAGE value="bug fixes, SubSet, pca tests, expansion of classyfire" />
+    <option name="LAST_COMMIT_MESSAGE" value="bug fixes, SubSet, pca tests, expansion of classyfire" />
   </component>
 </project>

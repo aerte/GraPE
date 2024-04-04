@@ -98,6 +98,8 @@ def taylor_butina_clustering(data, threshold: float =0.8, nBits: int = 2048, rad
 
     """
 
+    all_indices = np.array(data.indices())
+
     # 1) Finding the fingerprints of the molecules
     fingerprints = []
     for smile in data.smiles:
@@ -145,11 +147,22 @@ def taylor_butina_clustering(data, threshold: float =0.8, nBits: int = 2048, rad
             splits[split] = []
             #print('next split')
 
-        splits[split].append([point for point in data[Idx==cluster]])
+        splits[split].append([point for point in all_indices[Idx==cluster]])
         processed_len += np.sum(Idx==cluster)
         #print(f'{processed_len/nPoints*100}% processed.')
 
-    return SubSet(data, splits[0]), SubSet(data, splits[1]), SubSet(data, splits[2])
+    #splits[0] = np.array(splits[0])
+    split_out = dict()
+
+    for i in range(3):
+        split_out[i] = []
+        for split in splits[0]:
+            for item in split:
+                split_out[i].append(item)
+
+
+
+    return SubSet(data, split_out[0]), SubSet(data, split_out[1]), SubSet(data, split_out[2])
 
 
 
