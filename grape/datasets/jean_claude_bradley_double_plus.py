@@ -1,7 +1,6 @@
 import os.path as osp
 
 import pandas as pd
-import numpy as np
 from torch_geometric.data import download_url
 from grape.utils.data import GraphDataSet
 

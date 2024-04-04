@@ -112,8 +112,8 @@ def train_model(model: torch.nn.Module, loss_func: Callable, optimizer: torch.op
 
 
 def test_model(model: torch.nn.Module, loss_func: Callable or None, test_data_loader: list or DataLoader,
-                device: str = None, batch_size: int = 32) -> tuple[Tensor, Tensor] or\
-    tuple[Tensor, Tensor, list]:
+                device: str = None, batch_size: int = 32, return_latents: bool = False) -> Tensor or tuple[Tensor,
+Tensor] or tuple[Tensor, Tensor, list]:
     """Auxiliary function to test a trained model and return the predictions as well as the latents node
     representations. If a loss function is specified, then it will also return a list containing the testing losses.
     Can initialize DataLoaders if only list of Data objects are given.
@@ -131,11 +131,19 @@ def test_model(model: torch.nn.Module, loss_func: Callable or None, test_data_lo
         Torch device to be used ('cpu','cuda' or 'mps'). Default: 'cpu'
     batch_size: int
         Batch size of the DataLoader if not given directly. Default: 32
+    return_latents: bool
+        Decides is the latents should be returned. **If used, the model must include return_latent statement**. Default:
+        False
 
     Returns
     ---------
     float
         Mean test loss over the test set batches.
+
+    Notes
+    ------
+    This function is made for native models. If the model does not include a return_latents parameter, then consider
+    building a custom test function.
 
     """
 
@@ -151,7 +159,11 @@ def test_model(model: torch.nn.Module, loss_func: Callable or None, test_data_lo
         temp = np.zeros(len(test_data_loader))
 
         for idx, batch in enumerate(test_data_loader):
-            out, lat = model(batch.to(device), return_latents = True)
+            # TODO: Broaden use of return_latents
+            if return_latents:
+                out, lat = model(batch.to(device), return_latents=True)
+            else:
+                out = model(batch.to(device), return_latents=False)
 
             if loss_func is not None:
                 temp[idx] = loss_func(batch.y, out).detach().cpu().numpy()
@@ -159,23 +171,29 @@ def test_model(model: torch.nn.Module, loss_func: Callable or None, test_data_lo
             # Concatenate predictions and latents
             if idx == 0:
                 preds = out
-                latents = lat
+                if return_latents:
+                    latents = lat
             else:
                 preds = torch.concat([preds,out],dim=0)
-                latents = torch.concat((latents, lat), dim=0)
+                if return_latents:
+                    latents = torch.concat((latents, lat), dim=0)
 
             pbar.update(1)
 
-    if loss_func is not None:
-        loss_test = np.mean(temp)
+    loss_test = np.mean(temp)
+
+    if loss_func is not None and return_latents:
         print(f'Test loss: {loss_test:.3f}')
-
         return preds, latents, loss_test
+    elif loss_func is not None:
+        print(f'Test loss: {loss_test:.3f}')
+        return preds, loss_test
+    elif return_latents:
+        return preds, latents
+    return preds
 
-    return preds, latents
-
-def pred_metric(prediction: Tensor or ndarray, target: Tensor or ndarray, metrics: str or list[str] = 'mse') \
-        -> list[float]:
+def pred_metric(prediction: Tensor or ndarray, target: Tensor or ndarray, metrics: str or list[str] = 'mse', print_out: \
+                bool = True) -> list[float]:
     """A function to evaluate continuous predictions compared to targets with different metrics. It can
     take either Tensors or ndarrays and will automatically convert them to the correct format. Partly makes use of
     sklearn and their implementations. The options for metrics are:
@@ -184,7 +202,8 @@ def pred_metric(prediction: Tensor or ndarray, target: Tensor or ndarray, metric
     * ``SSE``: Sum of Squared Errors
     * ``MAE``: Mean Average Error
     * ``R2``: R-squared Error
-    * ``MRE``: Mean Relative Error, which is implemented as: :math:`\frac{1}{N}\sum_`
+    * ``MRE``: Mean Relative Error, which is implemented as:
+
     .. math:
         \frac{1}{N}\sum\limits_{i=1}^{N}\frac{y_{i}-f(x_{i})}{y_{i}}\cdot100
 
@@ -199,6 +218,8 @@ def pred_metric(prediction: Tensor or ndarray, target: Tensor or ndarray, metric
     metrics: str or list[str]
         A string or a list of strings specifying what metrics should be returned. The options are:
         [``mse``, ``sse``, ``mae``, ``r2``, ``mre``] or 'all' for every option. Default: 'mse'
+    print_out: bool
+        Will print out formatted results if True. Default: True
 
     Returns
     --------
@@ -218,19 +239,25 @@ def pred_metric(prediction: Tensor or ndarray, target: Tensor or ndarray, metric
         metrics = ['mse','sse','mae','r2','mre']
 
     results = dict()
+    prints = []
 
     for metric_ in metrics:
         match metric_:
             case 'mse':
                 results['mse'] = mean_squared_error(target, prediction)
+                prints.append(f'MSE: {mean_squared_error(target, prediction):.3f}')
             case 'sse':
                 results['sse'] = np.sum((target-prediction)**2)
+                prints.append(f'SSE: {np.sum((target-prediction)**2):.3f}')
             case 'mae':
                 results['mae'] = mean_absolute_error(target, prediction)
+                prints.append(f'MAE: {mean_absolute_error(target, prediction):.3f}')
             case 'r2':
                 results['r2'] = r2_score(target, prediction)
+                prints.append(f'R2: {r2_score(target, prediction):.3f}')
             case 'mre':
                 results['mre'] = np.sum((target-prediction)/target)*100
+                prints.append(f'MRE: {np.sum((target-prediction)/target)*100:.3f}%')
 
     return results
 

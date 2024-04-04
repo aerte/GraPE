@@ -129,7 +129,7 @@ def DipprParser(property_name: str) -> pd.DataFrame:
     df = df.loc[~df.Const_Value.isna()]
     # adjust the error % and find how many unknowns
     df.loc[df.Error == 'Unknown', 'Error'] = '< nan%'
-    # splitting
+    # plots
     df['Error'] = df['Error'].str.split('< ', n=1, expand=True)[1]
     df['Error'] = df['Error'].str.split('%', n=0, expand=True)[0]
     # Converting the strings and nan to numerics

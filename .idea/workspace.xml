@@ -4,14 +4,30 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="115446f6-db4f-461b-90f9-f367678daa67" name="Changes" comment="bug fixes, SubSet, pca tests, expansion of classyfire">
-      <change beforePath="$PROJECT_DIR$/.idea/GraPE.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/GraPE.iml" afterDir="false" />
+    <list default="true" id="115446f6-db4f-461b-90f9-f367678daa67" name="Changes" comment="fixed butina clustering">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/source/conf.py" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/conf.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/grape/utils/analysis.py" beforeDir="false" afterPath="$PROJECT_DIR$/grape/utils/analysis.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/source/Demonstration.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/Demonstration.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/source/analysis_results/classyfire/99.json" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/analysis_results/classyfire/99.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/source/analysis_results/molecular_weight_against_target.svg" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/analysis_results/molecular_weight_against_target.svg" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/source/analysis_results/recorded_SMILES.csv" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/analysis_results/recorded_SMILES.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/source/analysis_results/summary.txt" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/analysis_results/summary.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/source/data/processed/LogP.pickle" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/data/processed/LogP.pickle" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/grape/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/grape/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/grape/datasets/jean_claude_bradley_double_plus.py" beforeDir="false" afterPath="$PROJECT_DIR$/grape/datasets/jean_claude_bradley_double_plus.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/grape/models/DMPNN_gnn.py" beforeDir="false" afterPath="$PROJECT_DIR$/grape/models/DMPNN_gnn.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/grape/utils/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/grape/utils/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/grape/utils/analysis.py" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/grape/utils/data.py" beforeDir="false" afterPath="$PROJECT_DIR$/grape/utils/data.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/grape/utils/data_splitting.py" beforeDir="false" afterPath="$PROJECT_DIR$/grape/utils/data_splitting.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/test2.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/test2.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/grape/utils/data_splitting.py" beforeDir="false" afterPath="$PROJECT_DIR$/grape/utils/split_utils.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/grape/utils/featurizer_old.py" beforeDir="false" afterPath="$PROJECT_DIR$/scripts/featurizer_old.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/grape/utils/model_train_test.py" beforeDir="false" afterPath="$PROJECT_DIR$/grape/utils/model_train_test.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/grape/visualizations/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/grape/splits/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/grape/visualizations/visualize.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/notebooks/DataTools.py" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/DataTools.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/reports/.gitkeep" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/reports/figures/.gitkeep" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/requirements.txt" beforeDir="false" afterPath="$PROJECT_DIR$/requirements.txt" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -22,6 +38,7 @@
     <option name="RECENT_TEMPLATES">
       <list>
         <option value="Jupyter Notebook" />
+        <option value="Python Script" />
       </list>
     </option>
   </component>
@@ -57,6 +74,12 @@
     &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
 }</component>
+  <component name="RecentsManager">
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/scripts" />
+      <recent name="$PROJECT_DIR$/grape" />
+    </key>
+  </component>
   <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
   <component name="TaskManager">
     <task active="true" id="Default" summary="Default task">
@@ -66,7 +89,9 @@
       <option name="presentableId" value="Default" />
       <updated>1712147154310</updated>
       <workItem from="1712147156518" duration="18785000" />
-      <workItem from="1712210384837" duration="4386000" />
+      <workItem from="1712210384837" duration="9798000" />
+      <workItem from="1712239683097" duration="19000" />
+      <workItem from="1712255916349" duration="6533000" />
     </task>
     <task id="LOCAL-00001" summary="bug fixes, SubSet, pca tests, expansion of classyfire">
       <option name="closed" value="true" />
@@ -76,7 +101,15 @@
       <option name="project" value="LOCAL" />
       <updated>1712174741437</updated>
     </task>
-    <option name="localTasksCounter" value="2" />
+    <task id="LOCAL-00002" summary="fixed butina clustering">
+      <option name="closed" value="true" />
+      <created>1712214804459</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1712214804459</updated>
+    </task>
+    <option name="localTasksCounter" value="3" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -85,6 +118,7 @@
   <component name="VcsManagerConfiguration">
     <MESSAGE value="documentation, metric function and name-change&#10;&#10;Signed-off-by: aerte &lt;62424399+aerte@users.noreply.github.com&gt;" />
     <MESSAGE value="bug fixes, SubSet, pca tests, expansion of classyfire" />
-    <option name="LAST_COMMIT_MESSAGE" value="bug fixes, SubSet, pca tests, expansion of classyfire" />
+    <MESSAGE value="fixed butina clustering" />
+    <option name="LAST_COMMIT_MESSAGE" value="fixed butina clustering" />
   </component>
 </project>

@@ -5,6 +5,7 @@ import torch
 import torch.nn as nn
 from torch.nn import Linear
 from torch_geometric.nn import global_mean_pool
+from .layers import Weave
 
 __all__ = [
     'DMPNN'
@@ -28,12 +29,12 @@ class DMPNN(nn.Module):
         self.gnn_layers = torch.nn.ModuleList()
         for layer in range(num_layers):
             if layer==0:
-                self.gnn_layers.append(MGConvLayer(node_in_feats=node_dim,
+                self.gnn_layers.append(Weave(node_in_feats=node_dim,
                                                    edge_in_feats=edge_dim,
                                                    hidden_nodes=node_hidden_dim,
                                                    hidden_edges=edge_hidden_dim))
             else:
-                self.gnn_layers.append(MGConvLayer(node_in_feats=node_hidden_dim,
+                self.gnn_layers.append(Weave(node_in_feats=node_hidden_dim,
                                                    edge_in_feats=edge_hidden_dim,
                                                    hidden_nodes=node_hidden_dim,
                                                    hidden_edges=edge_hidden_dim))

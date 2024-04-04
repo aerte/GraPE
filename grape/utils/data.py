@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-#
 # Graph constructor built on top of pytorch geometric
 
 import os
@@ -24,8 +22,9 @@ from torch_geometric.data import Data
 from torch_geometric.utils import dense_to_sparse
 
 from grape.utils.featurizer import AtomFeaturizer, BondFeaturizer
-from grape.utils.analysis import smiles_analysis, mol_weight_vs_target
-from grape.utils.data_splitting import split_data
+from grape.analysis import smiles_analysis
+from grape.plots import mol_weight_vs_target
+from grape.utils.split_utils import split_data
 
 RDLogger.DisableLog('rdApp.*')
 
