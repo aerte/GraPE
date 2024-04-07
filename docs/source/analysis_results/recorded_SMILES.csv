@@ -341,3 +341,9 @@ filename,smiles
 338.json,CCCCc1ccccc1
 339.json,CC(c1ccccc1)c1ccccc1
 340.json,CC(=O)OCCc1ccccc1
+341.json,CCc1ccccc1Br
+342.json,O=C(O)CCC(=O)c1ccc(-c2ccccc2)cc1
+343.json,CCc1ccccc1
+344.json,CCCCc1ccccc1
+345.json,CC(c1ccccc1)c1ccccc1
+346.json,CC(=O)OCCc1ccccc1

@@ -111,7 +111,7 @@ def parity_plot(prediction: Union[Tensor, ndarray], target:  Union[Tensor, ndarr
         target = target.cpu().detach().numpy()
 
     fig, ax = plt.subplots(1,1,figsize=fig_size)
-    ax.scatter(target, prediction, linewidth = 1.)
+    ax.scatter(target, prediction, linewidth = 0.7)
     ax.axline((0,0), slope=1, color='black')
     ax.set_title('Parity plot')
     ax.set_xlabel('Ground truth')
@@ -241,7 +241,7 @@ def residual_plot(prediction: Union[Tensor, ndarray], target: Union[Tensor, ndar
     residual = prediction-target
 
     fig, ax = plt.subplots(1,1,figsize=fig_size)
-    ax.scatter(target, residual, linewidth = 1.)
+    ax.scatter(target, residual, linewidth = 0.7)
     ax.axline((0,0), slope=0, color='black')
     ax.set_title('Residual plot')
     ax.set_xlabel('Ground truth')

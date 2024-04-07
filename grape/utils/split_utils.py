@@ -36,7 +36,7 @@ class SubSet(object):
 
     """
 
-    def __init__(self, dataset: grape.utils.DataSet, indices: list[int]):
+    def __init__(self, dataset, indices: list[int]):
         self.dataset = dataset
         self.indices = indices
         self.y = dataset.target[indices]
@@ -65,7 +65,7 @@ def torch_subset_to_SubSet(subset: Union[dgl.data.Subset,torch.utils.data.Subset
         'The subsets underlying dataset has to be either DataSet or GraphDataSet.')
     return SubSet(subset.dataset, subset.indices)
 
-def mult_subset_to_gen(subsets: Union[tuple[dgl.data.Subset], tuple[torch.data.Subset]]) -> Generator:
+def mult_subset_to_gen(subsets: Union[tuple[dgl.data.Subset], tuple[torch.utils.data.Subset]]) -> Generator:
     """Returns a Generator object corresponding to the length of the input with all the transformed SubSets.
     
     Parameters

@@ -9,12 +9,12 @@ Average number of rings per molecule: 1.1347115705235078 +- 1.0000961150055783
 
 Atom statistics
 ============================================================
-atom_type frequency: {'C': 2992, 'O': 1988, 'N': 1201, 'S': 255, 'F': 162, 'Br': 209, 'Cl': 459, 'I': 58, 'P': 30}
+atom_type frequency: {'C': 2992, 'O': 1988, 'N': 1201, 'F': 162, 'S': 255, 'Br': 209, 'Cl': 459, 'I': 58, 'P': 30}
 degree frequency: {1: 2848, 2: 2866, 3: 2606, 4: 447}
 total_degree frequency: {4: 2206, 1: 2031, 2: 1762, 3: 2567}
 explicit_valence frequency: {1: 2657, 2: 2412, 3: 2426, 4: 2568, 6: 88, 5: 24}
 implicit_valence frequency: {1: 2585, 2: 1649, 3: 1560, 0: 2765}
-hybridization frequency: {'SP3': 2580, 'SP': 173, 'SP2': 2537}
+hybridization frequency: {'SP3': 2580, 'SP2': 2537, 'SP': 173}
 total_num_h frequency: {1: 2597, 2: 1649, 3: 1560, 0: 2757}
 formal_charge frequency: {0: 2999, 1: 241, -1: 241}
 num_radical_electrons frequency: {0: 2999}
