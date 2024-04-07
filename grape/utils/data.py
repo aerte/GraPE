@@ -2,12 +2,14 @@
 
 import os
 from collections.abc import Sequence
+from typing import Union
 
 import pickle
 
 import dgl.data
 import pandas as pd
 import numpy as np
+from numpy import ndarray
 import rdkit.Chem.Draw
 import torch
 from torch import tensor, Tensor
@@ -39,7 +41,7 @@ __all__ = ['filter_smiles',
 ########### filtering ####################################################
 ##########################################################################
 
-def filter_smiles(smiles: list, target: list, allowed_atoms: list = None,
+def filter_smiles(smiles: list[str], target: Union[list[str], list[float], ndarray], allowed_atoms: list[str] = None,
                   only_organic: bool = True, allow_dupes: bool = False, log: bool = False) -> (list,list):
     """Filters a list of smiles based on the allowed atom symbols.
 
@@ -47,7 +49,7 @@ def filter_smiles(smiles: list, target: list, allowed_atoms: list = None,
     ------------
     smiles: list of str
         Smiles to be filtered.
-    target: list
+    target: list of int or list of float or ndarray
         Target of the graphs.
     allowed_atoms: list of str
         Valid atom symbols, non-valid symbols will be discarded. Default: [``C``, ``N``, ``O``, ``S``, ``F``, ``Cl``,
@@ -123,8 +125,8 @@ def filter_smiles(smiles: list, target: list, allowed_atoms: list = None,
 ########### constructing a dataset #######################################
 ##########################################################################
 
-def construct_dataset(smiles: list, target: list, allowed_atoms: list = None,
-                      atom_feature_list: list = None, bond_feature_list: list = None) -> Data:
+def construct_dataset(smiles: list[str], target: Union[list[int], list[float], ndarray], allowed_atoms: list[str] = None,
+                      atom_feature_list: list[str] = None, bond_feature_list: list[str] = None) -> list[Data]:
     """Constructs a dataset out of the smiles and target lists based on the feature lists provided. The dataset will be
     a list of torch geometric Data objects, using their conventions.
 
@@ -132,14 +134,11 @@ def construct_dataset(smiles: list, target: list, allowed_atoms: list = None,
     ------------
     smiles : list of str
         Smiles that are featurized and passed into a PyG DataSet.
-
-    target: Any
+    target: list of int or list of float or ndarray
         Array of values that serve as the graph 'target'.
-
     allowed_atoms : list of str
         Smiles that are considered in featurization. Default: [``C``, ``N``, ``O``, ``S``, ``F``, ``Cl``, ``Br``,
         ``I``, ``P``]
-
     atom_feature_list : list of str
         Features of the featurizer, see utils.featurizer for more details. Default: All implemented features.
 
@@ -148,7 +147,7 @@ def construct_dataset(smiles: list, target: list, allowed_atoms: list = None,
 
     Returns
     --------
-    datasets
+    list of Data
         list of Pytorch-Geometric Data objects
 
     """
@@ -237,9 +236,10 @@ class DataSet(DataLoad):
 
 
     """
-    def __init__(self, file_path:str = None, smiles:list = None, target:list = None, global_features:list = None,
-                 allowed_atoms:list = None, only_organic: bool = True, atom_feature_list:list = None,
-                 bond_feature_list:list = None, log:bool = False, root:str = None, indices:list = None):
+    def __init__(self, file_path: str = None, smiles: list[str] = None, target: Union[list[int], list[float],
+    ndarray] = None, global_features:Union[list[float], ndarray] = None, allowed_atoms:list[str] = None,
+    only_organic: bool = True, atom_feature_list: list[str] = None, bond_feature_list: list[str] = None,
+                 log: bool = False, root: str = None, indices:list[int] = None):
 
         assert (file_path is not None) or (smiles is not None and target is not None),'path or (smiles and target) must given.'
 
@@ -260,7 +260,7 @@ class DataSet(DataLoad):
 
         else:
             self.smiles, self.raw_target = filter_smiles(smiles, target, allowed_atoms= allowed_atoms,
-                                                         only_organic= True, log=log)
+                                                         only_organic=only_organic, log=log)
 
             # standardize target
             target_ = np.array(self.raw_target)
@@ -484,7 +484,7 @@ class DataSet(DataLoad):
 
 
     def analysis(self, path_to_export:str = None, download:bool=False, plots:list = None, save_plots:bool = False,
-                 fig_size:tuple=None, filter_output_txt:bool = True) -> tuple:
+                 fig_size:tuple[int,int]=None, filter_output_txt:bool = True) -> tuple:
         """Returns an overview of different aspects of the smiles dataset **after filtering** according to:
         https://github.com/awslabs/dgl-lifesci/blob/master/python/dgllife/utils/analysis.py.
         This includes the frequency of symbols, degree frequency and more.
@@ -522,7 +522,7 @@ class DataSet(DataLoad):
 
         return smiles_analysis(self.smiles, path_to_export, download, plots, save_plots, fig_size, filter_output_txt)
 
-    def weight_vs_target_plot(self, target_name:str=None, fig_height = 8, save_fig:bool = False,
+    def weight_vs_target_plot(self, target_name:str=None, fig_height:int = 8, save_fig:bool = False,
                               pre_standardization: bool = False, path_to_export:str = None)->sns.jointplot:
         """
 
@@ -555,11 +555,12 @@ class DataSet(DataLoad):
             target = self.target
 
         plot = mol_weight_vs_target(self.smiles, target, target_name=target_name, save_fig=save_fig,
-                                    path_to_export=path_to_export)
+                                    path_to_export=path_to_export, fig_height=fig_height)
 
         return plot
 
-    def get_splits(self, split_type:str = None, split_frac:list = None, custom_split:list = None):
+    def get_splits(self, split_type:str = None, split_frac:list[float, float, float] = None,
+                   custom_split:list[list] = None):
         """ Returns the dataset split into training, testing and validation based on the given split type.
 
         Parameters
@@ -578,7 +579,7 @@ class DataSet(DataLoad):
 
         Returns
         -------
-        train, test, val
+        SubSet, SubSet, SubSet
             List containing the respective datasets objects.
 
         """
@@ -629,11 +630,11 @@ class GraphDataSet(DataSet):
     # TODO: Consider removing indices option
     """
 
-    def __init__(self, file_path:str = None, smiles:list[str]=None, target:list =None, global_features:list = None,
-                 allowed_atoms:list[str] = None, only_organic: bool = True,
-                 atom_feature_list:list[str] = None, bond_feature_list:list[str] = None,
-                 split: bool = True, split_type:str = None, split_frac:list[float] = None,
-                 custom_split: list[int] = None, log: bool = False, indices:list[int] = None):
+    def __init__(self, file_path:str = None, smiles:list[str]=None, target: Union[list[int], list[float],
+    ndarray] = None, global_features:Union[list[float], ndarray] = None,
+    allowed_atoms:list[str] = None, only_organic: bool = True, atom_feature_list:list[str] = None,
+    bond_feature_list:list[str] = None, split: bool = True, split_type:str = None, split_frac:list[float, float, float]
+    = None, custom_split: list[int] = None, log: bool = False, indices:list[int] = None):
 
         super().__init__(file_path=file_path, smiles=smiles, target=target, global_features=global_features,
                          allowed_atoms=allowed_atoms, only_organic=only_organic,

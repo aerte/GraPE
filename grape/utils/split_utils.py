@@ -1,6 +1,6 @@
 # Module for splitting utilities
 
-from typing import Generator
+from typing import Generator, Union
 
 import dgl
 import torch
@@ -13,7 +13,7 @@ __all__ = [
     'split_data'
 ]
 
-import grape.utils
+import grape
 
 
 ##########################################################################
@@ -29,14 +29,14 @@ class SubSet(object):
 
     Parameters
     -----------
-    dataset
+    dataset: DataSet
         The full dataset, where dataset[i] should return the ith datapoint.
-    indices: list
+    indices: list of int
         Full list of indices of the subset to be constructed.
 
     """
 
-    def __init__(self, dataset, indices: list):
+    def __init__(self, dataset: grape.utils.DataSet, indices: list[int]):
         self.dataset = dataset
         self.indices = indices
         self.y = dataset.target[indices]
@@ -50,7 +50,7 @@ class SubSet(object):
             return self.dataset[[self.indices[i] for i in item]]
         return self.dataset[self.indices[item]]
 
-def torch_subset_to_SubSet(subset: dgl.data.Subset or torch.utils.data.Subset) -> SubSet:
+def torch_subset_to_SubSet(subset: Union[dgl.data.Subset,torch.utils.data.Subset]) -> SubSet:
     """Returns the GraPE SubSet from the DGL or PyTorch Subset.
 
     Parameters
@@ -65,12 +65,12 @@ def torch_subset_to_SubSet(subset: dgl.data.Subset or torch.utils.data.Subset) -
         'The subsets underlying dataset has to be either DataSet or GraphDataSet.')
     return SubSet(subset.dataset, subset.indices)
 
-def mult_subset_to_gen(subsets: tuple[dgl.data.Subset or torch.utils.data.Subset]) -> Generator:
+def mult_subset_to_gen(subsets: Union[tuple[dgl.data.Subset], tuple[torch.data.Subset]]) -> Generator:
     """Returns a Generator object corresponding to the length of the input with all the transformed SubSets.
     
     Parameters
     ----------
-    subsets: tuple[dgl.data.Subset or torch.utils.data.Subset]
+    subsets: tuple[dgl.data.Subset] or tuple[torch.utils.data.Subset]
 
     Returns
     -------
@@ -83,12 +83,12 @@ def mult_subset_to_gen(subsets: tuple[dgl.data.Subset or torch.utils.data.Subset
 def unpack_gen(generator):
     return tuple(i for i in generator)
 
-def mult_subset_to_SubSets(subsets: tuple[dgl.data.Subset or torch.utils.data.Subset]) -> tuple[SubSet]:
+def mult_subset_to_SubSets(subsets: Union[tuple[dgl.data.Subset],tuple[torch.utils.data.Subset]]) -> tuple[SubSet]:
     """Returns a Generator object corresponding to the length of the input with all the transformed SubSets.
 
     Parameters
     ----------
-    subsets: tuple[dgl.data.Subset or torch.utils.data.Subset]
+    subsets: tuple[dgl.data.Subset] or tuple[torch.utils.data.Subset]
 
     Returns
     -------
@@ -104,7 +104,8 @@ def mult_subset_to_SubSets(subsets: tuple[dgl.data.Subset or torch.utils.data.Su
 ##########################################################################
 
 
-def split_data(data, split_type: str = None, split_frac: float = None, custom_split: list = None, **kwargs) -> tuple:
+def split_data(data, split_type: str = None, split_frac: list[float] = None, custom_split: list = None, **kwargs) -> (
+        tuple[SubSet, SubSet, SubSet]):
     """
 
     Parameters
@@ -114,7 +115,7 @@ def split_data(data, split_type: str = None, split_frac: float = None, custom_sp
     split_type: str
         Indicates what split should be used. Default: random. The options are: ['consecutive', 'random',
         'molecular weight', 'scaffold', 'stratified', 'custom']
-    split_frac: list
+    split_frac: list of float
         Indicates what the split fractions should be. Default: [0.8, 0.1, 0.1]
     custom_split: list
         The custom split that should be applied. Has to be an array matching the length of the filtered smiles,
@@ -122,7 +123,7 @@ def split_data(data, split_type: str = None, split_frac: float = None, custom_sp
 
     Returns
     ---------
-    tuple[SubSet]
+    tuple[SubSet, SubSet, SubSet]
         The train, val and test splits respectively.
 
     Notes

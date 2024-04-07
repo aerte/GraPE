@@ -1,4 +1,4 @@
-from typing import Callable
+from typing import Callable, Union
 import torch
 from torch import Tensor
 from torch.nn import Module, Sequential
@@ -20,8 +20,8 @@ __all__ = [
 ########### Model utils ##################################################
 ##########################################################################
 
-def reset_weights(layer: Module):
-    """Taken from https://discuss.pytorch.org/t/reset-model-weights/19180/12. It recursively resets the layers
+def reset_weights(model: Module):
+    """Taken from https://discuss.pytorch.org/t/reset-model-weights/19180/12. It recursively resets the models
     weights as well any children's weights. Works on models as well.
 
     Parameters
@@ -30,11 +30,11 @@ def reset_weights(layer: Module):
 
 
     """
-    if hasattr(layer, 'reset_parameters'):
-        layer.reset_parameters()
+    if hasattr(model, 'reset_parameters'):
+        model.reset_parameters()
     else:
-        if hasattr(layer, 'children'):
-            for child in layer.children():
+        if hasattr(model, 'children'):
+            for child in model.children():
                 reset_weights(child)
 
 
@@ -45,7 +45,7 @@ def reset_weights(layer: Module):
 
 
 def train_model(model: torch.nn.Module, loss_func: Callable, optimizer: torch.optim.Optimizer,
-                train_data_loader: list or DataLoader, val_data_loader: list or DataLoader,
+                train_data_loader: Union[list, Data, DataLoader], val_data_loader: Union[list, Data, DataLoader],
                 device: str = None, epochs: int = 50, batch_size: int = 32,
                 early_stopping: bool = True, patience: int = 3) -> tuple[list,list]:
     """Auxiliary function to train and test a given model and return the (training, test) losses.
@@ -140,9 +140,9 @@ def train_model(model: torch.nn.Module, loss_func: Callable, optimizer: torch.op
     return train_loss, val_loss
 
 
-def test_model(model: torch.nn.Module, loss_func: Callable or None, test_data_loader: list or DataLoader,
-                device: str = None, batch_size: int = 32, return_latents: bool = False) -> Tensor or tuple[Tensor,
-Tensor] or tuple[Tensor, Tensor, list]:
+def test_model(model: torch.nn.Module, loss_func: Union[Callable,None], test_data_loader: Union[list, Data, DataLoader],
+                device: str = None, batch_size: int = 32, return_latents: bool = False) -> (
+        Union[Tensor, tuple[Tensor,Tensor], tuple[Tensor, Tensor, list]]):
     """Auxiliary function to test a trained model and return the predictions as well as the latents node
     representations. If a loss function is specified, then it will also return a list containing the testing losses.
     Can initialize DataLoaders if only list of Data objects are given.
@@ -227,7 +227,8 @@ Tensor] or tuple[Tensor, Tensor, list]:
 ##########################################################################
 
 
-def pred_metric(prediction: Tensor or ndarray, target: Tensor or ndarray, metrics: str or list[str] = 'mse', print_out: \
+def pred_metric(prediction: Union[Tensor, ndarray], target: Union[Tensor, ndarray],
+                metrics: Union[str,list[str]] = 'mse', print_out: \
                 bool = True) -> list[float]:
     """A function to evaluate continuous predictions compared to targets with different metrics. It can
     take either Tensors or ndarrays and will automatically convert them to the correct format. Partly makes use of

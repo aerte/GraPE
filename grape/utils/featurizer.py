@@ -7,7 +7,10 @@ import itertools
 from _collections import defaultdict
 from functools import partial
 
+from typing import Callable, Union
+
 import numpy as np
+import rdkit.Chem
 import torch
 from rdkit import Chem
 
@@ -122,7 +125,7 @@ class AtomFeaturizer(object):
     >>> # We see in the output that C has 3 more bonds than O, which matches our expectation.
 
     """
-    def __init__(self, atom_feature_list: list = None, allowed_atoms: list = None, ):
+    def __init__(self, atom_feature_list: list[str] = None, allowed_atoms: list[str] = None):
 
         self.allowable_set_symbols = allowed_atoms
 
@@ -178,7 +181,7 @@ class AtomFeaturizer(object):
                 print(f'Error: feature {item} is not an accepted feature.')
                 continue
 
-    def __call__(self, mol):
+    def __call__(self, mol: rdkit.Chem.Mol):
         num_atoms = mol.GetNumAtoms()
         atom_feats = defaultdict()
 
@@ -198,7 +201,7 @@ class AtomFeaturizer(object):
 
         return torch.tensor(feats, dtype=torch.float32)
 
-    def extend_features(self, func_names: list, funcs: list):
+    def extend_features(self, func_names: list[str], funcs: list[Callable]):
         """Adds the possibility of extending the featurizers function dictionary with new functions. The additional functions
         must take a RDKit Atom as input! For other features, please use global features of the Graph DataSet (fx. if you
         wanted to add the total molecular weight). While it tests if the function output type is
@@ -206,9 +209,9 @@ class AtomFeaturizer(object):
 
         Parameters
         -----------
-        func_names: list
+        func_names: list of str
             Function names that will be the keys of the dictionary input.
-        funcs: list
+        funcs: list of Callables
             Functions that will be executed in the featurizer if called in the feature_list or by default.
 
         Example
@@ -330,7 +333,7 @@ class BondFeaturizer(object):
     Molecular Property Models, 2023, https://doi.org/10.1021/acs.jcim.2c01091
 
     """
-    def __init__(self, bond_feature_list =None):
+    def __init__(self, bond_feature_list: list[str] =None):
 
         total_bond_feats = {
             'bond_type_one_hot': ff.bond_type,
@@ -359,7 +362,7 @@ class BondFeaturizer(object):
                 print(f'Error: Bond feature {item} is not an accepted feature.')
                 continue
 
-    def __call__(self, mol):
+    def __call__(self, mol: rdkit.Chem.Mol):
         num_bonds = mol.GetNumBonds()
         bond_feats = defaultdict()
 
@@ -381,7 +384,7 @@ class BondFeaturizer(object):
 
         return torch.tensor(feats, dtype=torch.float32)
 
-    def extend_features(self, func_names: list, funcs: list):
+    def extend_features(self, func_names: list[str], funcs: list[Callable]):
         """Adds the possibility of extending the featurizers function dictionary with new functions. The additional functions
         must take a RDKit Bond as input! For other features, please use global features of the Graph DataSet (fx. if you
         wanted to add the total molecular weight). While it tests if the function output type is valid, it cannot test

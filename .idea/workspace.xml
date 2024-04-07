@@ -4,24 +4,22 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="115446f6-db4f-461b-90f9-f367678daa67" name="Changes" comment="code re-organization, bug fixes">
+    <list default="true" id="115446f6-db4f-461b-90f9-f367678daa67" name="Changes" comment="bug, fixese, plots and more">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/docs/source/Demonstration.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/Demonstration.ipynb" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/source/analysis.rst" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/analysis.rst" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/source/dglchem.utils.analysis.rst" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/source/index.rst" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/index.rst" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/source/model_utils.rst" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/model_utils.rst" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/source/splitting.rst" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/splitting.rst" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/grape/models/layers.py" beforeDir="false" afterPath="$PROJECT_DIR$/grape/models/layers.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/source/analysis_results/latent_plot.svg" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/analysis_results/latent_plot.svg" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/source/analysis_results/missing_keys.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/source/analysis_results/molecular_weight_against_target.svg" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/analysis_results/molecular_weight_against_target.svg" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/source/analysis_results/recorded_SMILES.csv" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/analysis_results/recorded_SMILES.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/source/analysis_results/summary.txt" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/analysis_results/summary.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/source/data/processed/LogP.pickle" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/data/processed/LogP.pickle" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/grape/models/test_models.py" beforeDir="false" afterPath="$PROJECT_DIR$/grape/models/test_models.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/grape/plots/post_plots.py" beforeDir="false" afterPath="$PROJECT_DIR$/grape/plots/post_plots.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/grape/splits/butina_splits.py" beforeDir="false" afterPath="$PROJECT_DIR$/grape/splits/butina_splits.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/grape/utils/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/grape/utils/__init__.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/grape/utils/data.py" beforeDir="false" afterPath="$PROJECT_DIR$/grape/utils/data.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/grape/utils/featurizer.py" beforeDir="false" afterPath="$PROJECT_DIR$/grape/utils/featurizer.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/grape/utils/model_train_test.py" beforeDir="false" afterPath="$PROJECT_DIR$/grape/utils/model_utils.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/grape/utils/model_utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/grape/utils/model_utils.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/grape/utils/plot_utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/grape/utils/plot_utils.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/grape/utils/split_utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/grape/utils/split_utils.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/test2.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/test2.ipynb" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -88,7 +86,8 @@
       <workItem from="1712255916349" duration="6626000" />
       <workItem from="1712301627779" duration="602000" />
       <workItem from="1712417485715" duration="2945000" />
-      <workItem from="1712470726676" duration="9796000" />
+      <workItem from="1712470726676" duration="10044000" />
+      <workItem from="1712501628534" duration="5466000" />
     </task>
     <task id="LOCAL-00001" summary="bug fixes, SubSet, pca tests, expansion of classyfire">
       <option name="closed" value="true" />
@@ -122,7 +121,23 @@
       <option name="project" value="LOCAL" />
       <updated>1712262512624</updated>
     </task>
-    <option name="localTasksCounter" value="5" />
+    <task id="LOCAL-00005" summary="bug, fixese, plots and more">
+      <option name="closed" value="true" />
+      <created>1712501523338</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1712501523338</updated>
+    </task>
+    <task id="LOCAL-00006" summary="bug, fixese, plots and more">
+      <option name="closed" value="true" />
+      <created>1712501534798</created>
+      <option name="number" value="00006" />
+      <option name="presentableId" value="LOCAL-00006" />
+      <option name="project" value="LOCAL" />
+      <updated>1712501534798</updated>
+    </task>
+    <option name="localTasksCounter" value="7" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -133,6 +148,7 @@
     <MESSAGE value="bug fixes, SubSet, pca tests, expansion of classyfire" />
     <MESSAGE value="fixed butina clustering" />
     <MESSAGE value="code re-organization, bug fixes" />
-    <option name="LAST_COMMIT_MESSAGE" value="code re-organization, bug fixes" />
+    <MESSAGE value="bug, fixese, plots and more" />
+    <option name="LAST_COMMIT_MESSAGE" value="bug, fixese, plots and more" />
   </component>
 </project>

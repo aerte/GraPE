@@ -1,7 +1,7 @@
 # analysis tools
 
 import os
-from typing import Optional
+from typing import Optional, Union
 import time
 import json
 import urllib.request
@@ -73,7 +73,7 @@ def loss_plot(losses, model_names, fig_size: tuple = (10,5),
 
     return
 
-def parity_plot(prediction: Tensor or ndarray, target: Tensor or ndarray, fig_size: tuple = (10,5),
+def parity_plot(prediction: Union[Tensor, ndarray], target:  Union[Tensor, ndarray], fig_size: tuple = (10,5),
                                         save_fig: bool = False, path_to_export: str = None) -> plt.axes:
     """Generates a parity plot based on the given predictions and targets.
 
@@ -123,14 +123,15 @@ def parity_plot(prediction: Tensor or ndarray, target: Tensor or ndarray, fig_si
     return ax
 
 
-def pca_2d_plot(latents: Tensor or ndarray or list, labels: list[str] or list[int] = None, fig_size: tuple = (10, 5),
+def pca_2d_plot(latents: Union[Tensor, ndarray], labels: Union[list[str], list[int]] = None, fig_size: tuple = (10, 5),
                 unique_labels: list[str] = None, save_fig: bool = False, path_to_export: str = None,
                 log: bool = True) -> plt.axes:
-    """
+    """A function that projects latents or any other matrix onto it's first two principal components and plots it. Can
+    use given labels to colorcode the projections.
 
     Parameters
     ----------
-    latents: Tensor or ndarray or list
+    latents: Tensor or ndarray
         Latents or any other matrix that will be used for a PCA model and projected on the two first principal
         components. The first dimension should be the observations and the second the features.
     labels: list[str] or list[int]
@@ -154,8 +155,8 @@ def pca_2d_plot(latents: Tensor or ndarray or list, labels: list[str] or list[in
 
     if isinstance(latents, Tensor):
         latents = latents.cpu().detach().numpy()
-    if isinstance(latents, list):
-        latents = np.array(latents)
+    #if isinstance(latents, list):
+    #    latents = np.array(latents)
 
     if labels is not None:
         assert latents.shape[0] == len(labels), 'The given label list must match the latents.'
@@ -200,7 +201,7 @@ def pca_2d_plot(latents: Tensor or ndarray or list, labels: list[str] or list[in
     return ax
 
 
-def residual_plot(prediction: Tensor or ndarray, target: Tensor or ndarray, fig_size: tuple = (10,5),
+def residual_plot(prediction: Union[Tensor, ndarray], target: Union[Tensor, ndarray], fig_size: tuple = (10,5),
                                         save_fig: bool = False, path_to_export: str = None) -> plt.axes:
     """Generates a parity plot based on the given predictions and targets.
 
