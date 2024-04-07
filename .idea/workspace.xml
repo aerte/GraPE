@@ -4,30 +4,24 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="115446f6-db4f-461b-90f9-f367678daa67" name="Changes" comment="fixed butina clustering">
+    <list default="true" id="115446f6-db4f-461b-90f9-f367678daa67" name="Changes" comment="code re-organization, bug fixes">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/docs/source/Demonstration.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/Demonstration.ipynb" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/source/analysis_results/classyfire/99.json" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/analysis_results/classyfire/99.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/source/analysis_results/molecular_weight_against_target.svg" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/analysis_results/molecular_weight_against_target.svg" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/source/analysis_results/recorded_SMILES.csv" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/analysis_results/recorded_SMILES.csv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/source/analysis_results/summary.txt" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/analysis_results/summary.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/source/data/processed/LogP.pickle" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/data/processed/LogP.pickle" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/grape/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/grape/__init__.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/grape/datasets/jean_claude_bradley_double_plus.py" beforeDir="false" afterPath="$PROJECT_DIR$/grape/datasets/jean_claude_bradley_double_plus.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/grape/models/DMPNN_gnn.py" beforeDir="false" afterPath="$PROJECT_DIR$/grape/models/DMPNN_gnn.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/source/analysis.rst" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/analysis.rst" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/source/dglchem.utils.analysis.rst" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/source/index.rst" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/index.rst" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/source/model_utils.rst" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/model_utils.rst" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/source/splitting.rst" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/splitting.rst" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/grape/models/layers.py" beforeDir="false" afterPath="$PROJECT_DIR$/grape/models/layers.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/grape/models/test_models.py" beforeDir="false" afterPath="$PROJECT_DIR$/grape/models/test_models.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/grape/plots/post_plots.py" beforeDir="false" afterPath="$PROJECT_DIR$/grape/plots/post_plots.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/grape/splits/butina_splits.py" beforeDir="false" afterPath="$PROJECT_DIR$/grape/splits/butina_splits.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/grape/utils/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/grape/utils/__init__.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/grape/utils/analysis.py" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/grape/utils/data.py" beforeDir="false" afterPath="$PROJECT_DIR$/grape/utils/data.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/grape/utils/data_splitting.py" beforeDir="false" afterPath="$PROJECT_DIR$/grape/utils/split_utils.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/grape/utils/featurizer_old.py" beforeDir="false" afterPath="$PROJECT_DIR$/scripts/featurizer_old.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/grape/utils/model_train_test.py" beforeDir="false" afterPath="$PROJECT_DIR$/grape/utils/model_train_test.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/grape/visualizations/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/grape/splits/__init__.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/grape/visualizations/visualize.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/DataTools.py" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/DataTools.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/reports/.gitkeep" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/reports/figures/.gitkeep" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/requirements.txt" beforeDir="false" afterPath="$PROJECT_DIR$/requirements.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/grape/utils/featurizer.py" beforeDir="false" afterPath="$PROJECT_DIR$/grape/utils/featurizer.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/grape/utils/model_train_test.py" beforeDir="false" afterPath="$PROJECT_DIR$/grape/utils/model_utils.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/grape/utils/split_utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/grape/utils/split_utils.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/notebooks/test2.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/test2.ipynb" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -91,7 +85,10 @@
       <workItem from="1712147156518" duration="18785000" />
       <workItem from="1712210384837" duration="9798000" />
       <workItem from="1712239683097" duration="19000" />
-      <workItem from="1712255916349" duration="6533000" />
+      <workItem from="1712255916349" duration="6626000" />
+      <workItem from="1712301627779" duration="602000" />
+      <workItem from="1712417485715" duration="2945000" />
+      <workItem from="1712470726676" duration="9796000" />
     </task>
     <task id="LOCAL-00001" summary="bug fixes, SubSet, pca tests, expansion of classyfire">
       <option name="closed" value="true" />
@@ -109,7 +106,23 @@
       <option name="project" value="LOCAL" />
       <updated>1712214804459</updated>
     </task>
-    <option name="localTasksCounter" value="3" />
+    <task id="LOCAL-00003" summary="code re-organization, bug fixes">
+      <option name="closed" value="true" />
+      <created>1712262496291</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1712262496291</updated>
+    </task>
+    <task id="LOCAL-00004" summary="code re-organization, bug fixes">
+      <option name="closed" value="true" />
+      <created>1712262512624</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1712262512624</updated>
+    </task>
+    <option name="localTasksCounter" value="5" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -119,6 +132,7 @@
     <MESSAGE value="documentation, metric function and name-change&#10;&#10;Signed-off-by: aerte &lt;62424399+aerte@users.noreply.github.com&gt;" />
     <MESSAGE value="bug fixes, SubSet, pca tests, expansion of classyfire" />
     <MESSAGE value="fixed butina clustering" />
-    <option name="LAST_COMMIT_MESSAGE" value="fixed butina clustering" />
+    <MESSAGE value="code re-organization, bug fixes" />
+    <option name="LAST_COMMIT_MESSAGE" value="code re-organization, bug fixes" />
   </component>
 </project>

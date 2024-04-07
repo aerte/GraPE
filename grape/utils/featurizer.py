@@ -22,6 +22,9 @@ __all__ = [
 class FunctionNotWellDefined(Exception):
     pass
 
+##########################################################################
+########### Atom featurizer ##############################################
+##########################################################################
 
 class AtomFeaturizer(object):
     """An atom featurizer based on a flexible input list. Inspired by https://github.com/awslabs/dgl-lifesci.
@@ -252,6 +255,11 @@ class AtomFeaturizer(object):
             self.feat_set.append(func)
 
 
+
+
+##########################################################################
+########### Bond featurizer ##############################################
+##########################################################################
 
 
 class BondFeaturizer(object):

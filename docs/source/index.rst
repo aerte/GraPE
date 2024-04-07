@@ -10,7 +10,7 @@ in every step.
 
 For a small overview of what the package is currently capable of, see <Demonstration>.
 
-.. note::
+.. important::
 
    This project is a work in progress!
 

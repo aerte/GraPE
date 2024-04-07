@@ -1,6 +1,7 @@
 from typing import Callable
 import torch
 from torch import Tensor
+from torch.nn import Module, Sequential
 from numpy import ndarray
 import numpy as np
 from torch_geometric.loader import DataLoader
@@ -9,10 +10,38 @@ from tqdm import tqdm
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 
 __all__ = [
+    'reset_weights',
     'train_model',
     'test_model',
     'pred_metric'
 ]
+
+##########################################################################
+########### Model utils ##################################################
+##########################################################################
+
+def reset_weights(layer: Module):
+    """Taken from https://discuss.pytorch.org/t/reset-model-weights/19180/12. It recursively resets the layers
+    weights as well any children's weights. Works on models as well.
+
+    Parameters
+    ----------
+    layer: Module
+
+
+    """
+    if hasattr(layer, 'reset_parameters'):
+        layer.reset_parameters()
+    else:
+        if hasattr(layer, 'children'):
+            for child in layer.children():
+                reset_weights(child)
+
+
+
+##########################################################################
+########### Training and Testing functions ###############################
+##########################################################################
 
 
 def train_model(model: torch.nn.Module, loss_func: Callable, optimizer: torch.optim.Optimizer,
@@ -192,6 +221,12 @@ Tensor] or tuple[Tensor, Tensor, list]:
         return preds, latents
     return preds
 
+
+##########################################################################
+########### Prediction Metrics ###########################################
+##########################################################################
+
+
 def pred_metric(prediction: Tensor or ndarray, target: Tensor or ndarray, metrics: str or list[str] = 'mse', print_out: \
                 bool = True) -> list[float]:
     """A function to evaluate continuous predictions compared to targets with different metrics. It can
@@ -204,7 +239,7 @@ def pred_metric(prediction: Tensor or ndarray, target: Tensor or ndarray, metric
     * ``R2``: R-squared Error
     * ``MRE``: Mean Relative Error, which is implemented as:
 
-    .. math:
+    ..math:
         \frac{1}{N}\sum\limits_{i=1}^{N}\frac{y_{i}-f(x_{i})}{y_{i}}\cdot100
 
     **If a list of metrics is given, then a list of equal length is returned.**
@@ -258,6 +293,10 @@ def pred_metric(prediction: Tensor or ndarray, target: Tensor or ndarray, metric
             case 'mre':
                 results['mre'] = np.sum((target-prediction)/target)*100
                 prints.append(f'MRE: {np.sum((target-prediction)/target)*100:.3f}%')
+
+    if print_out:
+        for out in prints:
+            print(out)
 
     return results
 

@@ -1,14 +1,10 @@
-# Module for datasets plots
-from collections import defaultdict
-import numpy as np
+# Module for splitting utilities
+
+from typing import Generator
+
 import dgl
 import torch
 
-from rdkit.Chem import MolFromSmiles, rdMolDescriptors
-from rdkit.ML.Cluster import Butina
-from rdkit import DataStructs
-
-from torch_geometric.data import Data
 from dgllife.utils import splitters
 
 __all__ = [
@@ -19,6 +15,10 @@ __all__ = [
 
 import grape.utils
 
+
+##########################################################################
+########### Data subsets and utils #######################################
+##########################################################################
 
 class SubSet(object):
     """An adaptation of the Pytorch Subset (https://pytorch.org/docs/stable/data.html#torch.utils.data.Subset) to fit
@@ -50,7 +50,7 @@ class SubSet(object):
             return self.dataset[[self.indices[i] for i in item]]
         return self.dataset[self.indices[item]]
 
-def torch_subset_to_SubSet(subset: dgl.data.Subset or torch.utils.data.Subset):
+def torch_subset_to_SubSet(subset: dgl.data.Subset or torch.utils.data.Subset) -> SubSet:
     """Returns the GraPE SubSet from the DGL or PyTorch Subset.
 
     Parameters
@@ -65,10 +65,46 @@ def torch_subset_to_SubSet(subset: dgl.data.Subset or torch.utils.data.Subset):
         'The subsets underlying dataset has to be either DataSet or GraphDataSet.')
     return SubSet(subset.dataset, subset.indices)
 
+def mult_subset_to_gen(subsets: tuple[dgl.data.Subset or torch.utils.data.Subset]) -> Generator:
+    """Returns a Generator object corresponding to the length of the input with all the transformed SubSets.
+    
+    Parameters
+    ----------
+    subsets: tuple[dgl.data.Subset or torch.utils.data.Subset]
+
+    Returns
+    -------
+    Generator
+
+    """
+    for item in subsets:
+        yield torch_subset_to_SubSet(item)
+
+def unpack_gen(generator):
+    return tuple(i for i in generator)
+
+def mult_subset_to_SubSets(subsets: tuple[dgl.data.Subset or torch.utils.data.Subset]) -> tuple[SubSet]:
+    """Returns a Generator object corresponding to the length of the input with all the transformed SubSets.
+
+    Parameters
+    ----------
+    subsets: tuple[dgl.data.Subset or torch.utils.data.Subset]
+
+    Returns
+    -------
+    tuple[SubSets]
+
+    """
+
+    return unpack_gen(mult_subset_to_gen(subsets))
 
 
-def split_data(data, split_type: str = None, split_frac: float = None, custom_split: list = None,
-               labels: np.array = None, task_id: int = None, bucket_size: int = 10) -> tuple:
+##########################################################################
+########### Splitting utils ##############################################
+##########################################################################
+
+
+def split_data(data, split_type: str = None, split_frac: float = None, custom_split: list = None, **kwargs) -> tuple:
     """
 
     Parameters
@@ -83,20 +119,29 @@ def split_data(data, split_type: str = None, split_frac: float = None, custom_sp
     custom_split: list
         The custom split that should be applied. Has to be an array matching the length of the filtered smiles,
         where 0 indicates a training sample, 1 a testing sample and 2 a validation sample. Default: None
-    labels: array
-        An array of shape (N,T) where N is the number of datasets points and T is the number of tasks. Used for the
-        Stratified Splitter.
-    task_id: int
-        The task that will be used for the Stratified Splitter.
-    bucket_size: int
-        Size of the bucket that is used in the Stratified Splitter. Default: 10
-
 
     Returns
     ---------
-    (train, val, test)
-        - Lists containing the respective datasets objects.
+    tuple[SubSet]
+        The train, val and test splits respectively.
 
+    Notes
+    ------
+    The stratified splitter from dgllife requires *two extra* inputs, specifically:
+
+    labels: array
+        An array of shape (N,T) where N is the number of datasets points and T is the number of tasks. Used for the
+        Stratified Splitter.
+
+    task_id: int
+        The task that will be used for the Stratified Splitter.
+
+    For all the other functions, please refer to their respective documentation to see what arguments can be used.
+
+    See Also
+    ---------
+    https://lifesci.dgl.ai/api/utils.splitters.html
+    # Here I should be inserting links to some documentation or my own documentation.
     """
 
     if split_type is None:
@@ -112,7 +157,8 @@ def split_data(data, split_type: str = None, split_frac: float = None, custom_sp
         'random': splitters.RandomSplitter,
         'molecular_weight': splitters.MolecularWeightSplitter,
         'scaffold': splitters.ScaffoldSplitter,
-        'stratified': splitters.SingleTaskStratifiedSplitter
+        'stratified': splitters.SingleTaskStratifiedSplitter,
+        'butina': grape.splits.taylor_butina_clustering
     }
 
     if split_type == 'custom' or custom_split is not None:
@@ -122,21 +168,10 @@ def split_data(data, split_type: str = None, split_frac: float = None, custom_sp
 
         return data[custom_split == 0], data[custom_split == 1], data[custom_split == 2]
 
-    match split_type:
-        case 'consecutive':
-            return split_func[split_type].train_val_test_split(data,frac_train=split_frac[0],frac_test=split_frac[1],
-                                                                frac_val=split_frac[2])
-        case 'random':
-            return split_func[split_type].train_val_test_split(data, frac_train=split_frac[0], frac_test=split_frac[1],
-                                                                frac_val=split_frac[2])
-        case 'molecular_weight':
-            return split_func[split_type].train_val_test_split(data, frac_train=split_frac[0], frac_test=split_frac[1],
-                                                               frac_val=split_frac[2], log_every_n=1000)
-        case 'scaffold':
-            return split_func[split_type].train_val_test_split(data, frac_train=split_frac[0], frac_test=split_frac[1],
-                                                    frac_val=split_frac[2], log_every_n=1000, scaffold_func='decompose')
-        case 'stratified':
-            return split_func[split_type].train_val_test_split(data, labels, task_id, frac_train=split_frac[0],
-                                                frac_test=split_frac[1],frac_val=split_frac[2], bucket_size=bucket_size)
+    elif split_type == 'butina':
+        return split_func[split_type](data, **kwargs)
+
+    return mult_subset_to_SubSets(split_func[split_type](data).train_test_val_split(data, frac_train=split_frac[0],
+                                                frac_test=split_frac[1],frac_val=split_frac[2], **kwargs))
 
 

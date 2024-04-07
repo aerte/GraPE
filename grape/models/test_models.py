@@ -1,3 +1,4 @@
+from typing import Callable
 import torch
 from torch import nn, Tensor
 from torch.nn import Linear
@@ -23,7 +24,9 @@ class SimpleGNN(nn.Module):
 
     """
 
-    def __init__(self, model_message: nn.Module, input_pool_size: int, output_size: int = 1):
+    def __init__(self, model_message: nn.Module or nn.Sequential, input_pool_size: int, pool_layer: Callable = None,
+                 output_size: int = 1,
+                 ):
 
         super().__init__()
         self.model = model_message

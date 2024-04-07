@@ -34,6 +34,11 @@ __all__ = ['filter_smiles',
            'DataSet',
            'GraphDataSet']
 
+
+##########################################################################
+########### filtering ####################################################
+##########################################################################
+
 def filter_smiles(smiles: list, target: list, allowed_atoms: list = None,
                   only_organic: bool = True, allow_dupes: bool = False, log: bool = False) -> (list,list):
     """Filters a list of smiles based on the allowed atom symbols.
@@ -114,6 +119,9 @@ def filter_smiles(smiles: list, target: list, allowed_atoms: list = None,
     return np.array(df.smiles), np.array(df.target)
 
 
+##########################################################################
+########### constructing a dataset #######################################
+##########################################################################
 
 def construct_dataset(smiles: list, target: list, allowed_atoms: list = None,
                       atom_feature_list: list = None, bond_feature_list: list = None) -> Data:
@@ -164,6 +172,11 @@ def construct_dataset(smiles: list, target: list, allowed_atoms: list = None,
                          y=tensor([target[i]], dtype=torch.float32)))
 
     return data
+
+
+##########################################################################
+########### Data classes #################################################
+##########################################################################
 
 
 class DataLoad(object):

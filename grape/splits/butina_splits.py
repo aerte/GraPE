@@ -1,4 +1,4 @@
-# Module for datasets plots
+# Butina clustering implementation
 from collections import defaultdict
 import numpy as np
 

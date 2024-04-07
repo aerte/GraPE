@@ -15,6 +15,11 @@ __all__ = [
     'DMPNN'
 ]
 
+##########################################################################
+########### Weave layer ##################################################
+##########################################################################
+
+
 class Weave(MessagePassing):
     """Implements the Molecular Graph Convolutional Layer (sometimes called Weave) from Steven Kearnes at al. [1]
     as described in [2].
@@ -99,6 +104,10 @@ class Weave(MessagePassing):
 
         return self.relu(self.lin4(cat_3))
 
+
+##########################################################################
+########### DMPNN layer ##################################################
+##########################################################################
 
 class DMPNN(MessagePassing):
     """
