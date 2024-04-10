@@ -160,16 +160,16 @@ def construct_dataset(smiles: list[str], target: Union[list[int], list[float], n
     data = []
 
     for (smile, i) in zip(smiles, range(len(smiles))):
-        mol = MolFromSmiles(smile)
+        mol = MolFromSmiles(smile) # get into rdkit object
         edge_index = dense_to_sparse(torch.tensor(rdmolops.GetAdjacencyMatrix(mol)))[0]
-        x = atom_featurizer(mol)
-        edge_attr = bond_featurizer(mol)
+        x = atom_featurizer(mol) #creates nodes
+        edge_attr = bond_featurizer(mol) #creates "edges" attrs
         data.append(Data(x = x,
                          edge_index = edge_index,
                          edge_attr = edge_attr,
                          y=tensor([target[i]], dtype=torch.float32)))
 
-    return data
+    return data #actual pyg graph
 
 
 ##########################################################################
