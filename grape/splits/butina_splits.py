@@ -126,7 +126,7 @@ def taylor_butina_clustering(smiles: list[str], ordering: str='largest_to_smalle
 
 #    return SubSet(data, split_out[0]), SubSet(data, split_out[1]), SubSet(data, split_out[2])
 
-def butina_train_val_test_splits(smiles: list[int], split_frac: list[int] = [0.8, 0.1,0.1], tol: int = 5,
+def butina_train_val_test_splits(smiles: list[int], split_frac: list[int] = [0.8, 0.1, 0.1], tol: int = 5,
                                  random_state=None, **kwargs) -> tuple[list[int], list[int], list[int]]:
     """Clusters the datasets based on Butina clustering [1,2] and splits it into training, validation, and test datasets
     splits.

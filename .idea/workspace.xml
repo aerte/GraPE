@@ -6,18 +6,7 @@
   <component name="ChangeListManager">
     <list default="true" id="115446f6-db4f-461b-90f9-f367678daa67" name="Changes" comment="new butina split and bug fixes">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/source/Demonstration.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/Demonstration.ipynb" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/source/analysis_results/latent_plot.svg" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/analysis_results/latent_plot.svg" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/source/analysis_results/recorded_SMILES.csv" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/analysis_results/recorded_SMILES.csv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/source/analysis_results/summary.txt" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/analysis_results/summary.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/source/data/processed/LogP.pickle" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/data/processed/LogP.pickle" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/grape/analysis/_classyfire.py" beforeDir="false" afterPath="$PROJECT_DIR$/grape/analysis/_classyfire.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/grape/plots/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/grape/plots/__init__.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/grape/plots/post_plots.py" beforeDir="false" afterPath="$PROJECT_DIR$/grape/plots/post_plots.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/grape/splits/butina_splits.py" beforeDir="false" afterPath="$PROJECT_DIR$/grape/splits/butina_splits.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/grape/utils/model_utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/grape/utils/model_utils.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/grape/utils/split_utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/grape/utils/split_utils.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/test2.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/test2.ipynb" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -112,7 +101,7 @@
       <workItem from="1712678042226" duration="2679000" />
       <workItem from="1712730855305" duration="154000" />
       <workItem from="1712731050898" duration="93000" />
-      <workItem from="1712731196039" duration="16882000" />
+      <workItem from="1712731196039" duration="18636000" />
     </task>
     <task id="LOCAL-00001" summary="bug fixes, SubSet, pca tests, expansion of classyfire">
       <option name="closed" value="true" />
@@ -186,7 +175,15 @@
       <option name="project" value="LOCAL" />
       <updated>1712740225609</updated>
     </task>
-    <option name="localTasksCounter" value="10" />
+    <task id="LOCAL-00010" summary="new butina split and bug fixes">
+      <option name="closed" value="true" />
+      <created>1712757400546</created>
+      <option name="number" value="00010" />
+      <option name="presentableId" value="LOCAL-00010" />
+      <option name="project" value="LOCAL" />
+      <updated>1712757400546</updated>
+    </task>
+    <option name="localTasksCounter" value="11" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
