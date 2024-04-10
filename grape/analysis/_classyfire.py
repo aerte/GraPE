@@ -179,8 +179,8 @@ def classyfire(smiles: list[str], path_to_export: str = None,
 def classyfire_result_analysis(path_to_classyfire: str = None, idx: list[int] = None,
                                layer:int = 1, log: bool = False) -> tuple[dict,dict]:
     """Uses the json files generated through the classyfire procedure to perform a 1st layer data analysis. It will
-    return two dictionaries, one with the molecules class and the corresponding id, and the other with the class
-    frequencies. It is assumed that one molecule correspond to one json file.
+    return two dictionaries, one with the molecule class and the corresponding id, and the other with the class
+    frequencies. It is assumed that one molecule corresponds to one json file.
 
     Parameters
     ----------

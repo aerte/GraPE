@@ -174,8 +174,6 @@ def butina_train_val_test_splits(smiles: list[int], split_frac: list[int] = [0.8
     val_size = split_frac[1]/(split_frac[1]+split_frac[2])
     test_size = 1-val_size
 
-    print(large_clusters)
-
     for key in large_clusters:
         train_i, remain_i = train_test_split(large_clusters[key], train_size=split_frac[0],
                                              test_size=1-split_frac[0],
