@@ -18,7 +18,7 @@ def file_in_dir(directory, filename):
 
 def classyfire(smiles: list[str], path_to_export: str = None,
                record_log_file: bool = True, existing_log_file: str = None,
-                log: bool = True) -> tuple[list[str]]:
+                log: bool = True) -> tuple[list[int], list[int]]:
     """Applies the classyfire procedure given in [1] to the input smiles and generates json files with the
     information. It can also generate a csv file recording the names of the json files and the corresponding SMILES to
     avoid retrieving the same information multiple times. The procedure will take about ~10min for 300 molecules. For
@@ -43,8 +43,9 @@ def classyfire(smiles: list[str], path_to_export: str = None,
 
     Returns
     -------
-    ids_out: list[int]
-        The indices of the SMILES where data was successfully retrieved. Could be used for an output analysis.
+    tuple[list[int], list[int]]
+        The indices of the SMILES where data was successfully retrieved. Could be used for an output analysis. As well
+        as the indices of all the smiles that could be retrieved *relative to the input list*.
 
     References
     ----------
@@ -52,7 +53,7 @@ def classyfire(smiles: list[str], path_to_export: str = None,
     2016, https://doi.org/10.1186/s13321-016-0174-y
 
     """
-
+    index_in = range(len(smiles))
     mols = list(map(lambda x: Chem.MolFromSmiles(x), smiles))
     standard_smiles = list(map(lambda  x: Chem.MolToSmiles(x), mols))
     ids = []
@@ -88,6 +89,8 @@ def classyfire(smiles: list[str], path_to_export: str = None,
             log_frame = pd.DataFrame({'filename': [], 'smiles': []})
 
     ids_out = []
+    input_output_ids = []
+    index_test = []
 
     inchikey_rdkit = []
     existing_log = 0
@@ -96,12 +99,15 @@ def classyfire(smiles: list[str], path_to_export: str = None,
         if standard_smiles[idx] in log_frame.smiles.values:
             existing_log += 1
             ids_out.append(list(log_frame.smiles.values).index(standard_smiles[idx]))
+            input_output_ids.append(idx)
             if log:
                 print(f'Mol {idx} in log datafile, so skipping it.')
             continue
         try:
             inchikey_rdkit.append(Chem.inchi.MolToInchiKey(mol))
             ids.append(idx)
+            index_test.append(idx)
+
         except:
             if log:
                 print(f'No inchikey generated from SMILE index {idx}, possibly due to a faulty SMILE.')
@@ -127,6 +133,7 @@ def classyfire(smiles: list[str], path_to_export: str = None,
     else:
         max_list = max(log_frame.index)
 
+    # Generating the classyfire files
     for i in tqdm(range(len(inchikey_rdkit))):
         key = inchikey_rdkit[i]
         idx = ids[i]
@@ -140,10 +147,10 @@ def classyfire(smiles: list[str], path_to_export: str = None,
                 json.dump(data, f)
 
             log_frame = pd.concat([log_frame, pd.DataFrame({'filename': [filename], 'smiles': [standard_smiles[i]]})])
-            ids_out.append(idx)
+            ids_out.append(list(log_frame.smiles.values).index(standard_smiles[idx]))
+            input_output_ids.append(idx)
 
         except:
-            print(key)
             if log:
                 print(f'Failure to retrieve information for SMILE at index {idx}')
             if key is None:
@@ -164,7 +171,7 @@ def classyfire(smiles: list[str], path_to_export: str = None,
 
     log_frame.to_csv(log_file,index=False)
 
-    return ids_out
+    return ids_out, input_output_ids
 
 
 

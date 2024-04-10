@@ -6,7 +6,6 @@ from typing import Union
 
 import pickle
 
-import dgl.data
 import pandas as pd
 import numpy as np
 from numpy import ndarray
@@ -25,8 +24,8 @@ from torch_geometric.utils import dense_to_sparse
 
 from grape.utils.featurizer import AtomFeaturizer, BondFeaturizer
 from grape.analysis import smiles_analysis
-from grape.plots import mol_weight_vs_target
 from grape.utils.split_utils import split_data
+from grape.utils.feature_func import mol_weight
 
 RDLogger.DisableLog('rdApp.*')
 
@@ -279,6 +278,28 @@ class DataSet(DataLoad):
         self.num_edge_features = self.data[0].num_edge_features
         self.data_name=None
 
+        self.mol_weights = np.zeros(len(self.smiles))
+
+        for i in range(len(self.smiles)):
+            self.mol_weights[i] = mol_weight(Chem.MolFromSmiles(self.smiles[i]))
+
+
+    def get_mol_weight(self):
+        """Calculates the molecular weights of the DataSet smiles.
+
+        Returns
+        -------
+        ndarray
+            The molecular weight of the stored smiles.
+
+        """
+        weights = np.zeros(len(self.smiles))
+
+        for i in range(len(self.smiles)):
+            weights[i] = mol_weight(Chem.MolFromSmiles(self.smiles[i]))
+
+        return weights
+
 
 
     def save_dataset(self, filename:str=None):
@@ -522,45 +543,45 @@ class DataSet(DataLoad):
 
         return smiles_analysis(self.smiles, path_to_export, download, plots, save_plots, fig_size, filter_output_txt)
 
-    def weight_vs_target_plot(self, target_name:str=None, fig_height:int = 8, save_fig:bool = False,
-                              pre_standardization: bool = False, path_to_export:str = None)->sns.jointplot:
-        """
-
-        Parameters
-        ----------
-        target_name: str
-            The title of the y-axis in the plot. Default: 'target'
-        save_fig: bool
-            Decides if the figure is saved in the processed directory.
-        fig_height: int
-            Determines the figure size of the plot.
-        pre_standardization: bool
-            Decides if the pre- or post-standardization target variable is used. Will only affect the scale,
-            not the distribution. Default: True.
-        path_to_export: str
-            Export path, will default to the directory 'analysis_results' if not specified.
-
-        Returns
-        -------
-        plot
-            A seaborn jointplot of the molecular weight and target distributions.
-
-        """
-        if pre_standardization:
-            try:
-                target = self.raw_target
-            except:
-                raise ValueError('Data was not loaded in from a raw file, this configuration is not possible.')
-        else:
-            target = self.target
-
-        plot = mol_weight_vs_target(self.smiles, target, target_name=target_name, save_fig=save_fig,
-                                    path_to_export=path_to_export, fig_height=fig_height)
-
-        return plot
+    # def weight_vs_target_plot(self, target_name:str=None, fig_height:int = 8, save_fig:bool = False,
+    #                           pre_standardization: bool = False, path_to_export:str = None)->sns.jointplot:
+    #     """
+    #
+    #     Parameters
+    #     ----------
+    #     target_name: str
+    #         The title of the y-axis in the plot. Default: 'target'
+    #     save_fig: bool
+    #         Decides if the figure is saved in the processed directory.
+    #     fig_height: int
+    #         Determines the figure size of the plot.
+    #     pre_standardization: bool
+    #         Decides if the pre- or post-standardization target variable is used. Will only affect the scale,
+    #         not the distribution. Default: True.
+    #     path_to_export: str
+    #         Export path, will default to the directory 'analysis_results' if not specified.
+    #
+    #     Returns
+    #     -------
+    #     plot
+    #         A seaborn jointplot of the molecular weight and target distributions.
+    #
+    #     """
+    #     if pre_standardization:
+    #         try:
+    #             target = self.raw_target
+    #         except:
+    #             raise ValueError('Data was not loaded in from a raw file, this configuration is not possible.')
+    #     else:
+    #         target = self.target
+    #
+    #     plot = mol_weight_vs_target(self.smiles, target, target_name=target_name, save_fig=save_fig,
+    #                                 path_to_export=path_to_export, fig_height=fig_height)
+    #
+    #     return plot
 
     def get_splits(self, split_type:str = None, split_frac:list[float, float, float] = None,
-                   custom_split:list[list] = None):
+                   custom_split:list[list] = None, **kwargs):
         """ Returns the dataset split into training, testing and validation based on the given split type.
 
         Parameters
@@ -588,7 +609,7 @@ class DataSet(DataLoad):
         split_frac = [0.8, 0.1, 0.1] if split_frac is None else split_frac
 
         return split_data(data = self, split_type = split_type,
-                            split_frac = split_frac, custom_split = custom_split)
+                            split_frac = split_frac, custom_split = custom_split, **kwargs)
 
 
 class GraphDataSet(DataSet):

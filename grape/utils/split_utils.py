@@ -6,6 +6,7 @@ import dgl
 import torch
 
 from dgllife.utils import splitters
+import grape
 
 __all__ = [
     'SubSet',
@@ -13,7 +14,6 @@ __all__ = [
     'split_data'
 ]
 
-import grape
 
 
 ##########################################################################
@@ -41,6 +41,9 @@ class SubSet(object):
         self.indices = indices
         self.y = dataset.target[indices]
         self.smiles = dataset.smiles[indices]
+
+        if hasattr(dataset, 'mol_weights'):
+            self.mol_weights = dataset.mol_weights[indices]
 
     def __len__(self):
         return len(self.indices)
@@ -172,7 +175,7 @@ def split_data(data, split_type: str = None, split_frac: list[float] = None, cus
     elif split_type == 'butina':
         return split_func[split_type](data, **kwargs)
 
-    return mult_subset_to_SubSets(split_func[split_type](data).train_test_val_split(data, frac_train=split_frac[0],
-                                                frac_test=split_frac[1],frac_val=split_frac[2], **kwargs))
+    return mult_subset_to_SubSets(split_func[split_type].train_val_test_split(data, frac_train=split_frac[0],
+                                                frac_test=split_frac[1], frac_val=split_frac[2], **kwargs))
 
 
