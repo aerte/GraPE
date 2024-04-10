@@ -20,7 +20,7 @@ __all__ = [
 ########### Data subsets and utils #######################################
 ##########################################################################
 
-class SubSet(object):
+class SubSet:
     """An adaptation of the Pytorch Subset (https://pytorch.org/docs/stable/data.html#torch.utils.data.Subset) to fit
     into the GraPE workflow. The advantage of using SubSet is that it gives direct access to the subsets smiles and
     targets.
@@ -162,7 +162,8 @@ def split_data(data, split_type: str = None, split_frac: list[float] = None, cus
         'molecular_weight': splitters.MolecularWeightSplitter,
         'scaffold': splitters.ScaffoldSplitter,
         'stratified': splitters.SingleTaskStratifiedSplitter,
-        'butina': grape.splits.taylor_butina_clustering
+        'butina_realistic': grape.splits.butina_realistic_splits,
+        'butina': grape.splits.butina_train_val_test_splits
     }
 
     if split_type == 'custom' or custom_split is not None:
@@ -172,8 +173,9 @@ def split_data(data, split_type: str = None, split_frac: list[float] = None, cus
 
         return data[custom_split == 0], data[custom_split == 1], data[custom_split == 2]
 
-    elif split_type == 'butina':
-        return split_func[split_type](data, **kwargs)
+    elif split_type == 'butina' or split_type == 'butina_realistic':
+        train, val, test  = split_func[split_type](data.smiles, **kwargs)
+        return SubSet(data, train), SubSet(data, val), SubSet(data, test)
 
     return mult_subset_to_SubSets(split_func[split_type].train_val_test_split(data, frac_train=split_frac[0],
                                                 frac_test=split_frac[1], frac_val=split_frac[2], **kwargs))

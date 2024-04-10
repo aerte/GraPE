@@ -2,27 +2,16 @@
 
 import os
 from typing import Optional, Union
-import time
-import json
-import urllib.request
-import math
-
-import sklearn.preprocessing
 from torch import Tensor
 from numpy import ndarray
-from tqdm import tqdm
 import pandas as pd
-from rdkit import Chem
-from dgllife.utils.analysis import analyze_mols
 import matplotlib.pyplot as plt
-import numpy as np
 import seaborn as sns
 
 
 __all__ = [
     'loss_plot',
     'parity_plot',
-    'pca_2d_plot',
     'residual_plot',
     'williams_plot'
 ]
@@ -130,72 +119,6 @@ def parity_plot(prediction: Union[Tensor, ndarray], target:  Union[Tensor, ndarr
     return ax
 
 
-def pca_2d_plot(latents: Union[Tensor, ndarray], labels: Union[list[str]] = None, fig_size: tuple = (20, 6),
-                fontsize = 'medium', save_fig: bool = False, path_to_export: str = None,
-                log: bool = True) -> plt.axes:
-    """A function that projects latents or any other matrix onto it's first two principal components and plots it. Can
-    use given labels to colorcode the projections.
-
-    Parameters
-    ----------
-    latents: Tensor or ndarray
-        Latents or any other matrix that will be used for a PCA model and projected on the two first principal
-        components. The first dimension should be the observations and the second the features.
-    labels: list[str]
-        Optional list of labels that will be used for the plot. *Has to be equal to the latent length.* Default: None
-    fontsize: str
-        Decides the fontsize of the legend. Default: 'medium'
-    fig_size: tuple
-        The output figure size. Default: (20,6)
-    save_fig: bool
-        Decides if the plot is saved, is overridden if a path is given. Default: False
-    path_to_export: str
-        File location to save. Default: None
-    log: bool
-        Decides if additional PCA output like the explained variance should be printed out. Default: True
-
-    Returns
-    -------
-    plt.axes
-
-    """
-
-    if isinstance(latents, Tensor):
-        latents = latents.cpu().detach().numpy()
-
-    if labels is not None:
-        assert latents.shape[0] == len(labels), 'The given label list must match the latents.'
-
-    if save_fig and (path_to_export is None):
-
-        path_to_export = os.getcwd() + '/analysis_results'
-
-        if not os.path.exists(path_to_export):
-            os.mkdir(path_to_export)
-
-    model_pca = sklearn.decomposition.PCA(n_components=2)
-    model_pca.fit(latents)
-
-    V = model_pca.components_.T
-    projection = latents @ V
-
-    fig, ax = plt.subplots(figsize=fig_size)
-
-    if labels is not None:
-        for label in np.unique(labels):
-            idx = labels == label
-            ax.scatter(projection[idx, 0], projection[idx, 1], label=label)
-        ax.legend(fontsize=fontsize)
-    else:
-        ax.scatter(projection[:, 0], projection[:, 1])
-    ax.set_title('PCA using the two first PC\'s')
-
-    if path_to_export is not None:
-        fig.savefig(fname=f'{path_to_export}/latent_plot.svg', format='svg')
-
-    return ax
-
-
 def residual_plot(prediction: Union[Tensor, ndarray], target: Union[Tensor, ndarray], fig_size: tuple = (10,5),
                                         save_fig: bool = False, path_to_export: str = None) -> plt.axes:
     """Generates a parity plot based on the given predictions and targets.
@@ -253,6 +176,8 @@ def williams_plot(prediction: Union[Tensor, ndarray], target: Union[Tensor, ndar
     X/(X X')X', where the X matrix are the targets.
     This plot is used to expose observations
     that are far from the mean of the residuals, thus exerting a lot of influence on the parameter training.
+
+    # TODO: Needs to be completely overhauled.
 
     Parameters
     -----------

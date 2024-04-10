@@ -293,7 +293,7 @@ def pred_metric(prediction: Union[Tensor, ndarray], target: Union[Tensor, ndarra
                 prints.append(f'R2: {r2_score(target, prediction):.3f}')
             case 'mre':
                 results['mre'] = np.sum((target-prediction)/target)*100
-                prints.append(f'MRE: {np.sum((target-prediction)/target)*100:.3f}%')
+                prints.append(f'MRE: {np.sum(np.abs(target-prediction)/target)*100:.3f}%')
 
     if print_out:
         for out in prints:
