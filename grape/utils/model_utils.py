@@ -10,6 +10,7 @@ from tqdm import tqdm
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 
 __all__ = [
+    'EarlyStopping',
     'reset_weights',
     'train_model',
     'test_model',
@@ -19,6 +20,48 @@ __all__ = [
 ##########################################################################
 ########### Model utils ##################################################
 ##########################################################################
+
+class EarlyStopping:
+    """Simple early stopper for any PyTorch Model.
+
+    Serves as a simple alternative to the sophisticated implementations from
+    PyTorch-Lightning (https://pytorch-lightning.readthedocs.io/en/stable/) or similar.
+
+    Parameters
+    -----------
+    patience : int, optional
+        Patience for early stopping.
+        It will stop training if the validation loss doesn't improve after a
+        given number of 'patient' epochs. Default: 15.
+    min_delta : float, optional
+        The minimum loss improvement needed to qualify as a better model. Default: 1e-3
+    model_name:
+        A name for the model, will be used to save it. Default: 'best_model'
+
+    """
+
+    def __init__(self, patience: int = 15, min_delta: float = 1e-3, model_name = 'best_model'):
+        self.patience = patience
+        self.min_delta = min_delta
+        self.model_name = model_name
+        self.best_score = np.inf
+        self.counter = 0
+
+    def __call__(self, val_loss: Tensor, model: Module):
+        if val_loss < self.best_score + self.min_delta:
+            self.best_score = val_loss
+            self.counter = 0
+            self.save_checkpoint(model=model)
+        else:
+            self.counter += 1
+
+        if self.counter >= self.patience:
+            print(f'Early stopping reached with best validation loss {self.best_score:.4f}')
+            return True
+
+    def save_checkpoint(self, model: Module):
+        torch.save(model.state_dict(), self.model_name+'.pt')
+
 
 def reset_weights(model: Module):
     """Taken from https://discuss.pytorch.org/t/reset-model-weights/19180/12. It recursively resets the models
@@ -47,9 +90,9 @@ def reset_weights(model: Module):
 def train_model(model: torch.nn.Module, loss_func: Callable, optimizer: torch.optim.Optimizer,
                 train_data_loader: Union[list, Data, DataLoader], val_data_loader: Union[list, Data, DataLoader],
                 device: str = None, epochs: int = 50, batch_size: int = 32,
-                early_stopping: bool = True, patience: int = 3) -> tuple[list,list]:
+                EarlyStop: EarlyStopping = None) -> tuple[list,list]:
     """Auxiliary function to train and test a given model and return the (training, test) losses.
-    Can initialize DataLoaders if only list of Data objects are given.
+    Can initialize DataLoaders if only lists of Data objects are given.
 
     Parameters
     -------------
@@ -69,10 +112,8 @@ def train_model(model: torch.nn.Module, loss_func: Callable, optimizer: torch.op
         Training epochs. Default: 50
     batch_size: int
         Batch size of the DataLoader if not given directly. Default: 32
-    early_stopping: bool
-        Decides if early stopping should be used. Default: True
-    patience: int
-        Decides how many 'bad' epochs can pass before early stopping takes effect. Default: 3
+    EarlyStop: EarlyStopping
+        Optional EarlyStopping class that will apply the defined early stopping method. Default: None
 
     Returns
     ---------
@@ -92,9 +133,6 @@ def train_model(model: torch.nn.Module, loss_func: Callable, optimizer: torch.op
     model.train()
     train_loss = []
     val_loss = []
-
-    loss_cut = float('inf')
-    counter = 0
 
     with tqdm(total = epochs) as pbar:
         for i in range(epochs):
@@ -122,18 +160,10 @@ def train_model(model: torch.nn.Module, loss_func: Callable, optimizer: torch.op
             val_loss.append(loss_val)
 
             if i%5 == 0:
-                pbar.set_description(f"epoch={i}, training loss= {loss_train:.3f}, validation loss= {loss_val:.3f}")
+                    pbar.set_description(f"epoch={i}, training loss= {loss_train:.3f}, validation loss= {loss_val:.3f}")
 
-            if loss_val < loss_cut:
-                loss_cut = loss_val
-                counter = 0
-            else:
-                counter+=1
-
-            if counter==patience and early_stopping:
-                print('Model hit early stop threshold. Ending training.')
-                break
-
+            if EarlyStop is not None:
+                EarlyStop(val_loss=loss_val, model=model)
 
             pbar.update(1)
 

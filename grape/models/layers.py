@@ -114,7 +114,7 @@ class DMPNN(MessagePassing):
 
     """
     def __init__(self, node_in_feats: int, hidden_nodes: int = 64, is_final: bool = False):
-        super().__init__(aggr='mean')  # "Add" aggregation
+        super().__init__(aggr='sums')  # "Add" aggregation
         # -> It has to have the edge dimension to be concat. with the message (sum of edges)
         self.linM = Linear(node_in_feats, node_in_feats)
         self.is_final = is_final

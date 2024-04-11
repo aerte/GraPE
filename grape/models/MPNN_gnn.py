@@ -46,7 +46,8 @@ class MPNN(nn.Module):
         super().__init__()
 
         self.lin_in = Linear(node_in_dim, node_hidden_dim)
-        self.gru = GRU(input_size=node_hidden_dim, hidden_size=node_hidden_dim, num_layers=num_gru_layers)
+        self.gru = GRU(input_size=node_hidden_dim, hidden_size=node_hidden_dim, num_layers=num_gru_layers,
+                       batch_first=False)
 
         self.mlp = torch.nn.Sequential(
             Linear(in_features=edge_in_dim, out_features=node_hidden_dim),
@@ -75,14 +76,14 @@ class MPNN(nn.Module):
         """
 
         h = self.lin_in(data.x)
-
-        hidden_gru = h.unsqueeze(0)
+        hidden_gru  = None
 
         for layer in self.gnn_layers:
             m_v = layer(h, data.edge_index, data.edge_attr)
-            print(h.shape)
-            print(m_v.shape)
-            h, hidden_gru = self.gru(m_v.unsqueeze(0), hidden_gru)
+            if hidden_gru is None:
+                h, hidden_gru = self.gru(m_v.unsqueeze(0))
+            else:
+                h, hidden_gru = self.gru(m_v.unsqueeze(0), hidden_gru)
             h = h.squeeze(0)
 
         return h
