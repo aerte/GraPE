@@ -13,6 +13,8 @@ __all__ = [
     'EarlyStopping',
     'reset_weights',
     'train_model',
+    'train_epoch',
+    'val_epoch',
     'test_model',
     'pred_metric'
 ]
@@ -57,7 +59,9 @@ class EarlyStopping:
 
         if self.counter >= self.patience:
             print(f'Early stopping reached with best validation loss {self.best_score:.4f}')
+            print(f'Model saved at: {self.model_name}.pt')
             return True
+        return False
 
     def save_checkpoint(self, model: Module):
         torch.save(model.state_dict(), self.model_name+'.pt')
@@ -79,7 +83,6 @@ def reset_weights(model: Module):
         if hasattr(model, 'children'):
             for child in model.children():
                 reset_weights(child)
-
 
 
 ##########################################################################
@@ -163,16 +166,71 @@ def train_model(model: torch.nn.Module, loss_func: Callable, optimizer: torch.op
                     pbar.set_description(f"epoch={i}, training loss= {loss_train:.3f}, validation loss= {loss_val:.3f}")
 
             if EarlyStop is not None:
-                EarlyStop(val_loss=loss_val, model=model)
+                stop = EarlyStop(val_loss=loss_val, model=model)
+                if stop:
+                    break
 
             pbar.update(1)
 
     return train_loss, val_loss
 
 
+##############################################################################################################
+################ Epoch level train and val ###################################################################
+##############################################################################################################
+
+def train_epoch(model: torch.nn.Module, loss_func: Callable, optimizer: torch.optim.Optimizer,
+                train_loader, device: str = None):
+
+    if device is None:
+        device = torch.device('cpu')
+
+    model.train()
+
+    loss = 0.
+    it = 0.
+
+    for idx, batch in enumerate(train_loader):
+        optimizer.zero_grad()
+        out = model(batch.to(device))
+        loss_train = loss_func(batch.y, out)
+
+        loss += loss_train.detach().cpu().numpy()
+        it += 1.
+
+        loss_train.backward()
+        optimizer.step()
+
+    return loss/it
+
+
+def val_epoch(model: torch.nn.Module, loss_func: Callable, val_loader, device: str = None):
+    if device is None:
+        device = torch.device('cpu')
+    model.eval()
+
+    loss = 0.
+    it = 0.
+
+    for idx, batch in enumerate(val_loader):
+        out = model(batch.to(device))
+        loss_val = loss_func(batch.y, out)
+        loss += loss_val.detach().cpu().numpy()
+        it += 1.
+
+    return loss/it
+
+
+##############################################################################################################
+################################# Model testing ##############################################################s
+##############################################################################################################
+
+
+
 def test_model(model: torch.nn.Module, loss_func: Union[Callable,None], test_data_loader: Union[list, Data, DataLoader],
                 device: str = None, batch_size: int = 32, return_latents: bool = False) -> (
         Union[Tensor, tuple[Tensor,Tensor], tuple[Tensor, Tensor, list]]):
+    # TODO: Change this function to something intuitive
     """Auxiliary function to test a trained model and return the predictions as well as the latents node
     representations. If a loss function is specified, then it will also return a list containing the testing losses.
     Can initialize DataLoaders if only list of Data objects are given.

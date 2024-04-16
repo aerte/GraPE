@@ -64,8 +64,8 @@ def torch_subset_to_SubSet(subset: Union[dgl.data.Subset,torch.utils.data.Subset
     -------
     SubSet
     """
-    assert isinstance(subset.dataset, grape.utils.DataSet) or isinstance(subset.dataset, grape.utils.GraphDataSet),(
-        'The subsets underlying dataset has to be either DataSet or GraphDataSet.')
+    #assert isinstance(subset.dataset, grape.utils.DataSet) or isinstance(subset.dataset, grape.utils.GraphDataSet),(
+    #    'The subsets underlying dataset has to be either DataSet or GraphDataSet.')
     return SubSet(subset.dataset, subset.indices)
 
 def mult_subset_to_gen(subsets: Union[tuple[dgl.data.Subset], tuple[torch.utils.data.Subset]]) -> Generator:

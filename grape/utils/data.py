@@ -678,6 +678,6 @@ class GraphDataSet(DataSet):
 
 
         if split or (self.custom_split is not None):
-            self.train, self.val, self.test = split_data(data = self.data, split_type = self.split_type,
+            self.train, self.val, self.test = split_data(data = self, split_type = self.split_type,
                                                         split_frac = self.split_frac, custom_split = self.custom_split)
 

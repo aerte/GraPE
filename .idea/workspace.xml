@@ -4,13 +4,13 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="115446f6-db4f-461b-90f9-f367678daa67" name="Changes" comment="new butina split and bug fixes">
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
+    <list default="true" id="115446f6-db4f-461b-90f9-f367678daa67" name="Changes" comment="fixed MPNN and added an Early stopping class">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/source/Demonstration.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/Demonstration.ipynb" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/grape/models/MPNN_gnn.py" beforeDir="false" afterPath="$PROJECT_DIR$/grape/models/MPNN_gnn.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/grape/models/layers.py" beforeDir="false" afterPath="$PROJECT_DIR$/grape/models/layers.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/grape/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/grape/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/grape/utils/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/grape/utils/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/grape/utils/data.py" beforeDir="false" afterPath="$PROJECT_DIR$/grape/utils/data.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/grape/utils/model_utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/grape/utils/model_utils.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/grape/utils/split_utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/grape/utils/split_utils.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/notebooks/test2.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/test2.ipynb" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -61,23 +61,25 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;ASKED_MARK_IGNORED_FILES_AS_EXCLUDED&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;WebServerToolWindowFactoryState&quot;: &quot;false&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;felix&quot;,
-    &quot;last_opened_file_path&quot;: &quot;/Users/faerte/Desktop/grape/notebooks&quot;,
-    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
-    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
-    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
-    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;preferences.pluginManager&quot;,
-    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ASKED_MARK_IGNORED_FILES_AS_EXCLUDED": "true",
+    "Python.opt_utils.executor": "Run",
+    "Python.testbayes.executor": "Run",
+    "RunOnceActivity.OpenProjectViewOnStart": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "WebServerToolWindowFactoryState": "false",
+    "git-widget-placeholder": "felix",
+    "last_opened_file_path": "/Users/faerte/Desktop/grape/notebooks",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "settings.editor.selected.configurable": "preferences.pluginManager",
+    "vue.rearranger.settings.migration": "true"
   }
-}</component>
+}]]></component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="$PROJECT_DIR$/notebooks" />
@@ -119,7 +121,15 @@
       <workItem from="1712731050898" duration="93000" />
       <workItem from="1712731196039" duration="26588000" />
       <workItem from="1712818079575" duration="4104000" />
-      <workItem from="1712853013580" duration="4038000" />
+      <workItem from="1712853013580" duration="4259000" />
+      <workItem from="1712905622256" duration="1807000" />
+      <workItem from="1712986194609" duration="3015000" />
+      <workItem from="1713073367379" duration="598000" />
+      <workItem from="1713095251620" duration="413000" />
+      <workItem from="1713101749151" duration="4618000" />
+      <workItem from="1713162498574" duration="2257000" />
+      <workItem from="1713199540701" duration="1862000" />
+      <workItem from="1713248120185" duration="9417000" />
     </task>
     <task id="LOCAL-00001" summary="bug fixes, SubSet, pca tests, expansion of classyfire">
       <option name="closed" value="true" />
@@ -217,7 +227,15 @@
       <option name="project" value="LOCAL" />
       <updated>1712759485616</updated>
     </task>
-    <option name="localTasksCounter" value="13" />
+    <task id="LOCAL-00013" summary="fixed MPNN and added an Early stopping class">
+      <option name="closed" value="true" />
+      <created>1712862774211</created>
+      <option name="number" value="00013" />
+      <option name="presentableId" value="LOCAL-00013" />
+      <option name="project" value="LOCAL" />
+      <updated>1712862774211</updated>
+    </task>
+    <option name="localTasksCounter" value="14" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -232,6 +250,11 @@
     <MESSAGE value="documentation" />
     <MESSAGE value="small fixes" />
     <MESSAGE value="new butina split and bug fixes" />
-    <option name="LAST_COMMIT_MESSAGE" value="new butina split and bug fixes" />
+    <MESSAGE value="fixed MPNN and added an Early stopping class" />
+    <option name="LAST_COMMIT_MESSAGE" value="fixed MPNN and added an Early stopping class" />
+  </component>
+  <component name="com.intellij.coverage.CoverageDataManagerImpl">
+    <SUITE FILE_PATH="coverage/grape$opt_utils.coverage" NAME="opt_utils Coverage Results" MODIFIED="1713264989457" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/grape/utils" />
+    <SUITE FILE_PATH="coverage/grape$testbayes.coverage" NAME="testbayes Coverage Results" MODIFIED="1713267308595" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/notebooks" />
   </component>
 </project>

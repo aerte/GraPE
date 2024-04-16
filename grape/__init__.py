@@ -4,3 +4,4 @@ from grape import plots as plots
 from grape import utils as utils
 from grape import datasets as datasets
 from grape import analysis as analysis
+from grape import optim as optim
