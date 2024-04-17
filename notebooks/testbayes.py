@@ -4,7 +4,6 @@ from grape.datasets import BradleyDoublePlus
 
 from grape.models import SimpleGNN, MGConv
 from torch import nn
-import torch
 
 data = BradleyDoublePlus(split_type='random')
 

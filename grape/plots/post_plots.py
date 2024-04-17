@@ -7,12 +7,14 @@ from numpy import ndarray
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
+from grape.utils.data import DataSet
 
 
 __all__ = [
     'loss_plot',
     'parity_plot',
     'residual_plot',
+    'residual_density_plot',
     'williams_plot'
 ]
 
@@ -64,7 +66,8 @@ def loss_plot(losses, model_names, fig_size: tuple = (10,5),
     return
 
 def parity_plot(prediction: Union[Tensor, ndarray], target:  Union[Tensor, ndarray], mol_weights: ndarray = None,
-                fig_size: tuple = (10,5), save_fig: bool = False, path_to_export: str = None) -> plt.axes:
+                fig_size: tuple = (10,5), save_fig: bool = False, path_to_export: str = None,
+                rescale_data: DataSet = None) -> plt.axes:
     """Generates a parity plot based on the given predictions and targets.
 
     Parameters
@@ -81,6 +84,8 @@ def parity_plot(prediction: Union[Tensor, ndarray], target:  Union[Tensor, ndarr
         Decides if the plot is saved, is overridden if a path is given. Default: False
     path_to_export: str
         File location to save. Default: None
+    rescale_data: DataSet
+        Optional, will be used to rescale the predictions and targets if provided.
 
     Returns
     -------
@@ -101,6 +106,11 @@ def parity_plot(prediction: Union[Tensor, ndarray], target:  Union[Tensor, ndarr
         prediction = prediction.cpu().detach().numpy()
     if isinstance(target, Tensor):
         target = target.cpu().detach().numpy()
+
+    if rescale_data is not None:
+        prediction = rescale_data.rescale_data(prediction)
+        target = rescale_data.rescale_data(target)
+
 
     fig, ax = plt.subplots(1,1,figsize=fig_size)
     if mol_weights is not None:
@@ -120,7 +130,7 @@ def parity_plot(prediction: Union[Tensor, ndarray], target:  Union[Tensor, ndarr
 
 
 def residual_plot(prediction: Union[Tensor, ndarray], target: Union[Tensor, ndarray], fig_size: tuple = (10,5),
-                                        save_fig: bool = False, path_to_export: str = None) -> plt.axes:
+                    save_fig: bool = False, path_to_export: str = None, rescale_data: DataSet = None) -> plt.axes:
     """Generates a parity plot based on the given predictions and targets.
 
     Parameters
@@ -135,6 +145,8 @@ def residual_plot(prediction: Union[Tensor, ndarray], target: Union[Tensor, ndar
         Decides if the plot is saved, is overridden if a path is given. Default: False
     path_to_export: str
         File location to save. Default: None
+    rescale_data: DataSet
+        Optional, will be used to rescale the predictions and targets if provided.
 
     Returns
     -------
@@ -156,6 +168,10 @@ def residual_plot(prediction: Union[Tensor, ndarray], target: Union[Tensor, ndar
     if isinstance(target, Tensor):
         target = target.cpu().detach().numpy()
 
+    if rescale_data is not None:
+        prediction = rescale_data.rescale_data(prediction)
+        target = rescale_data.rescale_data(target)
+
     residual = prediction-target
 
     fig, ax = plt.subplots(1,1,figsize=fig_size)
@@ -169,6 +185,88 @@ def residual_plot(prediction: Union[Tensor, ndarray], target: Union[Tensor, ndar
         fig.savefig(fname=f'{path_to_export}/residual_plot.svg', format='svg')
 
     return ax
+
+
+# TODO: make this a general function that can take 1-3 inputs
+def residual_density_plot(train_pred:Union[Tensor, ndarray], val_pred: Union[Tensor, ndarray],
+                  test_pred: Union[Tensor, ndarray], train_target: Union[Tensor, ndarray],
+                  val_target: Union[Tensor, ndarray], test_target: Union[Tensor, ndarray], fig_size: tuple = (20,6),
+                    save_fig: bool = False, path_to_export: str = None, rescale_data: DataSet = None) -> plt.axes:
+    """Generates a parity plot based on the given predictions and targets.
+
+    Parameters
+    -----------
+    train_pred: Tensor or ndarray
+        The training set predictions.
+    val_pred: Tensor or ndarray
+        The validation set predictions.
+    test_pred: Tensor or ndarray
+        The test set predictions.
+    train_target: Tensor or ndarray
+        The training set targets.
+    val_target: Tensor or ndarray
+        The validation set targets.
+    test_target: Tensor or ndarray
+        The test set targets.
+    fig_size: tuple
+        The output figure size. Default: (10,10)
+    save_fig: bool
+        Decides if the plot is saved, is overridden if a path is given. Default: False
+    path_to_export: str
+        File location to save. Default: None
+    rescale_data: DataSet
+        Optional, will be used to rescale the predictions and targets if provided.
+
+    Returns
+    -------
+    plt.axes
+
+    """
+
+    all_ = [train_pred, val_pred, test_pred, train_target, val_target, test_target]
+
+
+    assert len(train_target) == len(train_pred), 'Predictions and targets are not the same size.'
+
+    if save_fig and (path_to_export is None):
+
+        path_to_export = os.getcwd() + '/analysis_results'
+
+        if not os.path.exists(path_to_export):
+            os.mkdir(path_to_export)
+
+    for i in all_:
+        if isinstance(i, Tensor):
+            all_[i] = i.cpu().detach().numpy()
+        if rescale_data is not None:
+            all_[i] = rescale_data.rescale_data(all_[i])
+
+    train_pred, val_pred, test_pred, train_target, val_target, test_target = all_
+    residual_train = train_pred-train_target
+    residual_val = val_pred-val_target
+    residual_test = test_pred-test_target
+
+    from matplotlib.pyplot import rcParams
+    rcParams['figure.figsize'] = fig_size
+
+    sns.histplot(data=residual_train, bins=50,kde=True, color='blue', edgecolor="black", label='train')
+    sns.histplot(data=residual_val,bins=50, kde=True, color='green', edgecolor="black", label='val')
+    sns.histplot(data=residual_test, bins=50, kde=True, color='red', edgecolor="black", label='test')
+    # green
+    plt.xlabel('mpC', fontsize=16, fontweight='bold')
+    plt.ylabel('Count', fontsize=16, fontweight='bold')
+    plt.tight_layout()
+    sns.despine(top=False, right=False)
+    plt.xticks(fontsize=16, fontweight='bold')
+    plt.yticks(fontsize=16, fontweight='bold')
+    plt.show()
+
+    if path_to_export is not None:
+        fig.savefig(fname=f'{path_to_export}/residual_plot.svg', format='svg')
+
+
+
+
 
 def williams_plot(prediction: Union[Tensor, ndarray], target: Union[Tensor, ndarray], n_features: int,
                   fig_size: tuple = (10,5), save_fig: bool = False, path_to_export: str = None) -> plt.axes:

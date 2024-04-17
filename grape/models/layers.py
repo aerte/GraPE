@@ -1,4 +1,5 @@
 # Weave layer
+from typing import Any
 
 import torch
 
@@ -7,8 +8,7 @@ import torch.nn as nn
 from torch import Tensor
 from torch.nn import Linear
 from torch_geometric.nn import MessagePassing
-from torch_geometric.typing import Adj
-
+from torch_geometric.typing import Adj, Size
 
 __all__ = [
     'Weave',
@@ -113,11 +113,12 @@ class DMPNN(MessagePassing):
     """
 
     """
-    def __init__(self, node_in_feats: int, hidden_nodes: int = 64, is_final: bool = False):
-        super().__init__(aggr='sums')  # "Add" aggregation
+    def __init__(self,h_0=None, update_nn=None, hidden_size:int = 64, is_final: bool = False):
+        super().__init__(aggr='sum') # "Add" aggregation
         # -> It has to have the edge dimension to be concat. with the message (sum of edges)
-        self.linM = Linear(node_in_feats, node_in_feats)
-        self.is_final = is_final
+        if is_final:
+            self.linA = Linear(hidden_size, hidden_size)
+        self.linM = Linear(hidden_size, hidden_size)
 
         print('init')
 
@@ -137,20 +138,27 @@ class DMPNN(MessagePassing):
 
         return nodes_out
 
-    def message(self, x):
-        print('message\n----------')
-        print(f'current node: {x}')
-        print(f'current node shape: {x.shape}')
-        if self.is_final:
-            return x
-        else:
-            return x
+    def edge_updater(
+        self,
+        edge_index: Adj,
+        size: Size = None,
+        **kwargs: Any,
+    ) -> Tensor:
+        print('edge updater')
+        print('--------------')
 
-    def update(self, aggr_out, x):
-        print('update\n-----------')
-        print(f'current node: {x}')
-        print(f'current node shape: {x.shape}')
-        #print('message node out: ', aggr_out)
-        #print(x.shape)
-        # Skip connection does not work
-        return x
+    # def message(self, x_i, x_j, edge_attr):
+    #     print('message\n----------')
+    #     print(f'current node: {x_i}')
+    #     print(f'current node shape: {x_j}')
+    #
+    #     return x_i
+    #
+    # def update(self, aggr_out, x):
+    #     print('update\n-----------')
+    #     print(f'current aggr: {aggr_out}')
+    #     print(f'current node shape: {aggr_out.shape}')
+    #     #print('message node out: ', aggr_out)
+    #     #print(x.shape)
+    #     # Skip connection does not work
+    #     return aggr_out

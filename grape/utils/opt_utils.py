@@ -9,6 +9,7 @@ from ray.tune.search.bayesopt import BayesOptSearch
 from ray.tune.search.optuna import OptunaSearch
 from ray.tune.search.hyperopt import HyperOptSearch
 from ray.tune.search import SearchAlgorithm
+import numpy as np
 
 
 __all__ = [
@@ -60,8 +61,8 @@ class RayTuner:
     """
 
     def __init__(self, objective: Callable, search_space: dict,
-                 train_loader: Union[Optional, Data, DataLoader], val_loader: Union[Optional, Data, DataLoader],
-                 model: Union[Optional, Module],
+                 train_loader: Union[None, Data, DataLoader], val_loader: Union[None, Data, DataLoader],
+                 model: Union[None, Module],
                  metric: str = 'mean_squared_error',
                  mode: str = 'min', search_algo: SearchAlgorithm = HyperOptSearch,
                  train_iterations: int = 15):
@@ -69,6 +70,10 @@ class RayTuner:
         # 'objective' should take a train_loader, val_loader and model as input or be configured as such
         if objective.__module__ == 'grape.optim.objectives':
             objective = partial(objective, train_loader=train_loader, val_loader=val_loader, model=model)
+
+        if search_algo.__module__ == 'ray.tune.search.bayesopt.bayesopt_search':
+            np.float = float
+            search_algo = partial(search_algo, metric = metric,mode=mode)
 
         self.tuner = tune.Tuner(
             objective,

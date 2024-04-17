@@ -26,7 +26,7 @@ def adam_default_search_space():
 
 def adam_objective(config, train_loader: Union[Data, DataLoader] ,
                    val_loader: Union[Data, DataLoader],
-                   model:Module, loss_func: Callable = mse_loss,
+                   model: Module, loss_func: Callable = mse_loss,
                    batch_size: int = 32):
     """An objective function to optimize the Adam optimizer hyperparameters.
 
@@ -46,6 +46,8 @@ def adam_objective(config, train_loader: Union[Data, DataLoader] ,
         The batch size to be used for training the model. Default: 32
 
     """
+
+    model = model()
 
     if loss_func is None:
         loss_func = mse_loss

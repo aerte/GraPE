@@ -102,9 +102,11 @@ class DMPNNNet(nn.Module):
             if isinstance(layer, nn.Linear):
                 layer.reset_parameters()
 
+
     def send_income_edge(self, edges):
         return {'mail': edges.data['feat']}
 
+    # Aggregation
     def sum_income_edge(self, nodes):
         hidden_feats = self.W_a(torch.cat([nodes.data['feat'], torch.sum(nodes.mailbox['mail'], 1)], dim=-1))
         hidden_feats = self.dropout_layer(hidden_feats)
@@ -115,7 +117,7 @@ class DMPNNNet(nn.Module):
         edge = edge.float()
         node = self.embedding_node_lin(node)
         edge = self.embedding_edge_lin(edge)
-        src_node_id = graph.edges()[0]
+        src_node_id = graph.edges()[0] # only use the source edges -> make the graph directed.
         #dst_node_id = graph.edges()[1]
         hidden_feats = self.init_h_func(torch.cat([node[src_node_id], edge], dim=-1)) # hidden states include the source node and edge features, num_bonds x num_features
         inputs = hidden_feats

@@ -2,6 +2,7 @@ from typing import Callable, Union
 import torch
 from torch import Tensor
 from torch.nn import Module, Sequential
+from torch.optim import lr_scheduler
 from numpy import ndarray
 import numpy as np
 from torch_geometric.loader import DataLoader
@@ -19,9 +20,14 @@ __all__ = [
     'pred_metric'
 ]
 
+import grape.models
+
+
 ##########################################################################
 ########### Model utils ##################################################
 ##########################################################################
+
+
 
 class EarlyStopping:
     """Simple early stopper for any PyTorch Model.
@@ -48,6 +54,7 @@ class EarlyStopping:
         self.model_name = model_name
         self.best_score = np.inf
         self.counter = 0
+        self.stop = False
 
     def __call__(self, val_loss: Tensor, model: Module):
         if val_loss < self.best_score + self.min_delta:
@@ -60,8 +67,8 @@ class EarlyStopping:
         if self.counter >= self.patience:
             print(f'Early stopping reached with best validation loss {self.best_score:.4f}')
             print(f'Model saved at: {self.model_name}.pt')
-            return True
-        return False
+            self.stop = True
+
 
     def save_checkpoint(self, model: Module):
         torch.save(model.state_dict(), self.model_name+'.pt')
@@ -90,10 +97,10 @@ def reset_weights(model: Module):
 ##########################################################################
 
 
-def train_model(model: torch.nn.Module, loss_func: Callable, optimizer: torch.optim.Optimizer,
+def train_model(model: torch.nn.Module, loss_func: Union[Callable,str], optimizer: torch.optim.Optimizer,
                 train_data_loader: Union[list, Data, DataLoader], val_data_loader: Union[list, Data, DataLoader],
                 device: str = None, epochs: int = 50, batch_size: int = 32,
-                EarlyStop: EarlyStopping = None) -> tuple[list,list]:
+                early_stopper: EarlyStopping = None, scheduler: lr_scheduler = None) -> tuple[list,list]:
     """Auxiliary function to train and test a given model and return the (training, test) losses.
     Can initialize DataLoaders if only lists of Data objects are given.
 
@@ -101,8 +108,9 @@ def train_model(model: torch.nn.Module, loss_func: Callable, optimizer: torch.op
     -------------
     model: torch.nn.Module
         Model that will be trained and tested. Has to be a torch Module.
-    loss_func: Callable
-        Loss function like F.mse_loss that will be used as a loss.
+    loss_func: Callable or str
+        Loss function like F.mse_loss that will be used as a loss. Or a string that can be one of
+        [``mse``,``mae``]
     optimizer: torch.optim.Optimizer
         Torch optimization algorithm like Adam or SDG.
     train_data_loader: list of Data or DataLoader
@@ -115,8 +123,10 @@ def train_model(model: torch.nn.Module, loss_func: Callable, optimizer: torch.op
         Training epochs. Default: 50
     batch_size: int
         Batch size of the DataLoader if not given directly. Default: 32
-    EarlyStop: EarlyStopping
+    early_stopper: EarlyStopping
         Optional EarlyStopping class that will apply the defined early stopping method. Default: None
+    scheduler: lr_scheduler
+        Optional learning rate scheduler that will take a step after validation. Default: None
 
     Returns
     ---------
@@ -124,6 +134,14 @@ def train_model(model: torch.nn.Module, loss_func: Callable, optimizer: torch.op
         Training and test loss arrays.
 
     """
+    loss_functions = {
+        'mse': torch.nn.functional.mse_loss,
+        'mae': torch.nn.functional.l1_loss
+    }
+
+    if isinstance(loss_func, str):
+        loss_func = loss_functions[loss_func]
+
 
     device = torch.device('cpu') if device is None else device
 
@@ -162,12 +180,16 @@ def train_model(model: torch.nn.Module, loss_func: Callable, optimizer: torch.op
             loss_val = np.mean(temp)
             val_loss.append(loss_val)
 
-            if i%5 == 0:
+            if i%2 == 0:
                     pbar.set_description(f"epoch={i}, training loss= {loss_train:.3f}, validation loss= {loss_val:.3f}")
 
-            if EarlyStop is not None:
-                stop = EarlyStop(val_loss=loss_val, model=model)
-                if stop:
+            if scheduler is not None:
+                scheduler.step(loss_val)
+
+
+            if early_stopper is not None:
+                early_stopper(val_loss=loss_val, model=model)
+                if early_stopper.stop:
                     break
 
             pbar.update(1)
@@ -227,7 +249,7 @@ def val_epoch(model: torch.nn.Module, loss_func: Callable, val_loader, device: s
 
 
 
-def test_model(model: torch.nn.Module, loss_func: Union[Callable,None], test_data_loader: Union[list, Data, DataLoader],
+def test_model(model: torch.nn.Module, loss_func: Union[Callable,str,None], test_data_loader: Union[list, Data, DataLoader],
                 device: str = None, batch_size: int = 32, return_latents: bool = False) -> (
         Union[Tensor, tuple[Tensor,Tensor], tuple[Tensor, Tensor, list]]):
     # TODO: Change this function to something intuitive
@@ -264,6 +286,19 @@ def test_model(model: torch.nn.Module, loss_func: Union[Callable,None], test_dat
 
     """
 
+    loss_functions = {
+        'mse': torch.nn.functional.mse_loss,
+        'mae': torch.nn.functional.l1_loss
+    }
+
+    if not isinstance(model, grape.models.SimpleGNN):
+        return_latents = False
+
+
+
+    if isinstance(loss_func, str):
+        loss_func = loss_functions[loss_func]
+
     device = torch.device('cpu') if device is None else device
 
     if not isinstance(test_data_loader, DataLoader):
@@ -277,10 +312,10 @@ def test_model(model: torch.nn.Module, loss_func: Union[Callable,None], test_dat
 
         for idx, batch in enumerate(test_data_loader):
             # TODO: Broaden use of return_latents
-            if return_latents:
+            if return_latents and isinstance(model, grape.models.SimpleGNN):
                 out, lat = model(batch.to(device), return_latents=True)
             else:
-                out = model(batch.to(device), return_latents=False)
+                out = model(batch.to(device))
 
             if loss_func is not None:
                 temp[idx] = loss_func(batch.y, out).detach().cpu().numpy()
@@ -298,6 +333,8 @@ def test_model(model: torch.nn.Module, loss_func: Union[Callable,None], test_dat
             pbar.update(1)
 
     loss_test = np.mean(temp)
+
+    # TODO: fix this mess
 
     if loss_func is not None and return_latents:
         print(f'Test loss: {loss_test:.3f}')
@@ -380,8 +417,11 @@ def pred_metric(prediction: Union[Tensor, ndarray], target: Union[Tensor, ndarra
                 results['r2'] = r2_score(target, prediction)
                 prints.append(f'R2: {r2_score(target, prediction):.3f}')
             case 'mre':
-                results['mre'] = np.sum((target-prediction)/target)*100
-                prints.append(f'MRE: {np.sum(np.abs(target-prediction)/target)*100:.3f}%')
+                results['mre'] = np.mean(np.abs((target-prediction))/target)*100
+                prints.append(f'MRE: {np.mean(np.abs(target - prediction) / target) * 100:.3f}%')
+                if results['mre'] > 100:
+                    prints.append(f'Mean relative error is large, here is the median relative error'
+                                  f':{np.median(np.abs(target-prediction)/target)*100:.3f}')
 
     if print_out:
         for out in prints:

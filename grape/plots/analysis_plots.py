@@ -1,24 +1,16 @@
 # analysis tools
 
 import os
-import time
-import json
-import urllib.request
-import math
 
-import sklearn.preprocessing
-from torch import Tensor
-from numpy import ndarray
-from tqdm import tqdm
 import pandas as pd
 from rdkit import Chem
-from dgllife.utils.analysis import analyze_mols
 import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
 
 from grape.utils.feature_func import mol_weight
 from grape.analysis import classify_compounds
+from grape.utils.data import DataSet
 
 __all__ = ['mol_weight_vs_target',
            'num_chart',
@@ -26,7 +18,8 @@ __all__ = ['mol_weight_vs_target',
            'compounds_dataset_heatmap']
 
 def mol_weight_vs_target(smiles: list, target: list, target_name: str = None, fig_height: int = 8,
-                         save_fig: bool = False, path_to_export: str =None) -> sns.jointplot:
+                         save_fig: bool = False, path_to_export: str =None,
+                         rescale_data: DataSet = None) -> sns.jointplot:
     """Plots a seaborn jointplot of the target distribution against the molecular weight distributions.
 
     Parameters
@@ -61,6 +54,9 @@ def mol_weight_vs_target(smiles: list, target: list, target_name: str = None, fi
 
     target_name = 'target' if target_name is None else target_name
     weight = np.zeros(len(smiles))
+
+    if rescale_data is not None:
+        target = rescale_data.rescale_data(target)
 
     for i in range(len(smiles)):
         weight[i] = mol_weight(Chem.MolFromSmiles(smiles[i]))
