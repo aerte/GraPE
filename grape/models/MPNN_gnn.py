@@ -1,8 +1,8 @@
 # Inspired by https://github.com/chaitjo/geometric-gnn-dojo/blob/main/geometric_gnn_101.ipynb
 
 import torch
-
 import torch.nn as nn
+import torch_geometric.nn.pool
 from torch.nn import Linear, GRU, ReLU
 
 from torch_geometric.nn import NNConv
@@ -47,21 +47,17 @@ class MPNN(nn.Module):
 
         super().__init__()
 
-        self.gru = GRU(input_size=node_hidden_dim, hidden_size=node_hidden_dim, num_layers=num_gru_layers,
+        self.relu = ReLU()
+        self.gru = GRU(input_size=node_hidden_dim, hidden_size=node_hidden_dim, num_layers=1,
                        batch_first=False)
 
         self.mlp_in = torch.nn.Sequential(
             Linear(in_features=node_in_dim, out_features=node_hidden_dim),
-            ReLU(),
-            Linear(in_features=node_hidden_dim, out_features=node_hidden_dim),
-            ReLU(),
-            Linear(in_features=node_hidden_dim, out_features=node_hidden_dim)
+            ReLU()
         )
 
         self.mlp = torch.nn.Sequential(
             Linear(in_features=edge_in_dim, out_features=node_hidden_dim),
-            ReLU(),
-            Linear(in_features=node_hidden_dim, out_features=node_hidden_dim),
             ReLU(),
             Linear(in_features=node_hidden_dim, out_features=node_hidden_dim * node_hidden_dim)
         )
@@ -69,7 +65,14 @@ class MPNN(nn.Module):
         # Stack of MPNN layers
         self.gnn_layers = torch.nn.ModuleList()
         for layer in range(num_layers):
-             self.gnn_layers.append(NNConv(in_channels=node_hidden_dim, out_channels=node_hidden_dim, nn=self.mlp))
+             self.gnn_layers.append(NNConv(in_channels=node_hidden_dim, out_channels=node_hidden_dim, nn=self.mlp,
+                                           aggr='mean'))
+
+    def reset_parameters(self):
+        self.mlp_in.reset_parameters()
+        self.mlp.reset_parameters()
+        for layer in self.gnn_layers:
+            layer.reset_parameters()
 
     def forward(self, data):
         """
@@ -85,14 +88,11 @@ class MPNN(nn.Module):
         """
 
         h = self.mlp_in(data.x)
-        hidden_gru  = None
+        hidden_gru = h.unsqueeze(0)
 
         for layer in self.gnn_layers:
-            m_v = layer(h, data.edge_index, data.edge_attr)
-            if hidden_gru is None:
-                h, hidden_gru = self.gru(m_v.unsqueeze(0))
-            else:
-                h, hidden_gru = self.gru(m_v.unsqueeze(0), hidden_gru)
+            m_v = self.relu(layer(h, data.edge_index, data.edge_attr))
+            h, hidden_gru = self.gru(m_v.unsqueeze(0), hidden_gru)
             h = h.squeeze(0)
 
         return h
@@ -129,7 +129,7 @@ class MPNN_Model(nn.Module):
 
     def __init__(self, node_in_dim: int, edge_in_dim: int, message_nn: nn.Module = None,
                  node_hidden_dim: int = 64, num_layers: int = 1, num_gru_layers: int = 1,
-                 set2set_layers: int = 1):
+                 set2set_layers: int = 1, set2set_steps: int = 1):
 
         super().__init__()
 
@@ -137,12 +137,10 @@ class MPNN_Model(nn.Module):
             message_nn = MPNN(node_in_dim, edge_in_dim, node_hidden_dim, num_layers, num_gru_layers)
         self.message = message_nn
 
-        self.read_out = Set2Set(in_channels=node_hidden_dim, processing_steps=set2set_layers)
+        self.read_out = Set2Set(in_channels=node_hidden_dim, processing_steps=set2set_steps)
 
         self.mlp_out = torch.nn.Sequential(
-            Linear(in_features=node_hidden_dim*2, out_features=node_hidden_dim),
-            ReLU(),
-            Linear(in_features=node_hidden_dim, out_features=node_hidden_dim),
+            Linear(in_features=node_hidden_dim * 2, out_features=node_hidden_dim),
             ReLU(),
             Linear(in_features=node_hidden_dim, out_features=1)
         )
@@ -164,10 +162,10 @@ class MPNN_Model(nn.Module):
         """
 
         h_t = self.message(data)
-        h = self.read_out(h_t, dim_size=data.batch_size)
+        h = self.read_out(h_t, data.batch)
         y = self.mlp_out(h)
 
-        return y.flatten()
+        return y.view(-1)
 
 
 

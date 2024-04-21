@@ -1,16 +1,77 @@
 # Inspired by https://github.com/chaitjo/geometric-gnn-dojo/blob/main/geometric_gnn_101.ipynb
 
+from typing import Any
+
 import torch
 
+
 import torch.nn as nn
+from torch import Tensor
 from torch.nn import Linear
-from torch_geometric.nn import global_mean_pool
-from .layers import Weave
+from torch_geometric.nn import MessagePassing
+from torch_geometric.typing import Adj, Size
+from .Weave_gnn import Weave
+from torch_geometric.nn.pool import global_mean_pool
 
 __all__ = [
+    'DMPNN_layer',
     'DMPNN'
 ]
 
+
+class DMPNN_layer(MessagePassing):
+    """
+
+    """
+    def __init__(self,h_0=None, update_nn=None, hidden_size:int = 64, is_final: bool = False):
+        super().__init__(aggr='sum') # "Add" aggregation
+        # -> It has to have the edge dimension to be concat. with the message (sum of edges)
+        if is_final:
+            self.linA = Linear(hidden_size, hidden_size)
+        self.linM = Linear(hidden_size, hidden_size)
+
+        print('init')
+
+
+        self.relu = nn.ReLU()
+        self.reset_parameters()
+
+    def reset_parameters(self):
+        self.linM.reset_parameters()
+
+    def forward(self, x, edge_index, edge_attr):
+
+        print('x shape: ', x.shape)
+
+        nodes_out = self.propagate(edge_index=edge_index, x=x, edge_attr = edge_attr)
+        print('nodes out shape: ', nodes_out.shape)
+
+        return nodes_out
+
+    def edge_updater(
+        self,
+        edge_index: Adj,
+        size: Size = None,
+        **kwargs: Any,
+    ) -> Tensor:
+        print('edge updater')
+        print('--------------')
+
+    # def message(self, x_i, x_j, edge_attr):
+    #     print('message\n----------')
+    #     print(f'current node: {x_i}')
+    #     print(f'current node shape: {x_j}')
+    #
+    #     return x_i
+    #
+    # def update(self, aggr_out, x):
+    #     print('update\n-----------')
+    #     print(f'current aggr: {aggr_out}')
+    #     print(f'current node shape: {aggr_out.shape}')
+    #     #print('message node out: ', aggr_out)
+    #     #print(x.shape)
+    #     # Skip connection does not work
+    #     return aggr_out
 
 class DMPNN(nn.Module):
     def __init__(self, num_layers=4, node_dim=11, edge_dim=4, node_hidden_dim = 64,

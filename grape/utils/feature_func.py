@@ -27,7 +27,7 @@ __all__ = [
     'bond_in_ring'
 ]
 
-def one_hot(input_, mapping, encode_unknown = False):
+def one_hot(input_, mapping, encode_unknown = True):
     """One hot encodes an arbitrary input given a mapping.
 
     Parameters
@@ -90,7 +90,7 @@ def mol_weight(mol):
 #############################################################################################################
 
 #### Atom Symbol
-def atom_symbol(atom, allowed_set = None, encode_unknown=False):
+def atom_symbol(atom, allowed_set = None, encode_unknown=True):
 
     allowed_set =  ['C', 'N', 'O', 'S', 'F', 'Cl', 'Br', 'I', 'P'] if allowed_set is None else allowed_set
     return one_hot(atom.GetSymbol(), allowed_set, encode_unknown)

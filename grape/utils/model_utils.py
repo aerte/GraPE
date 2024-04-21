@@ -9,6 +9,7 @@ from torch_geometric.loader import DataLoader
 from torch_geometric.data import Data
 from tqdm import tqdm
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
+from grape.utils import DataSet
 
 __all__ = [
     'EarlyStopping',
@@ -26,7 +27,6 @@ import grape.models
 ##########################################################################
 ########### Model utils ##################################################
 ##########################################################################
-
 
 
 class EarlyStopping:
@@ -55,6 +55,8 @@ class EarlyStopping:
         self.best_score = np.inf
         self.counter = 0
         self.stop = False
+        self.model_name = model_name + '.pt'
+        self.stop_epoch = 0
 
     def __call__(self, val_loss: Tensor, model: Module):
         if val_loss < self.best_score + self.min_delta:
@@ -66,12 +68,13 @@ class EarlyStopping:
 
         if self.counter >= self.patience:
             print(f'Early stopping reached with best validation loss {self.best_score:.4f}')
-            print(f'Model saved at: {self.model_name}.pt')
+            print(f'Model saved at: {self.model_name}')
             self.stop = True
 
 
+
     def save_checkpoint(self, model: Module):
-        torch.save(model.state_dict(), self.model_name+'.pt')
+        torch.save(model.state_dict(), self.model_name)
 
 
 def reset_weights(model: Module):
@@ -190,6 +193,7 @@ def train_model(model: torch.nn.Module, loss_func: Union[Callable,str], optimize
             if early_stopper is not None:
                 early_stopper(val_loss=loss_val, model=model)
                 if early_stopper.stop:
+                    early_stopper.stop_epoch = i-early_stopper.patience
                     break
 
             pbar.update(1)
@@ -336,14 +340,14 @@ def test_model(model: torch.nn.Module, loss_func: Union[Callable,str,None], test
 
     # TODO: fix this mess
 
-    if loss_func is not None and return_latents:
-        print(f'Test loss: {loss_test:.3f}')
-        return preds, latents, loss_test
-    elif loss_func is not None:
-        print(f'Test loss: {loss_test:.3f}')
-        return preds, loss_test
-    elif return_latents:
-        return preds, latents
+    #if loss_func is not None and return_latents:
+    #    print(f'Test loss: {loss_test:.3f}')
+    #    return preds, latents, loss_test
+    #elif loss_func is not None:
+    #    print(f'Test loss: {loss_test:.3f}')
+    #    return preds, loss_test
+    #elif return_latents:
+    #    return preds, latents
     return preds
 
 
@@ -354,7 +358,7 @@ def test_model(model: torch.nn.Module, loss_func: Union[Callable,str,None], test
 
 def pred_metric(prediction: Union[Tensor, ndarray], target: Union[Tensor, ndarray],
                 metrics: Union[str,list[str]] = 'mse', print_out: \
-                bool = True) -> list[float]:
+                bool = True, rescale_data: DataSet = None) -> list[float]:
     """A function to evaluate continuous predictions compared to targets with different metrics. It can
     take either Tensors or ndarrays and will automatically convert them to the correct format. Partly makes use of
     sklearn and their implementations. The options for metrics are:
@@ -395,9 +399,12 @@ def pred_metric(prediction: Union[Tensor, ndarray], target: Union[Tensor, ndarra
         target = target.cpu().detach().numpy()
     if not isinstance(metrics, list) and metrics != 'all':
         metrics = [metrics]
+    if rescale_data is not None:
+        prediction =  rescale_data.rescale_data(prediction)
+        target = rescale_data.rescale_data(target)
 
     if metrics == 'all':
-        metrics = ['mse','sse','mae','r2','mre']
+        metrics = ['mse','rmse','sse','mae','r2','mre']
 
     results = dict()
     prints = []
@@ -407,6 +414,9 @@ def pred_metric(prediction: Union[Tensor, ndarray], target: Union[Tensor, ndarra
             case 'mse':
                 results['mse'] = mean_squared_error(target, prediction)
                 prints.append(f'MSE: {mean_squared_error(target, prediction):.3f}')
+            case 'rmse':
+                results['rmse'] = np.sqrt(mean_squared_error(target, prediction))
+                prints.append(f'RMSE: {np.sqrt(mean_squared_error(target, prediction)):.3f}')
             case 'sse':
                 results['sse'] = np.sum((target-prediction)**2)
                 prints.append(f'SSE: {np.sum((target-prediction)**2):.3f}')
@@ -421,7 +431,7 @@ def pred_metric(prediction: Union[Tensor, ndarray], target: Union[Tensor, ndarra
                 prints.append(f'MRE: {np.mean(np.abs(target - prediction) / target) * 100:.3f}%')
                 if results['mre'] > 100:
                     prints.append(f'Mean relative error is large, here is the median relative error'
-                                  f':{np.median(np.abs(target-prediction)/target)*100:.3f}')
+                                  f':{np.median(np.abs(target-prediction)/target)*100:.3f}%')
 
     if print_out:
         for out in prints:

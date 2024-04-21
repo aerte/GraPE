@@ -153,7 +153,7 @@ def construct_dataset(smiles: list[str], target: Union[list[int], list[float], n
     """
 
     atom_featurizer = AtomFeaturizer(allowed_atoms=allowed_atoms,
-                                                atom_feature_list = atom_feature_list)
+                                    atom_feature_list = atom_feature_list)
 
     bond_featurizer = BondFeaturizer(bond_feature_list=bond_feature_list)
 
@@ -237,7 +237,7 @@ class DataSet(DataLoad):
 
     """
     def __init__(self, file_path: str = None, smiles: list[str] = None, target: Union[list[int], list[float],
-    ndarray] = None, global_features:Union[list[float], ndarray] = None, allowed_atoms:list[str] = None,
+    ndarray] = None, global_features:Union[list[float], ndarray] = None, filter: bool=True,allowed_atoms:list[str] = None,
     only_organic: bool = True, atom_feature_list: list[str] = None, bond_feature_list: list[str] = None,
                  log: bool = False, root: str = None, indices:list[int] = None):
 
@@ -259,8 +259,11 @@ class DataSet(DataLoad):
             self.data = list(df.graphs)
 
         else:
-            self.smiles, self.raw_target = filter_smiles(smiles, target, allowed_atoms= allowed_atoms,
-                                                         only_organic=only_organic, log=log)
+            if filter:
+                self.smiles, self.raw_target = filter_smiles(smiles, target, allowed_atoms= allowed_atoms,
+                                                     only_organic=only_organic, log=log)
+            else:
+                self.smiles, self.raw_target = np.array(smiles), np.array(target)
 
             # standardize target
             self.target, self.mean_target, self.std_target = self.standardize(np.array(self.raw_target))

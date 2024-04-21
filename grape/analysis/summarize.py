@@ -1,27 +1,16 @@
 # analysis tools
 
 import os
-import time
-import json
-import urllib.request
-import math
-
-import sklearn.preprocessing
-from torch import Tensor
-from numpy import ndarray
-from tqdm import tqdm
 import pandas as pd
 from rdkit import Chem
 from dgllife.utils.analysis import analyze_mols
 import matplotlib.pyplot as plt
 import numpy as np
-import seaborn as sns
-
-from grape.utils.feature_func import mol_weight
 
 __all__ = [
     'smiles_analysis',
-    'classify_compounds'
+    'classify_compounds',
+    'num_heavy_atoms'
 ]
 
 
@@ -182,3 +171,29 @@ def classify_compounds(smiles: list) -> tuple:
         raise ValueError('The sum is not matching')
 
     return class_dict, length_dict
+
+
+def num_heavy_atoms(smiles: list) -> dict:
+    """Simple function that counts the number of heavy atoms per molecule and outputs a dictionary
+    that contains the distributions.
+
+    Parameters
+    ----------
+    smiles
+
+    Returns
+    -------
+
+    """
+
+    class_dict = dict()
+    for element in smiles:
+        mol = Chem.MolFromSmiles(element)
+        num_heavy = mol.GetNumHeavyAtoms()
+        if num_heavy in class_dict:
+            class_dict[num_heavy] += 1
+        else:
+            class_dict[num_heavy] = 1
+
+    return class_dict
+

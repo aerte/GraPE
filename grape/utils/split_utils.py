@@ -1,6 +1,7 @@
 # Module for splitting utilities
 
 from typing import Generator, Union
+import numpy as np
 
 import dgl
 import torch
@@ -171,7 +172,11 @@ def split_data(data, split_type: str = None, split_frac: list[float] = None, cus
             'The custom split has to match the length of the filtered dataset.'
             'Consider saving the filtered output with .get_smiles()')
 
-        return data[custom_split == 0], data[custom_split == 1], data[custom_split == 2]
+        custom_split = np.array(custom_split)
+        indices = np.arange(len(data))
+
+        return (SubSet(data, indices[custom_split == 0]), SubSet(data, indices[custom_split == 1]),
+                SubSet(data, indices[custom_split == 2]))
 
     elif split_type == 'butina' or split_type == 'butina_realistic':
         train, val, test  = split_func[split_type](data.smiles, **kwargs)

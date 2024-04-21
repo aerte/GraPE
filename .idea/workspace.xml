@@ -7,19 +7,23 @@
     <list default="true" id="115446f6-db4f-461b-90f9-f367678daa67" name="Changes" comment="optimization">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/docs/source/Demonstration.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/Demonstration.ipynb" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/grape/analysis/_classyfire.py" beforeDir="false" afterPath="$PROJECT_DIR$/grape/analysis/_classyfire.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/source/best_model.pt" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/best_model.pt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/grape/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/grape/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/grape/analysis/summarize.py" beforeDir="false" afterPath="$PROJECT_DIR$/grape/analysis/summarize.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/grape/models/DMPNN_gnn.py" beforeDir="false" afterPath="$PROJECT_DIR$/grape/models/DMPNN_gnn.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/grape/models/MPNN_gnn.py" beforeDir="false" afterPath="$PROJECT_DIR$/grape/models/MPNN_gnn.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/grape/models/layers.py" beforeDir="false" afterPath="$PROJECT_DIR$/grape/models/layers.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/grape/optim/objectives.py" beforeDir="false" afterPath="$PROJECT_DIR$/grape/optim/objectives.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/grape/models/Weave_gnn.py" beforeDir="false" afterPath="$PROJECT_DIR$/grape/models/Weave_gnn.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/grape/models/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/grape/models/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/grape/models/layers.py" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/grape/plots/analysis_plots.py" beforeDir="false" afterPath="$PROJECT_DIR$/grape/plots/analysis_plots.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/grape/plots/post_plots.py" beforeDir="false" afterPath="$PROJECT_DIR$/grape/plots/post_plots.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/grape/utils/data.py" beforeDir="false" afterPath="$PROJECT_DIR$/grape/utils/data.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/grape/utils/feature_func.py" beforeDir="false" afterPath="$PROJECT_DIR$/grape/utils/feature_func.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/grape/utils/model_utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/grape/utils/model_utils.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/grape/utils/opt_utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/grape/utils/opt_utils.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/DMPNN.py" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/DMPNN.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/grape/utils/split_utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/grape/utils/split_utils.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/notebooks/best_model.pt" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/best_model.pt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/notebooks/test2.py" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/test2.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/notebooks/test3.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/test3.ipynb" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/testbayes.py" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/testbayes.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -69,35 +73,36 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "ASKED_MARK_IGNORED_FILES_AS_EXCLUDED": "true",
-    "Python.MPNN_gnn.executor": "Run",
-    "Python.opt_utils.executor": "Run",
-    "Python.test2.executor": "Run",
-    "Python.test_models.executor": "Run",
-    "Python.testbayes.executor": "Run",
-    "RunOnceActivity.OpenProjectViewOnStart": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "WebServerToolWindowFactoryState": "false",
-    "git-widget-placeholder": "felix",
-    "last_opened_file_path": "/Users/faerte/Desktop/grape/notebooks",
-    "node.js.detected.package.eslint": "true",
-    "node.js.detected.package.tslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "node.js.selected.package.tslint": "(autodetect)",
-    "nodejs_package_manager_path": "npm",
-    "settings.editor.selected.configurable": "preferences.pluginManager",
-    "vue.rearranger.settings.migration": "true"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;ASKED_MARK_IGNORED_FILES_AS_EXCLUDED&quot;: &quot;true&quot;,
+    &quot;Python.MPNN_gnn.executor&quot;: &quot;Run&quot;,
+    &quot;Python.opt_utils.executor&quot;: &quot;Run&quot;,
+    &quot;Python.presentation_model.executor&quot;: &quot;Run&quot;,
+    &quot;Python.test2.executor&quot;: &quot;Run&quot;,
+    &quot;Python.test_models.executor&quot;: &quot;Run&quot;,
+    &quot;Python.testbayes.executor&quot;: &quot;Run&quot;,
+    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;WebServerToolWindowFactoryState&quot;: &quot;false&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;felix&quot;,
+    &quot;last_opened_file_path&quot;: &quot;/Users/faerte/Desktop/grape/notebooks&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;preferences.lookFeel&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
-}]]></component>
+}</component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="$PROJECT_DIR$/notebooks" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
-      <recent name="$PROJECT_DIR$/scripts" />
       <recent name="$PROJECT_DIR$/grape" />
+      <recent name="$PROJECT_DIR$/scripts" />
     </key>
   </component>
   <component name="SharedIndexes">
@@ -144,7 +149,12 @@
       <workItem from="1713282330793" duration="5534000" />
       <workItem from="1713338342060" duration="6598000" />
       <workItem from="1713352802674" duration="8901000" />
-      <workItem from="1713365686664" duration="9657000" />
+      <workItem from="1713365686664" duration="9713000" />
+      <workItem from="1713420698252" duration="7873000" />
+      <workItem from="1713463738637" duration="1021000" />
+      <workItem from="1713464806206" duration="6297000" />
+      <workItem from="1713506790511" duration="20512000" />
+      <workItem from="1713690742497" duration="3009000" />
     </task>
     <task id="LOCAL-00001" summary="bug fixes, SubSet, pca tests, expansion of classyfire">
       <option name="closed" value="true" />
@@ -258,7 +268,23 @@
       <option name="project" value="LOCAL" />
       <updated>1713268683829</updated>
     </task>
-    <option name="localTasksCounter" value="15" />
+    <task id="LOCAL-00015" summary="optimization">
+      <option name="closed" value="true" />
+      <created>1713381239677</created>
+      <option name="number" value="00015" />
+      <option name="presentableId" value="LOCAL-00015" />
+      <option name="project" value="LOCAL" />
+      <updated>1713381239677</updated>
+    </task>
+    <task id="LOCAL-00016" summary="optimization">
+      <option name="closed" value="true" />
+      <created>1713381251200</created>
+      <option name="number" value="00016" />
+      <option name="presentableId" value="LOCAL-00016" />
+      <option name="project" value="LOCAL" />
+      <updated>1713381251200</updated>
+    </task>
+    <option name="localTasksCounter" value="17" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -278,9 +304,10 @@
     <option name="LAST_COMMIT_MESSAGE" value="optimization" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
+    <SUITE FILE_PATH="coverage/grape$presentation_model.coverage" NAME="presentation_model Coverage Results" MODIFIED="1713531949866" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/notebooks" />
     <SUITE FILE_PATH="coverage/grape$MPNN_gnn.coverage" NAME="MPNN_gnn Coverage Results" MODIFIED="1713369855594" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/grape/models" />
     <SUITE FILE_PATH="coverage/grape$test_models.coverage" NAME="test_models Coverage Results" MODIFIED="1713368941036" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/grape/models" />
-    <SUITE FILE_PATH="coverage/grape$test2.coverage" NAME="test2 Coverage Results" MODIFIED="1713370255680" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/notebooks" />
+    <SUITE FILE_PATH="coverage/grape$test2.coverage" NAME="test2 Coverage Results" MODIFIED="1713520057829" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/notebooks" />
     <SUITE FILE_PATH="coverage/grape$opt_utils.coverage" NAME="opt_utils Coverage Results" MODIFIED="1713264989457" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/grape/utils" />
     <SUITE FILE_PATH="coverage/grape$testbayes.coverage" NAME="testbayes Coverage Results" MODIFIED="1713267308595" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/notebooks" />
   </component>
