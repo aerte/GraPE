@@ -660,5 +660,5 @@ class GraphDataSet(DataSet):
                                                         split_frac = self.split_frac, custom_split = self.custom_split)
 
 
-    def save_train_val_test_data(self, names: list[str]=None):
-        assert len(names) == 3 or None, 'Names should have three elements: train, val, test'
+    #def save_train_val_test_data(self, names: list[str]=None):
+    #    assert len(names) == 3 or None, 'Names should have three elements: train, val, test'

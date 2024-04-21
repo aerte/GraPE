@@ -54,6 +54,16 @@ class SubSet:
             return self.dataset[[self.indices[i] for i in item]]
         return self.dataset[self.indices[item]]
 
+    def __iter__(self):
+        """
+
+        Returns:
+
+        """
+
+        for item in range(len(self)):
+            yield self.dataset[self.indices[item]]
+
 def torch_subset_to_SubSet(subset: Union[dgl.data.Subset,torch.utils.data.Subset]) -> SubSet:
     """Returns the GraPE SubSet from the DGL or PyTorch Subset.
 

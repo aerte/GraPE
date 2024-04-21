@@ -7,14 +7,6 @@ as well as a few complete models are described. All of these rely on `PyTorch <l
 .. contents:: Contents
     :local:
 
-Layers
-------
-
-.. automodule:: grape.models.layers
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 Message Passing Models
 -----------------------
 
@@ -29,6 +21,13 @@ Message Passing Models
 **Weave**
 
 .. automodule:: grape.models.Weave_gnn
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+**D-MPNN**
+
+.. automodule:: grape.models.DMPNN_gnn
    :members:
    :undoc-members:
    :show-inheritance:

@@ -64,7 +64,7 @@ device = torch.device('cpu')
 loss_func = nn.functional.mse_loss
 optimizer = torch.optim.Adam(model.parameters(), lr=10**(-2.6), weight_decay=1e-6)
 
-early_stopper = EarlyStopping(patience=50)
+early_stopper = EarlyStopping(patience=50, model_name='best_model_mpnn')
 
 scheduler = lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.9, min_lr=0.0000000000001, patience=30)
 
@@ -78,7 +78,12 @@ train_loss, val_loss = train_model(model = model,
                                   early_stopper=early_stopper,
                                    scheduler=scheduler)
 
-model.load_state_dict(torch.load('best_model.pt'))
+from grape.plots import loss_plot
+from matplotlib import pyplot as plt
+loss_plot([train_loss, val_loss], ['train loss', 'test loss'], early_stopper.stop_epoch)
+plt.show()
+
+model.load_state_dict(torch.load('best_model_mpnn.pt'))
 
 preds = test_model(model=model,
                    test_data_loader=test,

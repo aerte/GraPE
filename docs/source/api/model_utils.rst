@@ -7,3 +7,9 @@ Here are a few functions, namely a training and testing function, to simplify th
    :members:
    :undoc-members:
    :show-inheritance:
+
+
+.. automodule:: grape.utils.plot_utils
+    :members:
+    :undoc-members:
+    :show-inheritance:
