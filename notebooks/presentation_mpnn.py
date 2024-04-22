@@ -68,20 +68,20 @@ early_stopper = EarlyStopping(patience=50, model_name='best_model_mpnn')
 
 scheduler = lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.9, min_lr=0.0000000000001, patience=30)
 
-train_loss, val_loss = train_model(model = model,
-                                  loss_func = 'mse',
-                                  optimizer = optimizer,
-                                  train_data_loader= train,
-                                  val_data_loader = val,
-                                  batch_size=batch_size,
-                                  epochs=500,
-                                  early_stopper=early_stopper,
-                                   scheduler=scheduler)
+#train_loss, val_loss = train_model(model = model,
+#                                  loss_func = 'mse',
+#                                  optimizer = optimizer,
+#                                   train_data_loader= train,
+#                                   val_data_loader = val,
+#                                   batch_size=batch_size,
+#                                   epochs=500,
+#                                   early_stopper=early_stopper,
+#                                    scheduler=scheduler)
 
 from grape.plots import loss_plot
 from matplotlib import pyplot as plt
-loss_plot([train_loss, val_loss], ['train loss', 'test loss'], early_stopper.stop_epoch)
-plt.show()
+#loss_plot([train_loss, val_loss], ['train loss', 'test loss'], early_stopper.stop_epoch)
+#plt.show()
 
 model.load_state_dict(torch.load('best_model_mpnn.pt'))
 
@@ -115,6 +115,13 @@ overall += pred_metric(prediction=test_preds,target=test.y, metrics='rmse', prin
 print(f'Overall RMSE: {overall/3}')
 
 
+##################################################################
+########     Model test on n-alkanes                     #########
+##################################################################
 
 
+df_test = pd.read_excel('/Users/faerte/Desktop/grape/data-sets/n-alkanes.xlsx')
+data_test = DataSet(smiles=df_test.SMILES, target=df_test.nC, filter=False)
+
+alkanes_pred = test_model(model=model, loss_func='mae',test_data_loader=data_test.data)
 

@@ -78,6 +78,24 @@ def mol_weight_vs_target(smiles: list, target: list, target_name: str = None, fi
 
 def num_chart(num_dict: dict, fig_size: tuple = (14,8), save_fig: bool = False,
                          path_to_export: str = None) -> sns.barplot:
+    """
+
+    Parameters
+    ----------
+    num_dict: dict
+        Dictionary of whatever should be plotted. The keys can be anything, but the values have to be
+        integers.
+    fig_size: tuple
+        The output figure size. Default: (14,8)
+    save_fig: bool
+        Decides if the plot is saved, is overridden if a path is given. Default: False
+    path_to_export: str
+        File location to save. Default: None
+
+    Returns
+    -------
+
+    """
 
     if save_fig and (path_to_export is None):
 
@@ -208,9 +226,29 @@ def compounds_dataset_heatmap(dataset_smiles: list, dataset_names: list,  fig_si
 
 
 
-def num_heavy_plot(smiles: list,  fig_size: tuple = (10,10),
-                              save_fig: bool = False, path_to_export: str = None,
+def num_heavy_plot(smiles: list,  fig_size: tuple = (10,10), save_fig: bool = False, path_to_export: str = None,
                    fontsize:int = 20) -> plt.axes:
+    """A histogram of heavy atoms per molecule. Takes a list of smiles as input.
+
+    Parameters
+    ----------
+    smiles: list
+        A list containing the smiles of the datasets to be considered.
+    fig_size: tuple
+        The output figure size. Default: (10,10)
+    save_fig: bool
+        Decides if the plot is saved, is overridden if a path is given. Default: False
+    path_to_export: str
+        File location to save. Default: None
+    fontsize:int
+        The font size of the figure. Default: 20
+
+
+    Returns
+    -------
+    plt.axes
+
+    """
 
     if save_fig and (path_to_export is None):
 
@@ -221,7 +259,6 @@ def num_heavy_plot(smiles: list,  fig_size: tuple = (10,10),
 
 
     class_dict = num_heavy_atoms(smiles)
-    max_heavy = max(list(class_dict.values()))
 
     fig, ax = num_chart(class_dict, fig_size=fig_size, save_fig=False)
 

@@ -36,16 +36,35 @@ class DMPNNEncoder(nn.Module):
     [2] Yang et al (2019). Correction to Analyzing Learned Molecular Representations for Property Prediction.
     JCIM, 59(12), 5304–5305. https://doi.org/10.1021/acs.jcim.9b01076
 
+    --------
+
+    Parameters
+    ----------------
+    node_in_dim: int
+        The number of input node features.
+    edge_in_dim: int
+        The number of input edge features.
+    node_hidden_dim: int
+        The dimension of the hidden node features. Default: 64
+    depth: int
+        The number of D-MPNN layers that will be used. Default: 4
+    dropout: float
+        The dropout probability used in a dropout layer after the message update. Default: 0.15
+    pool: bool
+        Whether to use a pooling layer before returning the output. Default: True
+
     """
 
-    def __init__(self, hidden_size, node_fdim, edge_fdim, depth=3, dropout=0.15, bias=True):
+    def __init__(self, node_in_dim:int, edge_in_dim:int, node_hidden_dim:int=64, depth:int=3, dropout:float=0.15,
+                 bias:bool=True, pool:bool=True):
         super(DMPNNEncoder, self).__init__()
         self.act_func = nn.ReLU()
-        self.W1 = nn.Linear(node_fdim + edge_fdim, hidden_size, bias=bias)
-        self.W2 = nn.Linear(hidden_size, hidden_size, bias=bias)
-        self.W3 = nn.Linear(node_fdim + hidden_size, hidden_size, bias=bias)
+        self.W1 = nn.Linear(node_in_dim + edge_in_dim, node_hidden_dim, bias=bias)
+        self.W2 = nn.Linear(node_hidden_dim, node_hidden_dim, bias=bias)
+        self.W3 = nn.Linear(node_in_dim + node_hidden_dim, node_hidden_dim, bias=bias)
         self.depth = depth
         self.dropout_layer = nn.Dropout(dropout)
+        self.pool = pool
 
     @staticmethod
     def directed_mp(message, edge_index, revedge_index):
@@ -89,22 +108,50 @@ class DMPNNEncoder(nn.Module):
         node_attr = self.dropout_layer(node_attr)
 
         # readout: pyg global pooling
-        return global_mean_pool(node_attr, batch)
+        if self.pool:
+            return global_mean_pool(node_attr, batch)
+        else:
+            return node_attr
 
 
 class DMPNNModel(torch.nn.Module):
-    """D-MPNN model from graph to prediction.
+    """D-MPNN [1,2] model from graph to prediction. It extends the DMPNNEncoder with a 3 layered MLP for prediction.
+
+    -------
+
+    References
+
+    [1] Yang et al (2019). Analyzing Learned Molecular Representations for Property Prediction. JCIM, 59(8),
+    3370–3388. https://doi.org/10.1021/acs.jcim.9b00237
+
+    [2] Yang et al (2019). Correction to Analyzing Learned Molecular Representations for Property Prediction.
+    JCIM, 59(12), 5304–5305. https://doi.org/10.1021/acs.jcim.9b01076
+
+    --------
+
+    Parameters
+    ----------------
+    node_in_dim: int
+        The number of input node features.
+    edge_in_dim: int
+        The number of input edge features.
+    node_hidden_dim: int
+        The dimension of the hidden node features. Default: 64
+    depth: int
+        The number of D-MPNN layers that will be used. Default: 4
+    dropout: float
+        The dropout probability used in a dropout layer after the message update. Default: 0.15
 
     """
-    def __init__(self, hidden_size, node_dim, edge_dim, depth=3, dropout=0.15, bias=True):
+    def __init__(self, node_in_dim:int, edge_in_dim:int,node_hidden_dim:int=64, depth=3, dropout=0.15, bias=True):
         super(DMPNNModel, self).__init__()
 
-        self.hidden_size = hidden_size
-        self.node_dim = node_dim
-        self.edge_dim = edge_dim
+        self.hidden_size = node_hidden_dim
+        self.node_dim = node_in_dim
+        self.edge_dim = edge_in_dim
         self.depth = depth
 
-        self.encoder = DMPNNEncoder(hidden_size, node_dim, edge_dim, depth, dropout)
+        self.encoder = DMPNNEncoder(node_hidden_dim, node_in_dim, edge_in_dim, depth, dropout, bias = bias, pool=True)
 
         self.mlp_out = nn.Sequential(nn.Linear(self.hidden_size, self.hidden_size, bias=bias),
                                      nn.ReLU(),

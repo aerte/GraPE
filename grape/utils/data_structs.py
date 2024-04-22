@@ -27,8 +27,13 @@ class RevIndexedData(Data):
     This class establishes a new method in the Data class of PyTorch Geometric that stores all the reverse
     indices of all the Data edges as a new feature.
 
+    Parameters
+    -----------
+    orig: Data
+        Original Pytorch Geometric Data object.
+
     """
-    def __init__(self, orig):
+    def __init__(self, orig:Data):
         super(RevIndexedData, self).__init__()
         if orig:
             for key in orig.keys():
@@ -71,9 +76,14 @@ class RevIndexedDataset(Dataset):
     the RevIndexedData class to them. This acts like a Torch Subset or a Grape SubSet, but is limited to the
     data itself.
 
+    Parameters
+    -----------
+    orig: list of Data
+        List of Pytorch Geometric Data objects.
+
     """
 
-    def __init__(self, orig):
+    def __init__(self, orig: list[Data]):
         super(RevIndexedDataset, self).__init__()
         self.dataset = [RevIndexedData(data) for data in tqdm(orig)]
 
@@ -84,13 +94,18 @@ class RevIndexedDataset(Dataset):
         return len(self.dataset)
 
 
-# TODO: Maybe make a smarter integration of this into the pre-existing system.
-class RevIndexedSubSet(SubSet):
-    """An extension of the SubSet class with the RevIndexedData class by Ichigaku Takigawa.
 
+class RevIndexedSubSet(SubSet):
+    """An extension of the SubSet class with the RevIndexedData class by Ichigaku Takigawa. The input has to
+    be the GraPE SubSet object.
+
+    Parameters
+    ------------
+    subset: SubSet
+        A SubSet object.
     """
 
-    def __init__(self, subset):
+    def __init__(self, subset:SubSet):
         super(RevIndexedSubSet, self).__init__(subset.dataset, subset.indices)
         self.rev_data = [RevIndexedData(data) for data in tqdm(subset)]
 

@@ -4,29 +4,13 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="115446f6-db4f-461b-90f9-f367678daa67" name="Changes" comment="some reformatting and presentation files">
+    <list default="true" id="115446f6-db4f-461b-90f9-f367678daa67" name="Changes" comment="dmpnn added and update of documentation">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/source/Demonstration-Advanced.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/Demonstration-Advanced.ipynb" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/source/Demonstration.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/Demonstration.ipynb" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/source/analysis.rst" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/api/analysis.rst" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/source/api.rst" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/api/api.rst" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/source/best_model.pt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/source/best_model.pt.pt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/source/dataset.rst" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/api/dataset.rst" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/source/dglchem.utils.featurizer.rst" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/api/dglchem.utils.featurizer.rst" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/source/feats.rst" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/api/feats.rst" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/source/gnndata.rst" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/api/gnndata.rst" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/source/index.rst" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/index.rst" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/source/model_utils.rst" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/api/model_utils.rst" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/source/models.rst" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/api/models.rst" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/source/splitting.rst" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/api/splitting.rst" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/grape/models/DMPNN_gnn.py" beforeDir="false" afterPath="$PROJECT_DIR$/grape/models/DMPNN_gnn.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/grape/utils/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/grape/utils/__init__.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/grape/utils/data.py" beforeDir="false" afterPath="$PROJECT_DIR$/grape/utils/data.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/grape/utils/split_utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/grape/utils/split_utils.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/best_model.pt" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/best_model.pt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/presentation_model.py" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/presentation_mpnn.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/requirements.txt" beforeDir="false" afterPath="$PROJECT_DIR$/requirements.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/grape/plots/analysis_plots.py" beforeDir="false" afterPath="$PROJECT_DIR$/grape/plots/analysis_plots.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/grape/utils/data_structs.py" beforeDir="false" afterPath="$PROJECT_DIR$/grape/utils/data_structs.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/notebooks/Demonstration.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/Demonstration.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/notebooks/presentation_mpnn.py" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/presentation_mpnn.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -82,6 +66,7 @@
     "JavaScript Debug.Demonstration.html.executor": "Run",
     "JavaScript Debug.analysis.html.executor": "Run",
     "Python.MPNN_gnn.executor": "Run",
+    "Python.alkanes_test.executor": "Run",
     "Python.opt_utils.executor": "Run",
     "Python.presentation_dmpnn.executor": "Run",
     "Python.presentation_model.executor": "Run",
@@ -163,7 +148,8 @@
       <workItem from="1713464806206" duration="6297000" />
       <workItem from="1713506790511" duration="20512000" />
       <workItem from="1713690742497" duration="7543000" />
-      <workItem from="1713702260054" duration="10318000" />
+      <workItem from="1713702260054" duration="13701000" />
+      <workItem from="1713768259933" duration="13675000" />
     </task>
     <task id="LOCAL-00001" summary="bug fixes, SubSet, pca tests, expansion of classyfire">
       <option name="closed" value="true" />
@@ -309,7 +295,15 @@
       <option name="project" value="LOCAL" />
       <updated>1713693860752</updated>
     </task>
-    <option name="localTasksCounter" value="19" />
+    <task id="LOCAL-00019" summary="dmpnn added and update of documentation">
+      <option name="closed" value="true" />
+      <created>1713712810343</created>
+      <option name="number" value="00019" />
+      <option name="presentableId" value="LOCAL-00019" />
+      <option name="project" value="LOCAL" />
+      <updated>1713712810343</updated>
+    </task>
+    <option name="localTasksCounter" value="20" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -328,14 +322,16 @@
     <MESSAGE value="optimization" />
     <MESSAGE value="more plots and fixes" />
     <MESSAGE value="some reformatting and presentation files" />
-    <option name="LAST_COMMIT_MESSAGE" value="some reformatting and presentation files" />
+    <MESSAGE value="dmpnn added and update of documentation" />
+    <option name="LAST_COMMIT_MESSAGE" value="dmpnn added and update of documentation" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/grape$presentation_model.coverage" NAME="presentation_model Coverage Results" MODIFIED="1713531949866" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/notebooks" />
+    <SUITE FILE_PATH="coverage/grape$alkanes_test.coverage" NAME="alkanes_test Coverage Results" MODIFIED="1713775345542" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/notebooks" />
     <SUITE FILE_PATH="coverage/grape$MPNN_gnn.coverage" NAME="MPNN_gnn Coverage Results" MODIFIED="1713369855594" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/grape/models" />
     <SUITE FILE_PATH="coverage/grape$presentation_dmpnn.coverage" NAME="presentation_dmpnn Coverage Results" MODIFIED="1713709771726" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/notebooks" />
     <SUITE FILE_PATH="coverage/grape$test_models.coverage" NAME="test_models Coverage Results" MODIFIED="1713368941036" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/grape/models" />
-    <SUITE FILE_PATH="coverage/grape$presentation_mpnn.coverage" NAME="presentation_mpnn Coverage Results" MODIFIED="1713704773551" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/notebooks" />
+    <SUITE FILE_PATH="coverage/grape$presentation_mpnn.coverage" NAME="presentation_mpnn Coverage Results" MODIFIED="1713768807655" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/notebooks" />
     <SUITE FILE_PATH="coverage/grape$test2.coverage" NAME="test2 Coverage Results" MODIFIED="1713520057829" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/notebooks" />
     <SUITE FILE_PATH="coverage/grape$opt_utils.coverage" NAME="opt_utils Coverage Results" MODIFIED="1713264989457" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/grape/utils" />
     <SUITE FILE_PATH="coverage/grape$testbayes.coverage" NAME="testbayes Coverage Results" MODIFIED="1713267308595" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/notebooks" />
