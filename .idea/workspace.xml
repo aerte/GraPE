@@ -4,13 +4,13 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="115446f6-db4f-461b-90f9-f367678daa67" name="Changes" comment="dmpnn added and update of documentation">
+    <list default="true" id="115446f6-db4f-461b-90f9-f367678daa67" name="Changes" comment="added documentation and n-alkanes">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/grape/models/DMPNN_gnn.py" beforeDir="false" afterPath="$PROJECT_DIR$/grape/models/DMPNN_gnn.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/grape/plots/analysis_plots.py" beforeDir="false" afterPath="$PROJECT_DIR$/grape/plots/analysis_plots.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/grape/utils/data_structs.py" beforeDir="false" afterPath="$PROJECT_DIR$/grape/utils/data_structs.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/Demonstration.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/Demonstration.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/grape/models/Weave_gnn.py" beforeDir="false" afterPath="$PROJECT_DIR$/grape/models/Weave_gnn.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/grape/models/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/grape/models/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/notebooks/best_model_mpnn.pt" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/best_model_mpnn.pt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/notebooks/presentation_mpnn.py" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/presentation_mpnn.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/notebooks/test3.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/test3.ipynb" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -65,6 +65,7 @@
     "ASKED_MARK_IGNORED_FILES_AS_EXCLUDED": "true",
     "JavaScript Debug.Demonstration.html.executor": "Run",
     "JavaScript Debug.analysis.html.executor": "Run",
+    "Python.MEGNet_gnn.executor": "Run",
     "Python.MPNN_gnn.executor": "Run",
     "Python.alkanes_test.executor": "Run",
     "Python.opt_utils.executor": "Run",
@@ -149,7 +150,9 @@
       <workItem from="1713506790511" duration="20512000" />
       <workItem from="1713690742497" duration="7543000" />
       <workItem from="1713702260054" duration="13701000" />
-      <workItem from="1713768259933" duration="13675000" />
+      <workItem from="1713768259933" duration="14401000" />
+      <workItem from="1713899063291" duration="75000" />
+      <workItem from="1714308226259" duration="12972000" />
     </task>
     <task id="LOCAL-00001" summary="bug fixes, SubSet, pca tests, expansion of classyfire">
       <option name="closed" value="true" />
@@ -303,7 +306,15 @@
       <option name="project" value="LOCAL" />
       <updated>1713712810343</updated>
     </task>
-    <option name="localTasksCounter" value="20" />
+    <task id="LOCAL-00020" summary="added documentation and n-alkanes">
+      <option name="closed" value="true" />
+      <created>1713808204910</created>
+      <option name="number" value="00020" />
+      <option name="presentableId" value="LOCAL-00020" />
+      <option name="project" value="LOCAL" />
+      <updated>1713808204910</updated>
+    </task>
+    <option name="localTasksCounter" value="21" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -323,15 +334,17 @@
     <MESSAGE value="more plots and fixes" />
     <MESSAGE value="some reformatting and presentation files" />
     <MESSAGE value="dmpnn added and update of documentation" />
-    <option name="LAST_COMMIT_MESSAGE" value="dmpnn added and update of documentation" />
+    <MESSAGE value="added documentation and n-alkanes" />
+    <option name="LAST_COMMIT_MESSAGE" value="added documentation and n-alkanes" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/grape$presentation_model.coverage" NAME="presentation_model Coverage Results" MODIFIED="1713531949866" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/notebooks" />
     <SUITE FILE_PATH="coverage/grape$alkanes_test.coverage" NAME="alkanes_test Coverage Results" MODIFIED="1713775345542" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/notebooks" />
     <SUITE FILE_PATH="coverage/grape$MPNN_gnn.coverage" NAME="MPNN_gnn Coverage Results" MODIFIED="1713369855594" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/grape/models" />
+    <SUITE FILE_PATH="coverage/grape$MEGNet_gnn.coverage" NAME="MEGNet_gnn Coverage Results" MODIFIED="1714326296542" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/grape/models" />
     <SUITE FILE_PATH="coverage/grape$presentation_dmpnn.coverage" NAME="presentation_dmpnn Coverage Results" MODIFIED="1713709771726" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/notebooks" />
     <SUITE FILE_PATH="coverage/grape$test_models.coverage" NAME="test_models Coverage Results" MODIFIED="1713368941036" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/grape/models" />
-    <SUITE FILE_PATH="coverage/grape$presentation_mpnn.coverage" NAME="presentation_mpnn Coverage Results" MODIFIED="1713768807655" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/notebooks" />
+    <SUITE FILE_PATH="coverage/grape$presentation_mpnn.coverage" NAME="presentation_mpnn Coverage Results" MODIFIED="1714327319150" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/notebooks" />
     <SUITE FILE_PATH="coverage/grape$test2.coverage" NAME="test2 Coverage Results" MODIFIED="1713520057829" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/notebooks" />
     <SUITE FILE_PATH="coverage/grape$opt_utils.coverage" NAME="opt_utils Coverage Results" MODIFIED="1713264989457" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/grape/utils" />
     <SUITE FILE_PATH="coverage/grape$testbayes.coverage" NAME="testbayes Coverage Results" MODIFIED="1713267308595" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/notebooks" />

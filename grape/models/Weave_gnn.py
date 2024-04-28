@@ -1,7 +1,6 @@
 # Inspired by https://github.com/chaitjo/geometric-gnn-dojo/blob/main/geometric_gnn_101.ipynb
 
-# Weave layer
-from typing import Any
+# Weave Model
 
 import torch
 
