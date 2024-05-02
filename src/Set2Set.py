@@ -30,7 +30,7 @@ class Set2Set(nn.Module):
         #here, we aren't storing the graph in a specific graph object,
         # we just have x (the data)
         for _ in range(self.num_iters):
-            q, h = lstm(q_star.unsqueeze(1), h)
+            q, h = self.lstm(q_star.unsqueeze(1), h)
             q = q.view(batch_size, self.in_dim)
             e = torch.mul(x, q[batch]).sum(dim=-1)
             a = scatter(e, batch, dim=0, reduce='softmax')
