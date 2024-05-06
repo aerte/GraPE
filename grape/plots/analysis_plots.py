@@ -1,32 +1,27 @@
 # analysis tools
 
 import os
-import time
-import json
-import urllib.request
-import math
 
-import sklearn.preprocessing
-from torch import Tensor
-from numpy import ndarray
-from tqdm import tqdm
 import pandas as pd
 from rdkit import Chem
-from dgllife.utils.analysis import analyze_mols
 import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
 
 from grape.utils.feature_func import mol_weight
 from grape.analysis import classify_compounds
+from grape.utils.data import DataSet
+from grape.analysis import num_heavy_atoms
 
 __all__ = ['mol_weight_vs_target',
            'num_chart',
            'compound_nums_chart',
-           'compounds_dataset_heatmap']
+           'compounds_dataset_heatmap',
+           'num_heavy_plot']
 
 def mol_weight_vs_target(smiles: list, target: list, target_name: str = None, fig_height: int = 8,
-                         save_fig: bool = False, path_to_export: str =None) -> sns.jointplot:
+                         save_fig: bool = False, path_to_export: str =None,
+                         rescale_data: DataSet = None, **kwargs) -> sns.jointplot:
     """Plots a seaborn jointplot of the target distribution against the molecular weight distributions.
 
     Parameters
@@ -43,6 +38,8 @@ def mol_weight_vs_target(smiles: list, target: list, target_name: str = None, fi
         Decides if the figure is saved as a svg (unless a path is given, then it will save the image). Default: False
     path_to_export: str
         File path of the saved image. Default: None
+    **kwargs
+        Any additional keyword arguments are passed to the sns.jointplot function.
 
 
     Returns
@@ -62,12 +59,16 @@ def mol_weight_vs_target(smiles: list, target: list, target_name: str = None, fi
     target_name = 'target' if target_name is None else target_name
     weight = np.zeros(len(smiles))
 
+    if rescale_data is not None:
+        target = rescale_data.rescale_data(target)
+
     for i in range(len(smiles)):
         weight[i] = mol_weight(Chem.MolFromSmiles(smiles[i]))
 
     df = pd.DataFrame({'molecular weight in [g/mol]': weight, target_name: target})
 
-    plot = sns.jointplot(height=fig_height, data=df, x='molecular weight in [g/mol]',y=target_name, color='blue')
+    plot = sns.jointplot(height=fig_height, data=df, x='molecular weight in [g/mol]',y=target_name, color='blue',
+                         **kwargs)
 
     if path_to_export is not None:
         plot.savefig(fname=f'{path_to_export}/molecular_weight_against_{target_name}.svg', format='svg')
@@ -77,6 +78,24 @@ def mol_weight_vs_target(smiles: list, target: list, target_name: str = None, fi
 
 def num_chart(num_dict: dict, fig_size: tuple = (14,8), save_fig: bool = False,
                          path_to_export: str = None) -> sns.barplot:
+    """
+
+    Parameters
+    ----------
+    num_dict: dict
+        Dictionary of whatever should be plotted. The keys can be anything, but the values have to be
+        integers.
+    fig_size: tuple
+        The output figure size. Default: (14,8)
+    save_fig: bool
+        Decides if the plot is saved, is overridden if a path is given. Default: False
+    path_to_export: str
+        File location to save. Default: None
+
+    Returns
+    -------
+
+    """
 
     if save_fig and (path_to_export is None):
 
@@ -100,7 +119,7 @@ def num_chart(num_dict: dict, fig_size: tuple = (14,8), save_fig: bool = False,
     if path_to_export is not None:
         fig.savefig(fname=f'{path_to_export}/compound_distribution.svg', format='svg', bbox_inches='tight')
 
-    return
+    return fig, ax
 
 
 def compound_nums_chart(smiles: list, fig_size: tuple = (14,8), save_fig: bool = False, path_to_export: str = None) \
@@ -146,7 +165,7 @@ def compound_nums_chart(smiles: list, fig_size: tuple = (14,8), save_fig: bool =
     if path_to_export is not None:
         fig.savefig(fname=f'{path_to_export}/compound_distribution.svg', format='svg', bbox_inches='tight')
 
-    return
+    return ax
 
 def compounds_dataset_heatmap(dataset_smiles: list, dataset_names: list,  fig_size: tuple = (10,10),
                               save_fig: bool = False, path_to_export: str = None) -> sns.heatmap:
@@ -204,3 +223,54 @@ def compounds_dataset_heatmap(dataset_smiles: list, dataset_names: list,  fig_si
         fig.savefig(fname=f'{path_to_export}/dataset_heatmap.svg', format='svg', bbox_inches='tight')
 
     return
+
+
+
+def num_heavy_plot(smiles: list,  fig_size: tuple = (10,10), save_fig: bool = False, path_to_export: str = None,
+                   fontsize:int = 20) -> plt.axes:
+    """A histogram of heavy atoms per molecule. Takes a list of smiles as input.
+
+    Parameters
+    ----------
+    smiles: list
+        A list containing the smiles of the datasets to be considered.
+    fig_size: tuple
+        The output figure size. Default: (10,10)
+    save_fig: bool
+        Decides if the plot is saved, is overridden if a path is given. Default: False
+    path_to_export: str
+        File location to save. Default: None
+    fontsize:int
+        The font size of the figure. Default: 20
+
+
+    Returns
+    -------
+    plt.axes
+
+    """
+
+    if save_fig and (path_to_export is None):
+
+        path_to_export = os.getcwd() + '/analysis_results'
+
+        if not os.path.exists(path_to_export):
+            os.mkdir(path_to_export)
+
+
+    class_dict = num_heavy_atoms(smiles)
+
+    fig, ax = num_chart(class_dict, fig_size=fig_size, save_fig=False)
+
+    ax.set_xlabel('Number of heavy atoms per molecule', fontsize=fontsize)
+    ax.set_ylabel('Counts', fontsize=fontsize)
+    ax.set_title('Heavy atoms distribution', fontsize=fontsize)
+    ax.tick_params(axis='both', which='major', labelsize=fontsize)  # Set fontsize for major tick labels
+    ax.tick_params(axis='both', which='minor', labelsize=fontsize)  # Set fontsize for minor tick labels
+
+
+    if path_to_export is not None:
+        fig.savefig(fname=f'{path_to_export}/num_heavy_atoms.svg', format='svg', bbox_inches='tight')
+
+    return ax
+

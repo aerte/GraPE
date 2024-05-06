@@ -1,4 +1,4 @@
-# GraPE - Graph Property Estimation
+# GraPE - Graph-based Property Estimation
 
 A chemical property prediction pipeline.
 _

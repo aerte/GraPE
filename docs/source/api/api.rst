@@ -8,9 +8,8 @@ small guide please refer to <Demonstration>.
     dataset
     models
     analysis
-    feats
-    gnndata
     splitting
-    model_utils
+    utils
+    plots
 
 

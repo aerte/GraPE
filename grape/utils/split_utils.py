@@ -1,6 +1,7 @@
 # Module for splitting utilities
 
 from typing import Generator, Union
+import numpy as np
 
 import dgl
 import torch
@@ -53,6 +54,16 @@ class SubSet:
             return self.dataset[[self.indices[i] for i in item]]
         return self.dataset[self.indices[item]]
 
+    def __iter__(self):
+        """
+
+        Returns:
+
+        """
+
+        for item in range(len(self)):
+            yield self.dataset[self.indices[item]]
+
 def torch_subset_to_SubSet(subset: Union[dgl.data.Subset,torch.utils.data.Subset]) -> SubSet:
     """Returns the GraPE SubSet from the DGL or PyTorch Subset.
 
@@ -64,8 +75,8 @@ def torch_subset_to_SubSet(subset: Union[dgl.data.Subset,torch.utils.data.Subset
     -------
     SubSet
     """
-    assert isinstance(subset.dataset, grape.utils.DataSet) or isinstance(subset.dataset, grape.utils.GraphDataSet),(
-        'The subsets underlying dataset has to be either DataSet or GraphDataSet.')
+    #assert isinstance(subset.dataset, grape.utils.DataSet) or isinstance(subset.dataset, grape.utils.GraphDataSet),(
+    #    'The subsets underlying dataset has to be either DataSet or GraphDataSet.')
     return SubSet(subset.dataset, subset.indices)
 
 def mult_subset_to_gen(subsets: Union[tuple[dgl.data.Subset], tuple[torch.utils.data.Subset]]) -> Generator:
@@ -171,7 +182,11 @@ def split_data(data, split_type: str = None, split_frac: list[float] = None, cus
             'The custom split has to match the length of the filtered dataset.'
             'Consider saving the filtered output with .get_smiles()')
 
-        return data[custom_split == 0], data[custom_split == 1], data[custom_split == 2]
+        custom_split = np.array(custom_split)
+        indices = np.arange(len(data))
+
+        return (SubSet(data, indices[custom_split == 0]), SubSet(data, indices[custom_split == 1]),
+                SubSet(data, indices[custom_split == 2]))
 
     elif split_type == 'butina' or split_type == 'butina_realistic':
         train, val, test  = split_func[split_type](data.smiles, **kwargs)

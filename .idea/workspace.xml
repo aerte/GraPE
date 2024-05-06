@@ -4,8 +4,11 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="115446f6-db4f-461b-90f9-f367678daa67" name="Changes" comment="new butina split and bug fixes">
-      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
+    <list default="true" id="115446f6-db4f-461b-90f9-f367678daa67" name="Changes" comment="Megnet implementation">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/source/api/models.rst" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/api/models.rst" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/source/index.rst" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/index.rst" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -21,20 +24,25 @@
     </option>
   </component>
   <component name="Git.Settings">
+    <option name="RECENT_BRANCH_BY_REPOSITORY">
+      <map>
+        <entry key="$PROJECT_DIR$" value="main" />
+      </map>
+    </option>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
-  <component name="GitHubPullRequestSearchHistory"><![CDATA[{
-  "lastFilter": {
-    "state": "OPEN",
-    "assignee": "aerte"
+  <component name="GitHubPullRequestSearchHistory">{
+  &quot;lastFilter&quot;: {
+    &quot;state&quot;: &quot;OPEN&quot;,
+    &quot;assignee&quot;: &quot;aerte&quot;
   }
-}]]></component>
-  <component name="GithubPullRequestsUISettings"><![CDATA[{
-  "selectedUrlAndAccountId": {
-    "url": "https://github.com/aerte/GraPE",
-    "accountId": "49ffe133-3872-4a58-b371-e900139014cd"
+}</component>
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/aerte/GraPE&quot;,
+    &quot;accountId&quot;: &quot;49ffe133-3872-4a58-b371-e900139014cd&quot;
   }
-}]]></component>
+}</component>
   <component name="MarkdownSettingsMigration">
     <option name="stateVersion" value="1" />
   </component>
@@ -52,22 +60,41 @@
   </component>
   <component name="PropertiesComponent">{
   &quot;keyToString&quot;: {
+    &quot;ASKED_MARK_IGNORED_FILES_AS_EXCLUDED&quot;: &quot;true&quot;,
+    &quot;JavaScript Debug.Demonstration.html.executor&quot;: &quot;Run&quot;,
+    &quot;JavaScript Debug.analysis.html.executor&quot;: &quot;Run&quot;,
+    &quot;Python.MEGNet_gnn.executor&quot;: &quot;Run&quot;,
+    &quot;Python.MPNN_gnn.executor&quot;: &quot;Run&quot;,
+    &quot;Python.alkanes_test.executor&quot;: &quot;Run&quot;,
+    &quot;Python.opt_utils.executor&quot;: &quot;Run&quot;,
+    &quot;Python.presentation_dmpnn.executor&quot;: &quot;Run&quot;,
+    &quot;Python.presentation_model.executor&quot;: &quot;Run&quot;,
+    &quot;Python.presentation_mpnn.executor&quot;: &quot;Run&quot;,
+    &quot;Python.test2.executor&quot;: &quot;Run&quot;,
+    &quot;Python.test_models.executor&quot;: &quot;Run&quot;,
+    &quot;Python.testbayes.executor&quot;: &quot;Run&quot;,
     &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
     &quot;WebServerToolWindowFactoryState&quot;: &quot;false&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;felix&quot;,
+    &quot;last_opened_file_path&quot;: &quot;/Users/faerte/Desktop/grape/notebooks&quot;,
     &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
     &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
     &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
     &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
     &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;preferences.lookFeel&quot;,
     &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
 }</component>
   <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/notebooks" />
+    </key>
     <key name="MoveFile.RECENT_KEYS">
-      <recent name="$PROJECT_DIR$/scripts" />
+      <recent name="$PROJECT_DIR$/docs/source/api" />
       <recent name="$PROJECT_DIR$/grape" />
+      <recent name="$PROJECT_DIR$/scripts" />
     </key>
   </component>
   <component name="SharedIndexes">
@@ -100,7 +127,36 @@
       <workItem from="1712678042226" duration="2679000" />
       <workItem from="1712730855305" duration="154000" />
       <workItem from="1712731050898" duration="93000" />
-      <workItem from="1712731196039" duration="18863000" />
+      <workItem from="1712731196039" duration="26588000" />
+      <workItem from="1712818079575" duration="4104000" />
+      <workItem from="1712853013580" duration="4259000" />
+      <workItem from="1712905622256" duration="1807000" />
+      <workItem from="1712986194609" duration="3015000" />
+      <workItem from="1713073367379" duration="598000" />
+      <workItem from="1713095251620" duration="413000" />
+      <workItem from="1713101749151" duration="4618000" />
+      <workItem from="1713162498574" duration="2257000" />
+      <workItem from="1713199540701" duration="1862000" />
+      <workItem from="1713248120185" duration="12557000" />
+      <workItem from="1713282330793" duration="5534000" />
+      <workItem from="1713338342060" duration="6598000" />
+      <workItem from="1713352802674" duration="8901000" />
+      <workItem from="1713365686664" duration="9713000" />
+      <workItem from="1713420698252" duration="7873000" />
+      <workItem from="1713463738637" duration="1021000" />
+      <workItem from="1713464806206" duration="6297000" />
+      <workItem from="1713506790511" duration="20512000" />
+      <workItem from="1713690742497" duration="7543000" />
+      <workItem from="1713702260054" duration="13701000" />
+      <workItem from="1713768259933" duration="14401000" />
+      <workItem from="1713899063291" duration="75000" />
+      <workItem from="1714308226259" duration="13109000" />
+      <workItem from="1714379997783" duration="599000" />
+      <workItem from="1714404778731" duration="12000" />
+      <workItem from="1714633543523" duration="5592000" />
+      <workItem from="1714736068114" duration="17000" />
+      <workItem from="1714895394411" duration="930000" />
+      <workItem from="1715013136795" duration="403000" />
     </task>
     <task id="LOCAL-00001" summary="bug fixes, SubSet, pca tests, expansion of classyfire">
       <option name="closed" value="true" />
@@ -190,7 +246,95 @@
       <option name="project" value="LOCAL" />
       <updated>1712759146127</updated>
     </task>
-    <option name="localTasksCounter" value="12" />
+    <task id="LOCAL-00012" summary="new butina split and bug fixes">
+      <option name="closed" value="true" />
+      <created>1712759485616</created>
+      <option name="number" value="00012" />
+      <option name="presentableId" value="LOCAL-00012" />
+      <option name="project" value="LOCAL" />
+      <updated>1712759485616</updated>
+    </task>
+    <task id="LOCAL-00013" summary="fixed MPNN and added an Early stopping class">
+      <option name="closed" value="true" />
+      <created>1712862774211</created>
+      <option name="number" value="00013" />
+      <option name="presentableId" value="LOCAL-00013" />
+      <option name="project" value="LOCAL" />
+      <updated>1712862774211</updated>
+    </task>
+    <task id="LOCAL-00014" summary="optimization">
+      <option name="closed" value="true" />
+      <created>1713268683829</created>
+      <option name="number" value="00014" />
+      <option name="presentableId" value="LOCAL-00014" />
+      <option name="project" value="LOCAL" />
+      <updated>1713268683829</updated>
+    </task>
+    <task id="LOCAL-00015" summary="optimization">
+      <option name="closed" value="true" />
+      <created>1713381239677</created>
+      <option name="number" value="00015" />
+      <option name="presentableId" value="LOCAL-00015" />
+      <option name="project" value="LOCAL" />
+      <updated>1713381239677</updated>
+    </task>
+    <task id="LOCAL-00016" summary="optimization">
+      <option name="closed" value="true" />
+      <created>1713381251200</created>
+      <option name="number" value="00016" />
+      <option name="presentableId" value="LOCAL-00016" />
+      <option name="project" value="LOCAL" />
+      <updated>1713381251200</updated>
+    </task>
+    <task id="LOCAL-00017" summary="more plots and fixes">
+      <option name="closed" value="true" />
+      <created>1713693828609</created>
+      <option name="number" value="00017" />
+      <option name="presentableId" value="LOCAL-00017" />
+      <option name="project" value="LOCAL" />
+      <updated>1713693828609</updated>
+    </task>
+    <task id="LOCAL-00018" summary="some reformatting and presentation files">
+      <option name="closed" value="true" />
+      <created>1713693860752</created>
+      <option name="number" value="00018" />
+      <option name="presentableId" value="LOCAL-00018" />
+      <option name="project" value="LOCAL" />
+      <updated>1713693860752</updated>
+    </task>
+    <task id="LOCAL-00019" summary="dmpnn added and update of documentation">
+      <option name="closed" value="true" />
+      <created>1713712810343</created>
+      <option name="number" value="00019" />
+      <option name="presentableId" value="LOCAL-00019" />
+      <option name="project" value="LOCAL" />
+      <updated>1713712810343</updated>
+    </task>
+    <task id="LOCAL-00020" summary="added documentation and n-alkanes">
+      <option name="closed" value="true" />
+      <created>1713808204910</created>
+      <option name="number" value="00020" />
+      <option name="presentableId" value="LOCAL-00020" />
+      <option name="project" value="LOCAL" />
+      <updated>1713808204910</updated>
+    </task>
+    <task id="LOCAL-00021" summary="Megnet implementation">
+      <option name="closed" value="true" />
+      <created>1714328027656</created>
+      <option name="number" value="00021" />
+      <option name="presentableId" value="LOCAL-00021" />
+      <option name="project" value="LOCAL" />
+      <updated>1714328027656</updated>
+    </task>
+    <task id="LOCAL-00022" summary="Megnet implementation">
+      <option name="closed" value="true" />
+      <created>1714645153761</created>
+      <option name="number" value="00022" />
+      <option name="presentableId" value="LOCAL-00022" />
+      <option name="project" value="LOCAL" />
+      <updated>1714645153761</updated>
+    </task>
+    <option name="localTasksCounter" value="23" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -205,6 +349,25 @@
     <MESSAGE value="documentation" />
     <MESSAGE value="small fixes" />
     <MESSAGE value="new butina split and bug fixes" />
-    <option name="LAST_COMMIT_MESSAGE" value="new butina split and bug fixes" />
+    <MESSAGE value="fixed MPNN and added an Early stopping class" />
+    <MESSAGE value="optimization" />
+    <MESSAGE value="more plots and fixes" />
+    <MESSAGE value="some reformatting and presentation files" />
+    <MESSAGE value="dmpnn added and update of documentation" />
+    <MESSAGE value="added documentation and n-alkanes" />
+    <MESSAGE value="Megnet implementation" />
+    <option name="LAST_COMMIT_MESSAGE" value="Megnet implementation" />
+  </component>
+  <component name="com.intellij.coverage.CoverageDataManagerImpl">
+    <SUITE FILE_PATH="coverage/grape$presentation_model.coverage" NAME="presentation_model Coverage Results" MODIFIED="1713531949866" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/notebooks" />
+    <SUITE FILE_PATH="coverage/grape$alkanes_test.coverage" NAME="alkanes_test Coverage Results" MODIFIED="1713775345542" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/notebooks" />
+    <SUITE FILE_PATH="coverage/grape$MPNN_gnn.coverage" NAME="MPNN_gnn Coverage Results" MODIFIED="1713369855594" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/grape/models" />
+    <SUITE FILE_PATH="coverage/grape$MEGNet_gnn.coverage" NAME="MEGNet_gnn Coverage Results" MODIFIED="1714326296542" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/grape/models" />
+    <SUITE FILE_PATH="coverage/grape$presentation_dmpnn.coverage" NAME="presentation_dmpnn Coverage Results" MODIFIED="1713709771726" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/notebooks" />
+    <SUITE FILE_PATH="coverage/grape$test_models.coverage" NAME="test_models Coverage Results" MODIFIED="1713368941036" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/grape/models" />
+    <SUITE FILE_PATH="coverage/grape$presentation_mpnn.coverage" NAME="presentation_mpnn Coverage Results" MODIFIED="1714327319150" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/notebooks" />
+    <SUITE FILE_PATH="coverage/grape$test2.coverage" NAME="test2 Coverage Results" MODIFIED="1713520057829" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/notebooks" />
+    <SUITE FILE_PATH="coverage/grape$opt_utils.coverage" NAME="opt_utils Coverage Results" MODIFIED="1713264989457" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/grape/utils" />
+    <SUITE FILE_PATH="coverage/grape$testbayes.coverage" NAME="testbayes Coverage Results" MODIFIED="1713267308595" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/notebooks" />
   </component>
 </project>

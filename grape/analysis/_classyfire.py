@@ -225,17 +225,19 @@ def classyfire_result_analysis(path_to_classyfire: str = None, idx: list[int] = 
     for id_mol, file in zip(idx, os.listdir(path_to_classyfire)):
         file_path = os.path.join(path_to_classyfire, file)
 
+        try:
+            class_name = json.load(open(file_path))[layer_name]['name']
+            if class_name is None:
+                print(f'No class name in the first layer for file: {file} and index: {id_mol}')
+                class_name = json.load(open(file_path))['alternative_parents']['name']
 
-        class_name = json.load(open(file_path))[layer_name]['name']
-        if class_name is None:
-            print(f'No class name in the first layer for file: {file} and index: {id_mol}')
-            class_name = json.load(open(file_path))['alternative_parents']['name']
+            if class_name in class_freq.keys():
+                class_freq[class_name] += 1
+            else:
+                class_freq[class_name] = 1
+            mols_class[id_mol] = class_name
 
-        if class_name in class_freq.keys():
-            class_freq[class_name] += 1
-        else:
-            class_freq[class_name] = 1
-        mols_class[id_mol] = class_name
-
+        except:
+            print(f'Key error occurred using {layer_name} for file {file}.')
 
     return mols_class, class_freq

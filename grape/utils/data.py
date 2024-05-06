@@ -102,6 +102,7 @@ def filter_smiles(smiles: list[str], target: Union[list[str], list[float], ndarr
                             carbon_count += 1
 
                 if carbon_count < 1 and only_organic:
+                    indices_to_drop.append(list(df.smiles).index(element))
                     if log:
                         print(f'SMILES {element} in index {list(df.smiles).index(element)} does not contain at least one'
                             f' carbon and will be ignored.')
@@ -152,7 +153,7 @@ def construct_dataset(smiles: list[str], target: Union[list[int], list[float], n
     """
 
     atom_featurizer = AtomFeaturizer(allowed_atoms=allowed_atoms,
-                                                atom_feature_list = atom_feature_list)
+                                    atom_feature_list = atom_feature_list)
 
     bond_featurizer = BondFeaturizer(bond_feature_list=bond_feature_list)
 
@@ -236,7 +237,7 @@ class DataSet(DataLoad):
 
     """
     def __init__(self, file_path: str = None, smiles: list[str] = None, target: Union[list[int], list[float],
-    ndarray] = None, global_features:Union[list[float], ndarray] = None, allowed_atoms:list[str] = None,
+    ndarray] = None, global_features:Union[list[float], ndarray] = None, filter: bool=True,allowed_atoms:list[str] = None,
     only_organic: bool = True, atom_feature_list: list[str] = None, bond_feature_list: list[str] = None,
                  log: bool = False, root: str = None, indices:list[int] = None):
 
@@ -253,18 +254,19 @@ class DataSet(DataLoad):
                     raise ValueError('A dataset is stored as a DataFrame.')
 
             self.smiles = np.array(df.smiles)
-            self.target = np.array(df.target)
+            self.target, self.mean_target, self.std_target = self.standardize(np.array(df.target))
             self.global_features = np.array(df.global_features)
             self.data = list(df.graphs)
 
         else:
-            self.smiles, self.raw_target = filter_smiles(smiles, target, allowed_atoms= allowed_atoms,
-                                                         only_organic=only_organic, log=log)
+            if filter:
+                self.smiles, self.raw_target = filter_smiles(smiles, target, allowed_atoms= allowed_atoms,
+                                                     only_organic=only_organic, log=log)
+            else:
+                self.smiles, self.raw_target = np.array(smiles), np.array(target)
 
             # standardize target
-            target_ = np.array(self.raw_target)
-            self.target = (target_-np.mean(target_))/np.std(target_)
-
+            self.target, self.mean_target, self.std_target = self.standardize(np.array(self.raw_target))
             self.data = construct_dataset(smiles=self.smiles,
                                           target=self.target,
                                           allowed_atoms = allowed_atoms,
@@ -283,6 +285,17 @@ class DataSet(DataLoad):
         for i in range(len(self.smiles)):
             self.mol_weights[i] = mol_weight(Chem.MolFromSmiles(self.smiles[i]))
 
+    @staticmethod
+    def standardize(target):
+        target_ = (target - np.mean(target)) / np.std(target)
+        return target_, np.mean(target), np.std(target)
+
+    @staticmethod
+    def rescale(target, mean, std):
+        return (target *std) + mean
+
+    def rescale_data(self, target):
+        return self.rescale(target, self.mean_target, self.std_target)
 
     def get_mol_weight(self):
         """Calculates the molecular weights of the DataSet smiles.
@@ -325,7 +338,7 @@ class DataSet(DataLoad):
         if not os.path.exists(path):
             os.makedirs(path)
 
-        df_save = pd.DataFrame({'smiles':self.smiles,'target':self.target,'global_features':self.global_features,
+        df_save = pd.DataFrame({'smiles':self.smiles,'target':self.raw_target,'global_features':self.global_features,
                    'graphs':self.data})
 
         path = os.path.join(path,filename+'.pickle')
@@ -543,42 +556,7 @@ class DataSet(DataLoad):
 
         return smiles_analysis(self.smiles, path_to_export, download, plots, save_plots, fig_size, filter_output_txt)
 
-    # def weight_vs_target_plot(self, target_name:str=None, fig_height:int = 8, save_fig:bool = False,
-    #                           pre_standardization: bool = False, path_to_export:str = None)->sns.jointplot:
-    #     """
-    #
-    #     Parameters
-    #     ----------
-    #     target_name: str
-    #         The title of the y-axis in the plot. Default: 'target'
-    #     save_fig: bool
-    #         Decides if the figure is saved in the processed directory.
-    #     fig_height: int
-    #         Determines the figure size of the plot.
-    #     pre_standardization: bool
-    #         Decides if the pre- or post-standardization target variable is used. Will only affect the scale,
-    #         not the distribution. Default: True.
-    #     path_to_export: str
-    #         Export path, will default to the directory 'analysis_results' if not specified.
-    #
-    #     Returns
-    #     -------
-    #     plot
-    #         A seaborn jointplot of the molecular weight and target distributions.
-    #
-    #     """
-    #     if pre_standardization:
-    #         try:
-    #             target = self.raw_target
-    #         except:
-    #             raise ValueError('Data was not loaded in from a raw file, this configuration is not possible.')
-    #     else:
-    #         target = self.target
-    #
-    #     plot = mol_weight_vs_target(self.smiles, target, target_name=target_name, save_fig=save_fig,
-    #                                 path_to_export=path_to_export, fig_height=fig_height)
-    #
-    #     return plot
+
 
     def get_splits(self, split_type:str = None, split_frac:list[float, float, float] = None,
                    custom_split:list[list] = None, **kwargs):
@@ -678,6 +656,9 @@ class GraphDataSet(DataSet):
 
 
         if split or (self.custom_split is not None):
-            self.train, self.val, self.test = split_data(data = self.data, split_type = self.split_type,
+            self.train, self.val, self.test = split_data(data = self, split_type = self.split_type,
                                                         split_frac = self.split_frac, custom_split = self.custom_split)
 
+
+    #def save_train_val_test_data(self, names: list[str]=None):
+    #    assert len(names) == 3 or None, 'Names should have three elements: train, val, test'
