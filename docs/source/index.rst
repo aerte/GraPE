@@ -1,4 +1,4 @@
-GraPE - Graph Property Estimation
+GraPE - Graph-based Property Estimation
 ==================================
 
 This is a python package to support Chemical property prediction using `PyTorch <https://pytorch.org/docs/stable/index.
