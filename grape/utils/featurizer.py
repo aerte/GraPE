@@ -4,7 +4,7 @@
 
 import itertools
 
-from _collections import defaultdict
+from collections import defaultdict
 from functools import partial
 
 from typing import Callable, Union
