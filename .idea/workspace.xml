@@ -6,9 +6,15 @@
   <component name="ChangeListManager">
     <list default="true" id="115446f6-db4f-461b-90f9-f367678daa67" name="Changes" comment="Megnet implementation">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/docs/source/api/models.rst" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/api/models.rst" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/source/index.rst" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/index.rst" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/grape/datasets/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/grape/datasets/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/grape/datasets/logP_dataset.py" beforeDir="false" afterPath="$PROJECT_DIR$/grape/datasets/logP_dataset.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/grape/utils/feature_func.py" beforeDir="false" afterPath="$PROJECT_DIR$/grape/utils/feature_func.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/notebooks/Demonstration.ipynb" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/notebooks/test2.ipynb" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/notebooks/test2.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/notebooks/test3.ipynb" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/notebooks/tests.ipynb" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -18,8 +24,8 @@
   <component name="FileTemplateManagerImpl">
     <option name="RECENT_TEMPLATES">
       <list>
-        <option value="Jupyter Notebook" />
         <option value="Python Script" />
+        <option value="Jupyter Notebook" />
       </list>
     </option>
   </component>
@@ -156,7 +162,10 @@
       <workItem from="1714633543523" duration="5592000" />
       <workItem from="1714736068114" duration="17000" />
       <workItem from="1714895394411" duration="930000" />
-      <workItem from="1715013136795" duration="403000" />
+      <workItem from="1715013136795" duration="1810000" />
+      <workItem from="1715064050756" duration="389000" />
+      <workItem from="1715362046503" duration="1555000" />
+      <workItem from="1715370198678" duration="1803000" />
     </task>
     <task id="LOCAL-00001" summary="bug fixes, SubSet, pca tests, expansion of classyfire">
       <option name="closed" value="true" />
@@ -334,7 +343,15 @@
       <option name="project" value="LOCAL" />
       <updated>1714645153761</updated>
     </task>
-    <option name="localTasksCounter" value="23" />
+    <task id="LOCAL-00023" summary="Megnet implementation">
+      <option name="closed" value="true" />
+      <created>1715013546062</created>
+      <option name="number" value="00023" />
+      <option name="presentableId" value="LOCAL-00023" />
+      <option name="project" value="LOCAL" />
+      <updated>1715013546062</updated>
+    </task>
+    <option name="localTasksCounter" value="24" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">

@@ -27,8 +27,6 @@ class LogP(GraphDataSet):
     ------------
     root: str
         Indicates what the root or working directory is. Default: None
-    target_string: str
-        A string that indicates which of the features from the dataset should be the 'target'.
     global_features: list of str
         A list of strings indicating any additional features that should be included as global features.
     allowed_atoms: list of str
