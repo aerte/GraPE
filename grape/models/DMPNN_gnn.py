@@ -1,5 +1,6 @@
 # D-MPNN implementation
 
+from typing import Union
 import torch
 import torch.nn as nn
 import torch.utils.data
@@ -121,10 +122,10 @@ class DMPNNModel(torch.nn.Module):
 
     References
 
-    [1] Yang et al (2019). Analyzing Learned Molecular Representations for Property Prediction. JCIM, 59(8),
+    [1] Yang et al. (2019). Analyzing Learned Molecular Representations for Property Prediction. JCIM, 59(8),
     3370–3388. https://doi.org/10.1021/acs.jcim.9b00237
 
-    [2] Yang et al (2019). Correction to Analyzing Learned Molecular Representations for Property Prediction.
+    [2] Yang et al. (2019). Correction to Analyzing Learned Molecular Representations for Property Prediction.
     JCIM, 59(12), 5304–5305. https://doi.org/10.1021/acs.jcim.9b01076
 
     --------
@@ -141,9 +142,14 @@ class DMPNNModel(torch.nn.Module):
         The number of D-MPNN layers that will be used. Default: 4
     dropout: float
         The dropout probability used in a dropout layer after the message update. Default: 0.15
+    mlp_out_hidden: int or list
+            The number of hidden features should a regressor (3 layer MLP) be added to the end.
+             Alternatively, a list of ints can be passed that will be used for an MLP. The
+             weights are then used in the same order as given. Default: 512.
 
     """
-    def __init__(self, node_in_dim:int, edge_in_dim:int,node_hidden_dim:int=64, depth=3, dropout=0.15, bias=True):
+    def __init__(self, node_in_dim:int, edge_in_dim:int,node_hidden_dim:int=64, depth=3, dropout=0.15,
+                        mlp_out_hidden:Union[int, list]=512):
         super(DMPNNModel, self).__init__()
 
         self.hidden_size = node_hidden_dim
@@ -151,11 +157,35 @@ class DMPNNModel(torch.nn.Module):
         self.edge_dim = edge_in_dim
         self.depth = depth
 
-        self.encoder = DMPNNEncoder(node_hidden_dim, node_in_dim, edge_in_dim, depth, dropout, bias = bias, pool=True)
+        self.encoder = DMPNNEncoder(node_in_dim = node_in_dim,
+                                    edge_in_dim=edge_in_dim,
+                                    depth=depth,
+                                    dropout=dropout,
+                                    node_hidden_dim=node_hidden_dim,
+                                    pool=True)
 
-        self.mlp_out = nn.Sequential(nn.Linear(self.hidden_size, self.hidden_size, bias=bias),
-                                     nn.ReLU(),
-                                     nn.Linear(self.hidden_size, 1, bias=bias))
+        #self.mlp_out = nn.Sequential(nn.Linear(self.hidden_size, self.hidden_size, bias=True),
+        #                             nn.ReLU(),
+        #                             nn.Linear(self.hidden_size, 1, bias=True))
+
+        if isinstance(mlp_out_hidden, int):
+            self.mlp_out = nn.Sequential(
+                nn.Linear(self.hidden_size, mlp_out_hidden),
+                nn.ReLU(),
+                nn.Linear(mlp_out_hidden, mlp_out_hidden // 2),
+                nn.ReLU(),
+                nn.Linear(mlp_out_hidden // 2, 1)
+            )
+        else:
+            self.mlp_out = []
+            self.mlp_out.append(nn.Linear(self.hidden_size, mlp_out_hidden[0]))
+            for i in range(len(mlp_out_hidden)):
+                self.mlp_out.append(nn.ReLU())
+                if i == len(mlp_out_hidden) - 1:
+                    self.mlp_out.append(nn.Linear(mlp_out_hidden[i], 1))
+                else:
+                    self.mlp_out.append(nn.Linear(mlp_out_hidden[i], mlp_out_hidden[i + 1]))
+            self.mlp_out = nn.Sequential(*self.mlp_out)
 
         self.reset_parameters()
 

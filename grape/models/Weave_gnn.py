@@ -2,8 +2,9 @@
 
 # Weave Model
 
-import torch
+from typing import Union, Callable
 
+import torch
 
 import torch.nn as nn
 from torch import Tensor
@@ -11,10 +12,12 @@ from torch.nn import Linear
 from torch_geometric.nn import MessagePassing
 from torch_geometric.typing import Adj
 from torch_geometric.data import Data, DataLoader
+from torch_geometric.nn.pool import global_mean_pool, global_max_pool, global_add_pool
 
 __all__ = [
     'Weave',
-    'MGConv'
+    'Weave_encoder',
+    'Weave_Model'
 ]
 
 class Weave(MessagePassing):
@@ -102,7 +105,7 @@ class Weave(MessagePassing):
         return self.relu(self.lin4(cat_3))
 
 
-class MGConv(nn.Module):
+class Weave_encoder(nn.Module):
     """Implements the Molecular Graph Convolutional Layer (sometimes called Weave) from Steven Kearnes at al. [1]
     as described in [2].
 
@@ -172,3 +175,103 @@ class MGConv(nn.Module):
             return h
         else:
             return h, edge_attr
+
+
+class Weave_Model(nn.Module):
+    """Uses the Molecular Graph Convolutional Layer (sometimes called Weave) from Steven Kearnes at al. [1]
+    as described in [2] as a Graph encoder and adds an MLP output layer for regression tasks.
+
+    ----
+
+    References
+
+    [1] Steven Kearnes at al., Molecular graph convolutions: moving beyond fingerprints, http://dx.doi.org/10.1007/s10822-016-9938-8
+
+    [2] Justin Gilmer et al., Neural Message Passing for Quantum Chemistry, http://proceedings.mlr.press/v70/gilmer17a/gilmer17a.pdf
+
+    ----
+
+    Parameters
+    ------------
+    node_in_dim: int
+        The number of input node features.
+    edge_in_dim: int
+        The number of input edge features.
+    node_hidden_dim: int
+        The dimension of the hidden node features. Default: 64
+    edge_hidden_dim: int
+        The dimension of the hidden edge features. Default: 64
+    num_layers: int
+        The number of Weave layers that will be used. Default: 4
+    pool: string or Callable
+        Determines the pooling operation to be used. Can either be a string specifying what type
+        or a Callable to be executed. The options are [``mean``, ``max``, ``add``]. Default: 'mean'
+    mlp_out_hidden: int or list
+        The number of hidden features should a regressor (3 layer MLP) be added to the end.
+         Alternatively, a list of ints can be passed that will be used for an MLP. The
+         weights are then used in the same order as given. Default: 512.
+    """
+    def __init__(self, node_in_dim: int, edge_in_dim: int, node_hidden_dim: int = 64,
+                 edge_hidden_dim: int = 64, num_layers: int = 4, pool:Union[str, Callable] = 'mean',
+                 mlp_out_hidden: int = 512):
+
+        super().__init__()
+
+        self.encoder = Weave_encoder(node_in_dim=node_in_dim,
+                                     edge_in_dim=edge_in_dim,
+                                     node_hidden_dim=node_hidden_dim,
+                                     edge_hidden_dim=edge_hidden_dim,
+                                     num_layers=num_layers)
+        if isinstance(pool, str):
+            if pool == 'mean':
+                self.pool = global_mean_pool
+            elif pool == 'max':
+                self.pool = global_max_pool
+            elif pool == 'add':
+                self.pool = global_add_pool
+        else:
+            self.pool = pool
+
+        if isinstance(mlp_out_hidden, int):
+            self.mlp_out = nn.Sequential(
+                nn.Linear(node_hidden_dim, mlp_out_hidden),
+                nn.ReLU(),
+                nn.Linear(mlp_out_hidden, mlp_out_hidden // 2),
+                nn.ReLU(),
+                nn.Linear(mlp_out_hidden // 2, 1)
+            )
+        else:
+            self.mlp_out = []
+            self.mlp_out.append(nn.Linear(node_hidden_dim, mlp_out_hidden[0]))
+            for i in range(len(mlp_out_hidden)):
+                self.mlp_out.append(nn.ReLU())
+                if i == len(mlp_out_hidden) - 1:
+                    self.mlp_out.append(nn.Linear(mlp_out_hidden[i], 1))
+                else:
+                    self.mlp_out.append(nn.Linear(mlp_out_hidden[i], mlp_out_hidden[i + 1]))
+            self.mlp_out = nn.Sequential(*self.mlp_out)
+
+
+
+    def forward(self, data: Data or DataLoader) -> float:
+        """
+        Parameters
+        ----------
+        data: Data or DataLoader
+            A singular graph Data object or a batch of graphs in the form of a DataLoader object.
+
+        Returns
+        -------
+        float
+            The output of the model.
+
+        """
+
+
+        batch = data.batch
+
+        h = self.encoder(data)
+        x = self.pool(h, batch)
+        return self.mlp_out(x).view(-1)
+
+

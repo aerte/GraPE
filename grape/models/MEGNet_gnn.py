@@ -2,6 +2,7 @@
 # Implementation inspired by https://github.com/deepchem/deepchem/blob/28195eb49b9962ecc81d47eb87a82dbafc36c5b2/deepchem/models/torch_models/layers.py#L1063
 #
 
+from typing import Union
 import torch
 
 
@@ -195,11 +196,15 @@ class MEGNet_gnn(nn.Module):
             The dimension of the hidden global features. Default: 32
         depth: int
             The number of consecutive MEGNet blocks to be used. Default: 3
+        mlp_out_hidden: int or list
+            The number of hidden features should a regressor (3 layer MLP) be added to the end.
+             Alternatively, a list of ints can be passed that will be used for an MLP. The
+             weights are then used in the same order as given. Default: 512.
     """
 
 
     def __init__(self, node_in_dim: int, edge_in_dim: int, global_in_dim: int=32, node_hidden_dim: int=64,
-                 edge_hidden_dim: int=64, global_hidden_dim:int=32, depth:int=2):
+                 edge_hidden_dim: int=64, global_hidden_dim:int=32, depth:int=2, mlp_out_hidden:Union[int, list]=512):
         super(MEGNet_gnn, self).__init__()
 
         self.depth = depth
@@ -228,14 +233,34 @@ class MEGNet_gnn(nn.Module):
                 nn.Linear(global_hidden_dim * 2, global_hidden_dim),
             ) for _ in range(depth)])
 
-        self.mlp_out = nn.Sequential(
-            # TODO: fix issue with global feature
-            nn.Linear(node_hidden_dim*2+edge_hidden_dim*2+global_hidden_dim, 32),
-            nn.ReLU(),
-            nn.Linear(32, 16),
-            nn.ReLU(),
-            nn.Linear(16, 1),
-        )
+        #self.mlp_out = nn.Sequential(
+        #    # TODO: fix issue with global feature
+        #    nn.Linear(node_hidden_dim*2+edge_hidden_dim*2+global_hidden_dim, 32),
+        #    nn.ReLU(),
+        #    nn.Linear(32, 16),
+        #    nn.ReLU(),
+        #    nn.Linear(16, 1),
+        #)
+
+        if isinstance(mlp_out_hidden, int):
+            self.mlp_out = nn.Sequential(
+                nn.Linear(node_hidden_dim * 2 + edge_hidden_dim * 2 + global_hidden_dim, mlp_out_hidden),
+                nn.ReLU(),
+                nn.Linear(mlp_out_hidden, mlp_out_hidden // 2),
+                nn.ReLU(),
+                nn.Linear(mlp_out_hidden // 2, 1)
+            )
+        else:
+            self.mlp_out = []
+            self.mlp_out.append(nn.Linear(node_hidden_dim * 2 + edge_hidden_dim * 2 + global_hidden_dim,
+                                          mlp_out_hidden[0]))
+            for i in range(len(mlp_out_hidden)):
+                self.mlp_out.append(nn.ReLU())
+                if i == len(mlp_out_hidden) - 1:
+                    self.mlp_out.append(nn.Linear(mlp_out_hidden[i], 1))
+                else:
+                    self.mlp_out.append(nn.Linear(mlp_out_hidden[i], mlp_out_hidden[i + 1]))
+            self.mlp_out = nn.Sequential(*self.mlp_out)
 
         self.read_out_nodes = Set2Set(node_hidden_dim, processing_steps=3)
         self.read_out_edges = Set2Set(edge_hidden_dim, processing_steps=3)
