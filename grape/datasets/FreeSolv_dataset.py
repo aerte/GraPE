@@ -1,23 +1,15 @@
 from grape.utils.data import GraphDataSet
-from torch_geometric.datasets import QM9 as QM9pyg
+from torch_geometric.datasets import MoleculeNet
 
 __all__ = [
-    'QM9'
+    'FreeSolv'
 ]
 
-class QM9(GraphDataSet):
-    """A dataset implementation for the QM9 [1]. This is an **alternative to the pytorch-geometric** implementation
-    of the same name. The reason for this implementation is to allow for easy access to the featurization
-    step, i.e., allow for personalized featurization of the SMILES during pre-preprocessing. The dataset
-    encompasses about 130,000 molecules with 19 regression targets, for more information please see
-    https://pytorch-geometric.readthedocs.io/en/latest/generated/torch_geometric.datasets.QM9.html#torch_geometric.datasets.QM9.
-
-
-
-    Notes
-    ------
-    This is a large dataset, and in the current implementation, loading the data from scratch can
-    take up to 2 minutes depending on the CPU.
+class FreeSolv(GraphDataSet):
+    """A dataset implementation for the FreeSolv dataset [1]. This is an **alternative to the pytorch-geometric**
+    implementation from their MoleculeNet class. The reason for this implementation is to allow for easy access to the
+    featurization step, i.e., allow for personalized featurization of the SMILES during pre-preprocessing. The dataset
+    encompasses 642 molecules and uses experimental and calculated hydration free energy of molecules in water.
 
 
 
@@ -33,9 +25,6 @@ class QM9(GraphDataSet):
 
     Parameters
     ------------
-    target_id: int
-        An integer that indicates which of the features from the dataset should be the 'target'. The
-        default is ``5``:``heat capacity``
     root: str
         Indicates what the root or working directory is. Default: None
     global_features: list of str
@@ -81,10 +70,10 @@ class QM9(GraphDataSet):
 
         self.raw_path = self.raw_dir
 
-        data = QM9pyg(root = self.root)
+        data = MoleculeNet(root = self.root, name='FreeSolv')
 
         SMILES = data.smiles
-        TARGET = data.y[:, target_id]
+        TARGET = data.y[:,0]
 
         super().__init__(smiles = SMILES, target = TARGET, global_features=global_features,
                          allowed_atoms = allowed_atoms, only_organic=only_organic,
@@ -92,7 +81,7 @@ class QM9(GraphDataSet):
                          bond_feature_list = bond_feature_list, split=split, split_type=split_type,
                          split_frac=split_frac, custom_split=custom_split, log = log)
 
-        self.data_name = 'QM9'
+        self.data_name = 'FreeSolv'
 
 
         if save_data_filename is not None:
