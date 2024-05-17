@@ -233,14 +233,14 @@ class MEGNet_gnn(nn.Module):
                 nn.Linear(global_hidden_dim * 2, global_hidden_dim),
             ) for _ in range(depth)])
 
-        #self.mlp_out = nn.Sequential(
+        # self.mlp_out = nn.Sequential(
         #    # TODO: fix issue with global feature
         #    nn.Linear(node_hidden_dim*2+edge_hidden_dim*2+global_hidden_dim, 32),
         #    nn.ReLU(),
         #    nn.Linear(32, 16),
         #    nn.ReLU(),
         #    nn.Linear(16, 1),
-        #)
+        # )
 
         if isinstance(mlp_out_hidden, int):
             self.mlp_out = nn.Sequential(
@@ -309,7 +309,7 @@ class MEGNet_gnn(nn.Module):
 
         src_index, dst_index = edge_index
         h_n = self.read_out_nodes(h_n, data.batch)
-        h_e = self.read_out_edges(h_e, data.batch[dst_index])
+        h_e = self.read_out_edges(h_e, data.batch[src_index])
 
         out = torch.concat((h_n, h_e, h_u), dim=1)
 
