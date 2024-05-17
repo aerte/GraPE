@@ -4,12 +4,12 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="115446f6-db4f-461b-90f9-f367678daa67" name="Changes" comment="Added MLP input">
+    <list default="true" id="115446f6-db4f-461b-90f9-f367678daa67" name="Changes" comment="Fixed MEGNet and added documentation">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/source/api/dataset.rst" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/api/dataset.rst" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/grape/models/MEGNet_gnn.py" beforeDir="false" afterPath="$PROJECT_DIR$/grape/models/MEGNet_gnn.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/grape/models/AFP_gnn.py" beforeDir="false" afterPath="$PROJECT_DIR$/grape/models/AFP_gnn.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/grape/utils/model_utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/grape/utils/model_utils.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/notebooks/best_model_mpnn.pt" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/best_model_mpnn.pt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/requirements.txt" beforeDir="false" afterPath="$PROJECT_DIR$/requirements.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/notebooks/tests.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/tests.ipynb" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -59,37 +59,38 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;ASKED_MARK_IGNORED_FILES_AS_EXCLUDED&quot;: &quot;true&quot;,
-    &quot;JavaScript Debug.Demonstration.html.executor&quot;: &quot;Run&quot;,
-    &quot;JavaScript Debug.analysis.html.executor&quot;: &quot;Run&quot;,
-    &quot;Python.AFP_train_test.executor&quot;: &quot;Run&quot;,
-    &quot;Python.FreeSolvTraining.executor&quot;: &quot;Run&quot;,
-    &quot;Python.MEGNet_gnn.executor&quot;: &quot;Run&quot;,
-    &quot;Python.MPNN_gnn.executor&quot;: &quot;Run&quot;,
-    &quot;Python.alkanes_test.executor&quot;: &quot;Run&quot;,
-    &quot;Python.opt_utils.executor&quot;: &quot;Run&quot;,
-    &quot;Python.presentation_dmpnn.executor&quot;: &quot;Run&quot;,
-    &quot;Python.presentation_model.executor&quot;: &quot;Run&quot;,
-    &quot;Python.presentation_mpnn.executor&quot;: &quot;Run&quot;,
-    &quot;Python.test2.executor&quot;: &quot;Run&quot;,
-    &quot;Python.test_models.executor&quot;: &quot;Run&quot;,
-    &quot;Python.testbayes.executor&quot;: &quot;Run&quot;,
-    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;WebServerToolWindowFactoryState&quot;: &quot;false&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;felix&quot;,
-    &quot;last_opened_file_path&quot;: &quot;/Users/faerte/Desktop/grape/grape/datasets&quot;,
-    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
-    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
-    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
-    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;preferences.lookFeel&quot;,
-    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ASKED_MARK_IGNORED_FILES_AS_EXCLUDED": "true",
+    "JavaScript Debug.Demonstration.html.executor": "Run",
+    "JavaScript Debug.analysis.html.executor": "Run",
+    "Python.AFP_train_test.executor": "Run",
+    "Python.FreeSolvTraining.executor": "Run",
+    "Python.MEGNet_gnn.executor": "Run",
+    "Python.MPNN_gnn.executor": "Run",
+    "Python.alkanes_test.executor": "Run",
+    "Python.opt_utils.executor": "Run",
+    "Python.optimization_test.executor": "Run",
+    "Python.presentation_dmpnn.executor": "Run",
+    "Python.presentation_model.executor": "Run",
+    "Python.presentation_mpnn.executor": "Run",
+    "Python.test2.executor": "Run",
+    "Python.test_models.executor": "Run",
+    "Python.testbayes.executor": "Run",
+    "RunOnceActivity.OpenProjectViewOnStart": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "WebServerToolWindowFactoryState": "false",
+    "git-widget-placeholder": "felix",
+    "last_opened_file_path": "/Users/faerte/Desktop/grape/grape/datasets",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "settings.editor.selected.configurable": "preferences.lookFeel",
+    "vue.rearranger.settings.migration": "true"
   }
-}</component>
+}]]></component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="$PROJECT_DIR$/grape/datasets" />
@@ -166,7 +167,7 @@
       <workItem from="1715370198678" duration="1854000" />
       <workItem from="1715860067826" duration="11485000" />
       <workItem from="1715932268341" duration="3612000" />
-      <workItem from="1715949213218" duration="802000" />
+      <workItem from="1715949213218" duration="10326000" />
     </task>
     <task id="LOCAL-00001" summary="bug fixes, SubSet, pca tests, expansion of classyfire">
       <option name="closed" value="true" />
@@ -384,7 +385,15 @@
       <option name="project" value="LOCAL" />
       <updated>1715872874757</updated>
     </task>
-    <option name="localTasksCounter" value="28" />
+    <task id="LOCAL-00028" summary="Fixed MEGNet and added documentation">
+      <option name="closed" value="true" />
+      <created>1715955843528</created>
+      <option name="number" value="00028" />
+      <option name="presentableId" value="LOCAL-00028" />
+      <option name="project" value="LOCAL" />
+      <updated>1715955843528</updated>
+    </task>
+    <option name="localTasksCounter" value="29" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -408,7 +417,8 @@
     <MESSAGE value="Megnet implementation" />
     <MESSAGE value="QM9 added" />
     <MESSAGE value="Added MLP input" />
-    <option name="LAST_COMMIT_MESSAGE" value="Added MLP input" />
+    <MESSAGE value="Fixed MEGNet and added documentation" />
+    <option name="LAST_COMMIT_MESSAGE" value="Fixed MEGNet and added documentation" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/grape$presentation_model.coverage" NAME="presentation_model Coverage Results" MODIFIED="1713531949866" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/notebooks" />
@@ -418,6 +428,7 @@
     <SUITE FILE_PATH="coverage/grape$AFP_train_test.coverage" NAME="AFP_train_test Coverage Results" MODIFIED="1715864210627" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/notebooks" />
     <SUITE FILE_PATH="coverage/grape$FreeSolvTraining.coverage" NAME="FreeSolvTraining Coverage Results" MODIFIED="1715933199315" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/notebooks" />
     <SUITE FILE_PATH="coverage/grape$testbayes.coverage" NAME="testbayes Coverage Results" MODIFIED="1713267308595" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/notebooks" />
+    <SUITE FILE_PATH="coverage/grape$optimization_test.coverage" NAME="optimization_test Coverage Results" MODIFIED="1715963063573" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/notebooks" />
     <SUITE FILE_PATH="coverage/grape$MPNN_gnn.coverage" NAME="MPNN_gnn Coverage Results" MODIFIED="1713369855594" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/grape/models" />
     <SUITE FILE_PATH="coverage/grape$MEGNet_gnn.coverage" NAME="MEGNet_gnn Coverage Results" MODIFIED="1714326296542" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/grape/models" />
     <SUITE FILE_PATH="coverage/grape$presentation_mpnn.coverage" NAME="presentation_mpnn Coverage Results" MODIFIED="1714327319150" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/notebooks" />

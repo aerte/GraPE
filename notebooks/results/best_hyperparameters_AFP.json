@@ -1,0 +1,29 @@
+{
+    "best_config": {
+        "depth": 2,
+        "gnn_hidden_dim": 83,
+        "initial_lr": 0.0005213103955181064
+    },
+    "best_metrics": {
+        "mse_loss": 0.04770049825310707,
+        "timestamp": 1715963103,
+        "checkpoint_dir_name": null,
+        "done": true,
+        "training_iteration": 1,
+        "trial_id": "65d18b65",
+        "date": "2024-05-17_18-25-03",
+        "time_this_iter_s": 9.674829006195068,
+        "time_total_s": 9.674829006195068,
+        "pid": 4646,
+        "hostname": "felixs-air.students.clients.local",
+        "node_ip": "127.0.0.1",
+        "config": {
+            "depth": 2,
+            "gnn_hidden_dim": 83,
+            "initial_lr": 0.0005213103955181064
+        },
+        "time_since_restore": 9.674829006195068,
+        "iterations_since_restore": 1,
+        "experiment_tag": "1_depth=2,gnn_hidden_dim=83,initial_lr=0.0005"
+    }
+}

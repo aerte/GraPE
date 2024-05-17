@@ -73,10 +73,11 @@ class AFP(Module):
 
         self.regressor = regressor
 
+
         if out_dim is None or out_dim == 1 or regressor:
             self.regressor = True
             if isinstance(mlp_out_hidden, int):
-                out_dim = self.mlp_out_hidden
+                out_dim = mlp_out_hidden
             else:
                 out_dim = mlp_out_hidden[0]
 

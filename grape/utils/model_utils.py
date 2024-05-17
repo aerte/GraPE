@@ -43,12 +43,14 @@ class EarlyStopping:
         given number of 'patient' epochs. Default: 15.
     min_delta : float, optional
         The minimum loss improvement needed to qualify as a better model. Default: 1e-3
-    model_name:
+    model_name: str
         A name for the model, will be used to save it. Default: 'best_model'
+    skip_save: bool
+        Whether to skip saving the model. Default: False
 
     """
 
-    def __init__(self, patience: int = 15, min_delta: float = 1e-3, model_name = 'best_model'):
+    def __init__(self, patience: int = 15, min_delta: float = 1e-3, model_name = 'best_model', skip_save: bool = False):
         self.patience = patience
         self.min_delta = min_delta
         self.model_name = model_name
@@ -57,18 +59,21 @@ class EarlyStopping:
         self.stop = False
         self.model_name = model_name + '.pt'
         self.stop_epoch = 0
+        self.skip_save = skip_save
 
     def __call__(self, val_loss: Tensor, model: Module):
         if val_loss < self.best_score + self.min_delta:
             self.best_score = val_loss
             self.counter = 0
-            self.save_checkpoint(model=model)
+            if not self.skip_save:
+                self.save_checkpoint(model=model)
         else:
             self.counter += 1
 
         if self.counter >= self.patience:
             print(f'Early stopping reached with best validation loss {self.best_score:.4f}')
-            print(f'Model saved at: {self.model_name}')
+            if not self.skip_save:
+                print(f'Model saved at: {self.model_name}')
             self.stop = True
 
 
