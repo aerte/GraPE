@@ -4,3 +4,5 @@ from .feature_func import *
 from .split_utils import *
 from .model_utils import *
 from .plot_utils import *
+from .opt_utils import *
+from .data_structs import *
