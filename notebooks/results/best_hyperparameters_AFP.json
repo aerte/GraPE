@@ -1,29 +1,29 @@
 {
     "best_config": {
-        "depth": 2,
-        "gnn_hidden_dim": 83,
-        "initial_lr": 0.0005213103955181064
+        "depth": 4,
+        "gnn_hidden_dim": 199,
+        "initial_lr": 0.01580396944346989
     },
     "best_metrics": {
-        "mse_loss": 0.04770049825310707,
-        "timestamp": 1715963103,
+        "mse_loss": 0.0308452807366848,
+        "timestamp": 1716023143,
         "checkpoint_dir_name": null,
         "done": true,
         "training_iteration": 1,
-        "trial_id": "65d18b65",
-        "date": "2024-05-17_18-25-03",
-        "time_this_iter_s": 9.674829006195068,
-        "time_total_s": 9.674829006195068,
-        "pid": 4646,
-        "hostname": "felixs-air.students.clients.local",
+        "trial_id": "b67c892e",
+        "date": "2024-05-18_11-05-43",
+        "time_this_iter_s": 33.15574669837952,
+        "time_total_s": 33.15574669837952,
+        "pid": 1709,
+        "hostname": "Felixs-Air",
         "node_ip": "127.0.0.1",
         "config": {
-            "depth": 2,
-            "gnn_hidden_dim": 83,
-            "initial_lr": 0.0005213103955181064
+            "depth": 4,
+            "gnn_hidden_dim": 199,
+            "initial_lr": 0.01580396944346989
         },
-        "time_since_restore": 9.674829006195068,
+        "time_since_restore": 33.15574669837952,
         "iterations_since_restore": 1,
-        "experiment_tag": "1_depth=2,gnn_hidden_dim=83,initial_lr=0.0005"
+        "experiment_tag": "1_depth=4,gnn_hidden_dim=199,initial_lr=0.0158"
     }
 }

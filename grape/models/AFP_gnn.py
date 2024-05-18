@@ -52,6 +52,8 @@ class AFP(Module):
         The number of hidden features should a regressor (3 layer MLP) be added to the end.
          Alternatively, a list of ints can be passed that will be used for an MLP. The
          weights are then used in the same order as given. Default: 512.
+    rep_dropout: float
+        The probability of dropping a node from the embedding representation. Default: 0.0.
 
     ______
 
@@ -68,10 +70,12 @@ class AFP(Module):
 
     def __init__(self, node_in_dim: int, edge_in_dim:int, out_dim:int=None, hidden_dim:int=128,
                  num_layers_atom:int = 3, num_layers_mol:int = 3, dropout:float=0.0,
-                 regressor:bool=True, mlp_out_hidden:Union[int,list]=512):
+                 regressor:bool=True, mlp_out_hidden:Union[int,list]=512, rep_dropout:float=0.0):
         super(AFP, self).__init__()
 
         self.regressor = regressor
+
+        self.rep_dropout = nn.Dropout(rep_dropout)
 
 
         if out_dim is None or out_dim == 1 or regressor:
@@ -81,7 +85,6 @@ class AFP(Module):
             else:
                 out_dim = mlp_out_hidden[0]
 
-        print(out_dim)
 
         self.AFP_layers = AttentiveFP(
             in_channels=node_in_dim,
@@ -122,6 +125,9 @@ class AFP(Module):
     def forward(self, data):
         x, edge_index, edge_attr, batch = data.x, data.edge_index, data.edge_attr, data.batch
         out = self.AFP_layers(x, edge_index, edge_attr, batch)
+        # Dropout
+        out = self.rep_dropout(out)
+
         if self.regressor:
             out = self.mlp_out(out)
         return out.view(-1)

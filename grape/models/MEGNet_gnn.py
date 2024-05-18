@@ -200,11 +200,14 @@ class MEGNet_gnn(nn.Module):
             The number of hidden features should a regressor (3 layer MLP) be added to the end.
              Alternatively, a list of ints can be passed that will be used for an MLP. The
              weights are then used in the same order as given. Default: 512.
+        rep_dropout: float
+            The probability of dropping a node from the embedding representation. Default: 0.0.
     """
 
 
     def __init__(self, node_in_dim: int, edge_in_dim: int, global_in_dim: int=32, node_hidden_dim: int=64,
-                 edge_hidden_dim: int=64, global_hidden_dim:int=32, depth:int=2, mlp_out_hidden:Union[int, list]=512):
+                 edge_hidden_dim: int=64, global_hidden_dim:int=32, depth:int=2, mlp_out_hidden:Union[int, list]=512,
+                 rep_dropout:float=0.0):
         super(MEGNet_gnn, self).__init__()
 
         self.depth = depth
@@ -213,6 +216,8 @@ class MEGNet_gnn(nn.Module):
         self.embed_nodes = nn.Linear(node_in_dim, node_hidden_dim)
         self.embed_edges = nn.Linear(edge_in_dim, edge_hidden_dim)
         self.embed_global = nn.Linear(global_in_dim, global_hidden_dim)
+
+        self.rep_dropout = nn.Dropout(rep_dropout)
 
         self.dense_layers_nodes = nn.ModuleList([
             nn.Sequential(
@@ -232,15 +237,6 @@ class MEGNet_gnn(nn.Module):
                 nn.Linear(global_hidden_dim, global_hidden_dim * 2),
                 nn.Linear(global_hidden_dim * 2, global_hidden_dim),
             ) for _ in range(depth)])
-
-        # self.mlp_out = nn.Sequential(
-        #    # TODO: fix issue with global feature
-        #    nn.Linear(node_hidden_dim*2+edge_hidden_dim*2+global_hidden_dim, 32),
-        #    nn.ReLU(),
-        #    nn.Linear(32, 16),
-        #    nn.ReLU(),
-        #    nn.Linear(16, 1),
-        # )
 
         if isinstance(mlp_out_hidden, int):
             self.mlp_out = nn.Sequential(
@@ -312,6 +308,8 @@ class MEGNet_gnn(nn.Module):
         h_e = self.read_out_edges(h_e, data.batch[src_index])
 
         out = torch.concat((h_n, h_e, h_u), dim=1)
+
+        out = self.rep_dropout(out)
 
         return self.mlp_out(out).view(-1)
 

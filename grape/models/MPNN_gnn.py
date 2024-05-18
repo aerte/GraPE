@@ -132,12 +132,15 @@ class MPNN_Model(nn.Module):
             The number of hidden features should a regressor (3 layer MLP) be added to the end.
              Alternatively, a list of ints can be passed that will be used for an MLP. The
              weights are then used in the same order as given. Default: 512.
+    rep_dropout: float
+        The probability of dropping a node from the embedding representation. Default: 0.0.
 
     """
 
     def __init__(self, node_in_dim: int, edge_in_dim: int, message_nn: nn.Module = None,
                  node_hidden_dim: int = 64, num_layers: int = 1, num_gru_layers: int = 1,
-                 set2set_steps: int = 1, mlp_out_hidden:Union[int, list]=512):
+                 set2set_steps: int = 1, mlp_out_hidden:Union[int, list]=512,
+                 rep_dropout: float = 0.0):
 
         super().__init__()
 
@@ -146,6 +149,8 @@ class MPNN_Model(nn.Module):
         self.message = message_nn
 
         self.read_out = Set2Set(in_channels=node_hidden_dim, processing_steps=set2set_steps)
+
+        self.rep_dropout = nn.Dropout(rep_dropout)
 
         if isinstance(mlp_out_hidden, int):
             self.mlp_out = nn.Sequential(
@@ -189,6 +194,9 @@ class MPNN_Model(nn.Module):
 
         h_t = self.message(data)
         h = self.read_out(h_t, data.batch)
+
+        h = self.rep_dropout(h)
+
         y = self.mlp_out(h)
 
         return y.view(-1)

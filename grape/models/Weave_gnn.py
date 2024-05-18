@@ -210,12 +210,17 @@ class Weave_Model(nn.Module):
         The number of hidden features should a regressor (3 layer MLP) be added to the end.
          Alternatively, a list of ints can be passed that will be used for an MLP. The
          weights are then used in the same order as given. Default: 512.
+    rep_dropout: float
+        The probability of dropping a node from the embedding representation. Default: 0.0.
+
     """
     def __init__(self, node_in_dim: int, edge_in_dim: int, node_hidden_dim: int = 64,
                  edge_hidden_dim: int = 64, num_layers: int = 4, pool:Union[str, Callable] = 'mean',
-                 mlp_out_hidden: int = 512):
+                 mlp_out_hidden: int = 512, rep_dropout: float = 0.0):
 
         super().__init__()
+
+        self.rep_dropout = nn.Dropout(rep_dropout)
 
         self.encoder = Weave_encoder(node_in_dim=node_in_dim,
                                      edge_in_dim=edge_in_dim,
@@ -272,6 +277,7 @@ class Weave_Model(nn.Module):
 
         h = self.encoder(data)
         x = self.pool(h, batch)
+        x = self.rep_dropout(x)
         return self.mlp_out(x).view(-1)
 
 

@@ -146,16 +146,20 @@ class DMPNNModel(torch.nn.Module):
             The number of hidden features should a regressor (3 layer MLP) be added to the end.
              Alternatively, a list of ints can be passed that will be used for an MLP. The
              weights are then used in the same order as given. Default: 512.
+    rep_dropout: float
+        The probability of dropping a node from the embedding representation. Default: 0.0.
 
     """
     def __init__(self, node_in_dim:int, edge_in_dim:int,node_hidden_dim:int=64, depth=3, dropout=0.15,
-                        mlp_out_hidden:Union[int, list]=512):
+                        mlp_out_hidden:Union[int, list]=512, rep_dropout:float=0.0):
         super(DMPNNModel, self).__init__()
 
         self.hidden_size = node_hidden_dim
         self.node_dim = node_in_dim
         self.edge_dim = edge_in_dim
         self.depth = depth
+
+        self.rep_dropout = nn.Dropout(rep_dropout)
 
         self.encoder = DMPNNEncoder(node_in_dim = node_in_dim,
                                     edge_in_dim=edge_in_dim,
@@ -164,9 +168,6 @@ class DMPNNModel(torch.nn.Module):
                                     node_hidden_dim=node_hidden_dim,
                                     pool=True)
 
-        #self.mlp_out = nn.Sequential(nn.Linear(self.hidden_size, self.hidden_size, bias=True),
-        #                             nn.ReLU(),
-        #                             nn.Linear(self.hidden_size, 1, bias=True))
 
         if isinstance(mlp_out_hidden, int):
             self.mlp_out = nn.Sequential(
@@ -196,6 +197,9 @@ class DMPNNModel(torch.nn.Module):
     def forward(self, data):
 
         z = self.encoder(data)
+        # Dropout
+        z = self.rep_dropout(z)
+
         out = self.mlp_out(z)
 
         return out.view(-1)

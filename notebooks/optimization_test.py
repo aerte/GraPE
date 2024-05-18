@@ -1,3 +1,5 @@
+############################ Optimization script ############################################
+
 from ray.air import RunConfig
 
 from grape.models import AFP
@@ -16,6 +18,8 @@ import ConfigSpace as CS
 from ray import train, tune
 
 data = FreeSolv(split_type='random')
+
+model_name = 'AFP'
 
 
 def trainable(config: dict, dataset):
@@ -43,6 +47,8 @@ def trainable(config: dict, dataset):
     train.report({"mse_loss": best_loss})  # This sends the score to Tune.
 
 
+################################# Search space ######################################
+
 config_space = CS.ConfigurationSpace()
 config_space.add_hyperparameter(
     CS.UniformIntegerHyperparameter("depth", lower=1, upper=5))
@@ -56,24 +62,27 @@ config_space.add_hyperparameter(
 #    CS.CategoricalHyperparameter(
 #        name="activation", choices=["relu", "tanh"]))
 
-algo = TuneBOHB(
-    config_space, metric="mse_loss", mode="min")
+################################# -------------- ######################################
+
+
+### Define search algorithm
+algo = TuneBOHB(config_space, metric="mse_loss", mode="min")
+
+### Get the trial control algorithm
 bohb = HyperBandForBOHB(
     time_attr="training_iteration",
     metric="mse_loss",
     mode="min",
     max_t=100)
 
+### initialize the trainable with the dataset from the top
 my_trainable = partial(trainable, dataset=data)
 
-tuner = Tuner(
-    my_trainable,
-    tune_config=tune.TuneConfig(scheduler=HyperBandForBOHB(),
-                                search_alg=algo,
-                                mode='min',
-                                metric="mse_loss")
-
-)
+### Initialize the tuner
+tuner = Tuner(my_trainable, tune_config=tune.TuneConfig(scheduler=HyperBandForBOHB(),
+                                        search_alg=algo,
+                                        mode='min',
+                                        metric="mse_loss"))
 
 result = tuner.fit()
 
@@ -88,7 +97,9 @@ results_to_save = {
     "best_metrics": best_metrics
 }
 
-with open("./results/best_hyperparameters_AFP.json", "w") as file:
+file_name = "./results/best_hyperparameters_" + model_name + ".json"
+
+with open(file_name, "w") as file:
     json.dump(results_to_save, file, indent=4)
 
 #with open('./results/AFP_optimization_results.txt','a') as file:
