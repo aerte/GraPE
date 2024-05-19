@@ -8,6 +8,8 @@ data-sets/
 
 #notebooks
 notebooks/
+tests/
+dockerfiles/
 
 # test cache
 manual_test/

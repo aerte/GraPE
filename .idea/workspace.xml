@@ -4,10 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="115446f6-db4f-461b-90f9-f367678daa67" name="Changes" comment="added dropout and more test">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/results/best_hyperparameters_AFP.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/results/best_hyperparameters_AFP.json" afterDir="false" />
-    </list>
+    <list default="true" id="115446f6-db4f-461b-90f9-f367678daa67" name="Changes" comment="added dropout and more test" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -167,7 +164,7 @@
       <workItem from="1715949213218" duration="10954000" />
       <workItem from="1716019480740" duration="14518000" />
       <workItem from="1716119134362" duration="1505000" />
-      <workItem from="1716123104210" duration="980000" />
+      <workItem from="1716123104210" duration="1381000" />
     </task>
     <task id="LOCAL-00001" summary="bug fixes, SubSet, pca tests, expansion of classyfire">
       <option name="closed" value="true" />
@@ -409,7 +406,31 @@
       <option name="project" value="LOCAL" />
       <updated>1716038257174</updated>
     </task>
-    <option name="localTasksCounter" value="31" />
+    <task id="LOCAL-00031" summary="added dropout and more test">
+      <option name="closed" value="true" />
+      <created>1716124741391</created>
+      <option name="number" value="00031" />
+      <option name="presentableId" value="LOCAL-00031" />
+      <option name="project" value="LOCAL" />
+      <updated>1716124741391</updated>
+    </task>
+    <task id="LOCAL-00032" summary="added dropout and more test">
+      <option name="closed" value="true" />
+      <created>1716124944072</created>
+      <option name="number" value="00032" />
+      <option name="presentableId" value="LOCAL-00032" />
+      <option name="project" value="LOCAL" />
+      <updated>1716124944072</updated>
+    </task>
+    <task id="LOCAL-00033" summary="added dropout and more test">
+      <option name="closed" value="true" />
+      <created>1716124955736</created>
+      <option name="number" value="00033" />
+      <option name="presentableId" value="LOCAL-00033" />
+      <option name="project" value="LOCAL" />
+      <updated>1716124955736</updated>
+    </task>
+    <option name="localTasksCounter" value="34" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
