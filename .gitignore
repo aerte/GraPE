@@ -6,6 +6,9 @@ docs/source/data
 # Data sets
 data-sets/
 
+#notebooks
+notebooks/
+
 # test cache
 manual_test/
 
