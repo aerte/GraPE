@@ -1,12 +1,14 @@
 # Inspired by https://github.com/chaitjo/geometric-gnn-dojo/blob/main/geometric_gnn_101.ipynb
 
+from typing import Union
 import torch
 import torch.nn as nn
-import torch_geometric.nn.pool
 from torch.nn import Linear, GRU, ReLU
 
 from torch_geometric.nn import NNConv
 from torch_geometric.nn.aggr import Set2Set
+
+from grape.utils import reset_weights
 
 __all__ = [
     'MPNN',
@@ -68,11 +70,13 @@ class MPNN(nn.Module):
              self.gnn_layers.append(NNConv(in_channels=node_hidden_dim, out_channels=node_hidden_dim, nn=self.mlp,
                                            aggr='mean'))
 
+        self.reset_parameters()
+
     def reset_parameters(self):
-        self.mlp_in.reset_parameters()
-        self.mlp.reset_parameters()
-        for layer in self.gnn_layers:
-            layer.reset_parameters()
+        reset_weights(self.mlp_in)
+        reset_weights(self.mlp)
+        reset_weights(self.gru)
+        reset_weights(self.gnn_layers)
 
     def forward(self, data):
         """
@@ -98,8 +102,8 @@ class MPNN(nn.Module):
         return h
 
 class MPNN_Model(nn.Module):
-    """Implements the complete MPNN model described by Justin Gilmer et al. in [1]. It uses a simple, 2 layered MLP as the
-    free neural network that projects the edge features. The MPNN layer itself is the native pytorch geometric
+    """Implements the complete MPNN model described by Justin Gilmer et al. in [1]. It uses a simple, 2 layered MLP as
+    the free neural network that projects the edge features. The MPNN layer itself is the native pytorch geometric
     implementation (NNConv), the readout layer is set2set and the output model is another MLP.
 
     ----
@@ -118,18 +122,25 @@ class MPNN_Model(nn.Module):
         The number of input edge features.
     node_hidden_dim: int
         The dimension of the hidden node features. Default: 64
-    edge_hidden_dim: int
-        The dimension of the hidden edge features. Default: 64
     num_layers: int
         The number of MPNN layers that will be used. Default: 4
     num_gru_layers: int
         The number of GRU layers that will be used for each layer. Default: 4
+    set2set_steps: int
+        The number of set2set pooling steps/iterations that will be used. Default: 1
+    mlp_out_hidden: int or list
+            The number of hidden features should a regressor (3 layer MLP) be added to the end.
+             Alternatively, a list of ints can be passed that will be used for an MLP. The
+             weights are then used in the same order as given. Default: 512.
+    rep_dropout: float
+        The probability of dropping a node from the embedding representation. Default: 0.0.
 
     """
 
     def __init__(self, node_in_dim: int, edge_in_dim: int, message_nn: nn.Module = None,
                  node_hidden_dim: int = 64, num_layers: int = 1, num_gru_layers: int = 1,
-                 set2set_layers: int = 1, set2set_steps: int = 1):
+                 set2set_steps: int = 1, mlp_out_hidden:Union[int, list]=512,
+                 rep_dropout: float = 0.0):
 
         super().__init__()
 
@@ -139,14 +150,34 @@ class MPNN_Model(nn.Module):
 
         self.read_out = Set2Set(in_channels=node_hidden_dim, processing_steps=set2set_steps)
 
-        self.mlp_out = torch.nn.Sequential(
-            Linear(in_features=node_hidden_dim * 2, out_features=node_hidden_dim),
-            ReLU(),
-            Linear(in_features=node_hidden_dim, out_features=1)
-        )
+        self.rep_dropout = nn.Dropout(rep_dropout)
 
+        if isinstance(mlp_out_hidden, int):
+            self.mlp_out = nn.Sequential(
+                nn.Linear(node_hidden_dim *2 , mlp_out_hidden),
+                nn.ReLU(),
+                nn.Linear(mlp_out_hidden, mlp_out_hidden // 2),
+                nn.ReLU(),
+                nn.Linear(mlp_out_hidden // 2, 1)
+            )
 
+        else:
+            self.mlp_out = []
+            self.mlp_out.append(nn.Linear(node_hidden_dim * 2, mlp_out_hidden[0]))
+            for i in range(len(mlp_out_hidden)):
+                self.mlp_out.append(nn.ReLU())
+                if i == len(mlp_out_hidden) - 1:
+                    self.mlp_out.append(nn.Linear(mlp_out_hidden[i], 1))
+                else:
+                    self.mlp_out.append(nn.Linear(mlp_out_hidden[i], mlp_out_hidden[i + 1]))
+            self.mlp_out = nn.Sequential(*self.mlp_out)
 
+        self.reset_parameters()
+
+    def reset_parameters(self):
+        reset_weights(self.mlp_out)
+        reset_weights(self.read_out)
+        reset_weights(self.message)
 
     def forward(self, data):
         """
@@ -163,6 +194,9 @@ class MPNN_Model(nn.Module):
 
         h_t = self.message(data)
         h = self.read_out(h_t, data.batch)
+
+        h = self.rep_dropout(h)
+
         y = self.mlp_out(h)
 
         return y.view(-1)

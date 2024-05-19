@@ -24,3 +24,19 @@ LogP
    :members:
    :undoc-members:
    :show-inheritance:
+
+
+QM9
+----------
+.. automodule:: grape.datasets.QM9_dataset
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+
+FreeSolv
+--------------
+.. automodule:: grape.datasets.FreeSolv_dataset
+   :members:
+   :undoc-members:
+   :show-inheritance:

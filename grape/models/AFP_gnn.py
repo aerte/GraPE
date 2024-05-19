@@ -1,4 +1,5 @@
 # AFP model
+from typing import Union
 from torch_geometric.nn import AttentiveFP
 from torch.nn import Module
 from torch import nn
@@ -47,8 +48,12 @@ class AFP(Module):
         The dropout probability for a dropout layer at the end of the AFP block. Default: 0.0.
     regressor: bool
         Decides is a regressor MLP is added to the end. Default: True.
-    mlp_out_hidden: int
-        The number of hidden features should a regressor be added to the end. Default: 512.
+    mlp_out_hidden: int or list
+        The number of hidden features should a regressor (3 layer MLP) be added to the end.
+         Alternatively, a list of ints can be passed that will be used for an MLP. The
+         weights are then used in the same order as given. Default: 512.
+    rep_dropout: float
+        The probability of dropping a node from the embedding representation. Default: 0.0.
 
     ______
 
@@ -65,16 +70,21 @@ class AFP(Module):
 
     def __init__(self, node_in_dim: int, edge_in_dim:int, out_dim:int=None, hidden_dim:int=128,
                  num_layers_atom:int = 3, num_layers_mol:int = 3, dropout:float=0.0,
-                 regressor:bool=True, mlp_out_hidden:int=512):
+                 regressor:bool=True, mlp_out_hidden:Union[int,list]=512, rep_dropout:float=0.0):
         super(AFP, self).__init__()
 
         self.regressor = regressor
 
-        if out_dim is None:
-            self.regressor = True
+        self.rep_dropout = nn.Dropout(rep_dropout)
 
-        if self.regressor:
-            self.mlp_out_hidden = mlp_out_hidden
+
+        if out_dim is None or out_dim == 1 or regressor:
+            self.regressor = True
+            if isinstance(mlp_out_hidden, int):
+                out_dim = mlp_out_hidden
+            else:
+                out_dim = mlp_out_hidden[0]
+
 
         self.AFP_layers = AttentiveFP(
             in_channels=node_in_dim,
@@ -87,12 +97,22 @@ class AFP(Module):
         )
 
         if regressor:
-            self.mlp_out = nn.Sequential(
-                nn.ReLU(),
-                nn.Linear(mlp_out_hidden, mlp_out_hidden//2),
-                nn.ReLU(),
-                nn.Linear(mlp_out_hidden//2, 1)
-            )
+            if isinstance(mlp_out_hidden, int):
+                self.mlp_out = nn.Sequential(
+                    nn.ReLU(),
+                    nn.Linear(mlp_out_hidden, mlp_out_hidden//2),
+                    nn.ReLU(),
+                    nn.Linear(mlp_out_hidden//2, 1)
+                )
+            else:
+                self.mlp_out = []
+                for i in range(len(mlp_out_hidden)):
+                    self.mlp_out.append(nn.ReLU())
+                    if i == len(mlp_out_hidden)-1:
+                        self.mlp_out.append(nn.Linear(mlp_out_hidden[i], 1))
+                    else:
+                        self.mlp_out.append(nn.Linear(mlp_out_hidden[i], mlp_out_hidden[i+1]))
+                self.mlp_out = nn.Sequential(*self.mlp_out)
         else:
             self.mlp_out = lambda x: x
 
@@ -105,6 +125,9 @@ class AFP(Module):
     def forward(self, data):
         x, edge_index, edge_attr, batch = data.x, data.edge_index, data.edge_attr, data.batch
         out = self.AFP_layers(x, edge_index, edge_attr, batch)
+        # Dropout
+        out = self.rep_dropout(out)
+
         if self.regressor:
             out = self.mlp_out(out)
-        return out
+        return out.view(-1)

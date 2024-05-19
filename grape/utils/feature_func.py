@@ -151,7 +151,7 @@ def atom_valence(atom, type_='', allowed_set=None, encode_unknown=False):
 
 
 #### Atom hybridization
-def atom_hybridization(atom, allowed_set=None, encode_unknown=False):
+def atom_hybridization(atom, allowed_set=None, encode_unknown=True):
 
     if allowed_set is None:
         allowed_set = [Chem.rdchem.HybridizationType.SP,

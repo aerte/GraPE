@@ -9,25 +9,24 @@ as backbones.
 .. contents:: Contents
     :local:
 
-Message Passing Models
------------------------
-
-**Weave**
+Weave
+-------
 
 .. automodule:: grape.models.Weave_gnn
    :members:
    :undoc-members:
    :show-inheritance:
 
-**MPNN**
+MPNN
+-------
 
 .. automodule:: grape.models.MPNN_gnn
    :members:
    :undoc-members:
    :show-inheritance:
 
-
-**D-MPNN**
+D-MPNN
+-------
 
 .. automodule:: grape.models.DMPNN_gnn
    :members:
@@ -35,14 +34,16 @@ Message Passing Models
    :show-inheritance:
 
 
-**MEGNet**
+MEGNet
+-------
 
 .. automodule:: grape.models.MEGNet_gnn
    :members:
    :undoc-members:
    :show-inheritance:
 
-**AFP**
+AFP
+-----
 
 .. automodule:: grape.models.AFP_gnn
    :members:
@@ -51,7 +52,7 @@ Message Passing Models
 
 
 
-Output Models
+Output Model
 ---------------
 
 .. automodule:: grape.models.test_models
