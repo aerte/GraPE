@@ -7,7 +7,13 @@ docs/source/data
 data-sets/
 
 #notebooks
-notebooks/
+notebooks/data
+notebooks/freesolv
+notebooks/raw
+notebooks/processed
+notebooks/test_classyfire
+notebooks/analysis_results
+
 tests/
 dockerfiles/
 

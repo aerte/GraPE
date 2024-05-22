@@ -104,7 +104,7 @@ class BradleyDoublePlus(GraphDataSet):
 
         super().__init__(smiles = df.smiles, target = df[target], global_features=global_features,
                          allowed_atoms = allowed_atoms, only_organic = only_organic,
-                         atom_feature_list = atom_feature_list,
+                         atom_feature_list = atom_feature_list, scale=scale,
                          bond_feature_list = bond_feature_list, split=split, split_type=split_type,
                          split_frac=split_frac, custom_split=custom_split, log = log)
 

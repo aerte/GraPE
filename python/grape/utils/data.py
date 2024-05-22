@@ -273,6 +273,8 @@ class DataSet(DataLoad):
             # standardize target
             if scale:
                 self.target, self.mean_target, self.std_target = self.standardize(np.array(self.raw_target))
+            else:
+                self.target = self.raw_target
 
             self.data = construct_dataset(smiles=self.smiles,
                                           target=self.target,
