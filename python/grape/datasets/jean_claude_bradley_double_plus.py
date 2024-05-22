@@ -50,6 +50,8 @@ class BradleyDoublePlus(GraphDataSet):
     custom_split: array
         The custom split that should be applied. Has to be an array matching the length of the filtered smiles,
         where 0 indicates a training sample, 1 a testing sample and 2 a validation sample.
+    scale: bool
+        Decides if the dataset should be scaled. Default: True
     log: bool
         Decides if the filtering output and other outputs will be shown. Default: False
     save_data_filename: str
@@ -63,7 +65,7 @@ class BradleyDoublePlus(GraphDataSet):
     def __init__(self, root: str = None, target_string: str = None, global_features: list or str = None,
                  allowed_atoms: list[str] = None, only_organic: bool = True,
                  atom_feature_list: list[str] = None, bond_feature_list: list[str] = None,
-                 split: bool = False, split_type: str = None, split_frac: list[float] = None,
+                 split: bool = False, split_type: str = None, split_frac: list[float] = None, scale: bool = True,
                  custom_split: list[int] = None, log: bool = False, save_data_filename: str =None):
 
 

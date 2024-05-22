@@ -231,6 +231,8 @@ class DataSet(DataLoad):
         List of features to be applied. Default: All implemented features.
     bond_feature_list: list of str
         List of features that will be applied. Default: All implemented features.
+    scale: bool
+        Decides if the dataset should be scaled. Default: True
     log: bool
         Decides if the filtering output and other outputs will be shown.
 
@@ -239,7 +241,7 @@ class DataSet(DataLoad):
     def __init__(self, file_path: str = None, smiles: list[str] = None, target: Union[list[int], list[float],
     ndarray] = None, global_features:Union[list[float], ndarray] = None, filter: bool=True,allowed_atoms:list[str] = None,
     only_organic: bool = True, atom_feature_list: list[str] = None, bond_feature_list: list[str] = None,
-                 log: bool = False, root: str = None, indices:list[int] = None):
+    scale: bool = True, log: bool = False, root: str = None, indices:list[int] = None):
 
         assert (file_path is not None) or (smiles is not None and target is not None),'path or (smiles and target) must given.'
 
@@ -254,7 +256,10 @@ class DataSet(DataLoad):
                     raise ValueError('A dataset is stored as a DataFrame.')
 
             self.smiles = np.array(df.smiles)
-            self.target, self.mean_target, self.std_target = self.standardize(np.array(df.target))
+
+            if scale:
+                self.target, self.mean_target, self.std_target = self.standardize(np.array(df.target))
+
             self.global_features = np.array(df.global_features)
             self.data = list(df.graphs)
 
@@ -266,7 +271,9 @@ class DataSet(DataLoad):
                 self.smiles, self.raw_target = np.array(smiles), np.array(target)
 
             # standardize target
-            self.target, self.mean_target, self.std_target = self.standardize(np.array(self.raw_target))
+            if scale:
+                self.target, self.mean_target, self.std_target = self.standardize(np.array(self.raw_target))
+
             self.data = construct_dataset(smiles=self.smiles,
                                           target=self.target,
                                           allowed_atoms = allowed_atoms,
@@ -293,6 +300,9 @@ class DataSet(DataLoad):
     @staticmethod
     def rescale(target, mean, std):
         return (target *std) + mean
+
+    def scale_data(self):
+        self.target, self.mean_target, self.std_target = self.standardize(np.array(self.raw_target))
 
     def rescale_data(self, target):
         return self.rescale(target, self.mean_target, self.std_target)
@@ -621,6 +631,8 @@ class GraphDataSet(DataSet):
     custom_split: list
         The custom split that should be applied. Has to be an array matching the length of the filtered smiles,
         where 0 indicates a training sample, 1 a testing sample and 2 a validation sample.
+    scale: bool
+        Decides if the dataset should be scaled. Default: True
     log: bool
         Decides if the filtering output and other outputs will be shown.
     indices: list[int]
@@ -633,11 +645,11 @@ class GraphDataSet(DataSet):
     ndarray] = None, global_features:Union[list[float], ndarray] = None,
     allowed_atoms:list[str] = None, only_organic: bool = True, atom_feature_list:list[str] = None,
     bond_feature_list:list[str] = None, split: bool = True, split_type:str = None, split_frac:list[float, float, float]
-    = None, custom_split: list[int] = None, log: bool = False, indices:list[int] = None):
+    = None, custom_split: list[int] = None, scale: bool = True, log: bool = False, indices:list[int] = None):
 
         super().__init__(file_path=file_path, smiles=smiles, target=target, global_features=global_features,
                          allowed_atoms=allowed_atoms, only_organic=only_organic,
-                         atom_feature_list=atom_feature_list,
+                         atom_feature_list=atom_feature_list, scale=scale,
                          bond_feature_list=bond_feature_list, log=log, indices=indices)
 
         if split_type is None:

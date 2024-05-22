@@ -49,6 +49,8 @@ class FreeSolv(GraphDataSet):
     custom_split: array
         The custom split that should be applied. Has to be an array matching the length of the filtered smiles,
         where 0 indicates a training sample, 1 a testing sample and 2 a validation sample.
+    scale: bool
+        Decides if the dataset should be scaled. Default: True
     log: bool
         Decides if the filtering output and other outputs will be shown. Default: False
     save_data_filename: str
@@ -63,7 +65,7 @@ class FreeSolv(GraphDataSet):
                  allowed_atoms: list[str] = None, only_organic: bool = True,
                  atom_feature_list: list[str] = None, bond_feature_list: list[str] = None,
                  split: bool = False, split_type: str = None, split_frac: list[float] = None,
-                 custom_split: list[int] = None, log: bool = False, save_data_filename: str =None):
+                 custom_split: list[int] = None, scale: bool = True, log: bool = False, save_data_filename: str =None):
 
 
         self.root = './data' if root is None else root
@@ -77,7 +79,7 @@ class FreeSolv(GraphDataSet):
 
         super().__init__(smiles = SMILES, target = TARGET, global_features=global_features,
                          allowed_atoms = allowed_atoms, only_organic=only_organic,
-                         atom_feature_list = atom_feature_list,
+                         atom_feature_list = atom_feature_list, scale=scale,
                          bond_feature_list = bond_feature_list, split=split, split_type=split_type,
                          split_frac=split_frac, custom_split=custom_split, log = log)
 

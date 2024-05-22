@@ -4,7 +4,19 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="115446f6-db4f-461b-90f9-f367678daa67" name="Changes" comment="added dropout and more test" />
+    <list default="true" id="115446f6-db4f-461b-90f9-f367678daa67" name="Changes" comment="added dropout and more test">
+      <change beforePath="$PROJECT_DIR$/.idea/GraPE.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/GraPE.iml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/source/conf.py" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/conf.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/source/grape_model.pt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/notebooks/tests.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/tests.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/grape/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/python/grape/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/grape/datasets/FreeSolv_dataset.py" beforeDir="false" afterPath="$PROJECT_DIR$/python/grape/datasets/FreeSolv_dataset.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/grape/datasets/QM9_dataset.py" beforeDir="false" afterPath="$PROJECT_DIR$/python/grape/datasets/QM9_dataset.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/grape/datasets/jean_claude_bradley_double_plus.py" beforeDir="false" afterPath="$PROJECT_DIR$/python/grape/datasets/jean_claude_bradley_double_plus.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/grape/datasets/logP_dataset.py" beforeDir="false" afterPath="$PROJECT_DIR$/python/grape/datasets/logP_dataset.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/grape/utils/data.py" beforeDir="false" afterPath="$PROJECT_DIR$/python/grape/utils/data.py" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -175,7 +187,7 @@
       <workItem from="1716220531012" duration="5266000" />
       <workItem from="1716273029046" duration="29569000" />
       <workItem from="1716366201060" duration="2880000" />
-      <workItem from="1716379817206" duration="5957000" />
+      <workItem from="1716379817206" duration="8868000" />
     </task>
     <task id="LOCAL-00001" summary="bug fixes, SubSet, pca tests, expansion of classyfire">
       <option name="closed" value="true" />
@@ -465,7 +477,15 @@
       <option name="project" value="LOCAL" />
       <updated>1716380948396</updated>
     </task>
-    <option name="localTasksCounter" value="37" />
+    <task id="LOCAL-00037" summary="added dropout and more test">
+      <option name="closed" value="true" />
+      <created>1716398621140</created>
+      <option name="number" value="00037" />
+      <option name="presentableId" value="LOCAL-00037" />
+      <option name="project" value="LOCAL" />
+      <updated>1716398621140</updated>
+    </task>
+    <option name="localTasksCounter" value="38" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
