@@ -336,8 +336,8 @@ def test_model(model: torch.nn.Module, loss_func: Union[Callable,str,None], test
                 #    latents = lat
             else:
                 preds = torch.concat([preds,out],dim=0)
-                if return_latents:
-                    latents = torch.concat((latents, lat), dim=0)
+                #if return_latents:
+                #    latents = torch.concat((latents, lat), dim=0)
 
             pbar.update(1)
 

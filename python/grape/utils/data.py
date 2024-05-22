@@ -41,7 +41,7 @@ __all__ = ['filter_smiles',
 ##########################################################################
 
 def filter_smiles(smiles: list[str], target: Union[list[str], list[float], ndarray], allowed_atoms: list[str] = None,
-                  only_organic: bool = True, allow_dupes: bool = False, log: bool = False) -> (list,list):
+                  only_organic: bool = True, allow_dupes: bool = False, log: bool = False) -> Union[list,list]:
     """Filters a list of smiles based on the allowed atom symbols.
 
     Parameters
