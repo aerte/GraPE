@@ -21,16 +21,35 @@ data = FreeSolv(split_type='random')
 
 model_name = 'AFP'
 
+def return_hidden_layers(num):
+    """ Returns a list of hidden layers, starting from 2**num*32, reducing the hidden dim by 2 every step.
+
+     Example
+     --------
+
+     >>>return_hidden_layers(3)
+
+     [256, 128, 64]
+     """
+    return [2**i*32 for i in range(num, 0,-1)]
+
+
 
 def trainable(config: dict, dataset):
-    model = AFP(node_in_dim=44, edge_in_dim=12, num_layers_mol=config["depth"],
-                hidden_dim=config["gnn_hidden_dim"],)
+
+    mlp_out = return_hidden_layers(config['mlp_layers'])
+
+    model = AFP(node_in_dim=44, edge_in_dim=12, num_layers_mol=config["afp_mol_layers"],
+                num_layers_atom=config["depth"],
+                hidden_dim=config["gnn_hidden_dim"],
+                mlp_out_hidden=mlp_out)
 
     train_set, val_set, test_set = dataset.train, dataset.val, dataset.test
 
-    optimizer = torch.optim.Adam(model.parameters(), lr=config['initial_lr'], weight_decay=1e-6)
+    optimizer = torch.optim.Adam(model.parameters(), lr=config['initial_lr'], weight_decay=config['weight_decay'])
     early_Stopper = EarlyStopping(patience=20, model_name='random', skip_save=True)
-    scheduler = lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.9, min_lr=0.0000000000001, patience=30)
+    scheduler = lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=config['lr_reduction_factor'],
+                                               min_lr=0.0000000000001, patience=30)
 
     train_loss, val_loss = train_model(model=model,
                                        loss_func='mse',
@@ -55,9 +74,17 @@ config_space.add_hyperparameter(
 config_space.add_hyperparameter(
     CS.UniformIntegerHyperparameter("gnn_hidden_dim", lower=32, upper=256))
 config_space.add_hyperparameter(
-    CS.UniformFloatHyperparameter('initial_lr', lower=1e-5, upper=1e-1, log=True))
-# config_space.add_hyperparameter(
-#    CS.UniformFloatHyperparameter("height", lower=-100, upper=100))
+    CS.UniformFloatHyperparameter('initial_lr', lower=1e-5, upper=1e-1))
+config_space.add_hyperparameter(
+    CS.UniformFloatHyperparameter("weight_decay", lower=1e-6, upper=1e-1))
+config_space.add_hyperparameter(
+    CS.UniformFloatHyperparameter("lr_reduction_factor", lower=0.4, upper=0.99))
+config_space.add_hyperparameter(
+    CS.UniformFloatHyperparameter("dropout", lower=0., upper=1.4))
+config_space.add_hyperparameter(
+    CS.UniformIntegerHyperparameter("mlp_layers", lower=1, upper=4))
+config_space.add_hyperparameter(
+    CS.UniformIntegerHyperparameter("afp_mol_layers", lower=1, upper=4))
 # config_space.add_hyperparameter(
 #    CS.CategoricalHyperparameter(
 #        name="activation", choices=["relu", "tanh"]))

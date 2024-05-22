@@ -76,7 +76,7 @@ def mol_weight_vs_target(smiles: list, target: list, target_name: str = None, fi
     return
 
 
-def num_chart(num_dict: dict, fig_size: tuple = (14,8), save_fig: bool = False,
+def num_chart(num_dict: dict, fig_size: tuple = (14,8), fontsize:int = 10, save_fig: bool = False,
                          path_to_export: str = None) -> sns.barplot:
     """
 
@@ -87,6 +87,8 @@ def num_chart(num_dict: dict, fig_size: tuple = (14,8), save_fig: bool = False,
         integers.
     fig_size: tuple
         The output figure size. Default: (14,8)
+    fontsize: int
+        The font size. Default: 10
     save_fig: bool
         Decides if the plot is saved, is overridden if a path is given. Default: False
     path_to_export: str
@@ -104,10 +106,13 @@ def num_chart(num_dict: dict, fig_size: tuple = (14,8), save_fig: bool = False,
         if not os.path.exists(path_to_export):
             os.mkdir(path_to_export)
 
-    x = num_dict.keys()
+    x = np.array(list(num_dict.keys()))
+    # Sort keys for consistency
+    x = np.sort(x)
+
     y = num_dict.values()
 
-    plt.rcParams.update({'font.size': 10})
+    plt.rcParams.update({'font.size': fontsize})
 
     fig, ax = plt.subplots(figsize=fig_size)
     palette = sns.color_palette('muted', n_colors=len(num_dict.keys()))

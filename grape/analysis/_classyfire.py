@@ -145,9 +145,8 @@ def classyfire(smiles: list[str], path_to_export: str = None,
             filename = str(max_list+i) + '.json'
             with open(path_folder + '/' + filename, 'w') as f:
                 json.dump(data, f)
-
-            log_frame = pd.concat([log_frame, pd.DataFrame({'filename': [filename], 'smiles': [standard_smiles[i]]})])
-            ids_out.append(list(log_frame.smiles.values).index(standard_smiles[idx]))
+            log_frame = pd.concat([log_frame, pd.DataFrame({'filename': [filename], 'smiles': [standard_smiles[idx]]})])
+            ids_out.append(log_frame.smiles.values.tolist().index(standard_smiles[idx]))
             input_output_ids.append(idx)
 
         except:
@@ -159,6 +158,7 @@ def classyfire(smiles: list[str], path_to_export: str = None,
                 print_report(str(i) + '    ' + str(key), file=report)
             missing_keys = True
             pass
+
 
         time.sleep(math.ceil(len(inchikey_rdkit) / 12 / 60))
 

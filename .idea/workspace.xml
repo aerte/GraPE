@@ -4,7 +4,17 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="115446f6-db4f-461b-90f9-f367678daa67" name="Changes" comment="added dropout and more test" />
+    <list default="true" id="115446f6-db4f-461b-90f9-f367678daa67" name="Changes" comment="added dropout and more test">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/grape/analysis/_classyfire.py" beforeDir="false" afterPath="$PROJECT_DIR$/grape/analysis/_classyfire.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/grape/plots/analysis_plots.py" beforeDir="false" afterPath="$PROJECT_DIR$/grape/plots/analysis_plots.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/notebooks/best_model.pt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/notebooks/best_model_dmpnn.pt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/notebooks/best_model_mpnn.pt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/notebooks/optimization_test.py" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/optimization_test.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/notebooks/results/best_hyperparameters_AFP.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/results/best_hyperparameters_AFP.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/notebooks/tests.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/tests.ipynb" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -58,13 +68,18 @@
     &quot;ASKED_MARK_IGNORED_FILES_AS_EXCLUDED&quot;: &quot;true&quot;,
     &quot;JavaScript Debug.Demonstration.html.executor&quot;: &quot;Run&quot;,
     &quot;JavaScript Debug.analysis.html.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.Doctests in optimization_test.executor&quot;: &quot;Run&quot;,
     &quot;Python.AFP_train_test.executor&quot;: &quot;Run&quot;,
     &quot;Python.FreeSolvTraining.executor&quot;: &quot;Run&quot;,
     &quot;Python.MEGNet_gnn.executor&quot;: &quot;Run&quot;,
     &quot;Python.MPNN_gnn.executor&quot;: &quot;Run&quot;,
+    &quot;Python._classyfire.executor&quot;: &quot;Run&quot;,
     &quot;Python.alkanes_test.executor&quot;: &quot;Run&quot;,
+    &quot;Python.analysis_plots.executor&quot;: &quot;Run&quot;,
+    &quot;Python.classyfire_plots.executor&quot;: &quot;Run&quot;,
     &quot;Python.opt_utils.executor&quot;: &quot;Run&quot;,
     &quot;Python.optimization_test.executor&quot;: &quot;Run&quot;,
+    &quot;Python.pallete_script.executor&quot;: &quot;Run&quot;,
     &quot;Python.presentation_dmpnn.executor&quot;: &quot;Run&quot;,
     &quot;Python.presentation_model.executor&quot;: &quot;Run&quot;,
     &quot;Python.presentation_mpnn.executor&quot;: &quot;Run&quot;,
@@ -164,7 +179,11 @@
       <workItem from="1715949213218" duration="10954000" />
       <workItem from="1716019480740" duration="14518000" />
       <workItem from="1716119134362" duration="1505000" />
-      <workItem from="1716123104210" duration="1381000" />
+      <workItem from="1716123104210" duration="4121000" />
+      <workItem from="1716138119521" duration="583000" />
+      <workItem from="1716220531012" duration="5266000" />
+      <workItem from="1716273029046" duration="29569000" />
+      <workItem from="1716366201060" duration="2880000" />
     </task>
     <task id="LOCAL-00001" summary="bug fixes, SubSet, pca tests, expansion of classyfire">
       <option name="closed" value="true" />
@@ -430,7 +449,15 @@
       <option name="project" value="LOCAL" />
       <updated>1716124955736</updated>
     </task>
-    <option name="localTasksCounter" value="34" />
+    <task id="LOCAL-00034" summary="added dropout and more test">
+      <option name="closed" value="true" />
+      <created>1716125362272</created>
+      <option name="number" value="00034" />
+      <option name="presentableId" value="LOCAL-00034" />
+      <option name="project" value="LOCAL" />
+      <updated>1716125362272</updated>
+    </task>
+    <option name="localTasksCounter" value="35" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -461,15 +488,20 @@
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/grape$presentation_model.coverage" NAME="presentation_model Coverage Results" MODIFIED="1713531949866" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/notebooks" />
     <SUITE FILE_PATH="coverage/grape$alkanes_test.coverage" NAME="alkanes_test Coverage Results" MODIFIED="1713775345542" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/notebooks" />
+    <SUITE FILE_PATH="coverage/grape$_classyfire.coverage" NAME="_classyfire Coverage Results" MODIFIED="1716319717916" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/grape/analysis" />
     <SUITE FILE_PATH="coverage/grape$presentation_dmpnn.coverage" NAME="presentation_dmpnn Coverage Results" MODIFIED="1713709771726" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/notebooks" />
+    <SUITE FILE_PATH="coverage/grape$Doctests_in_optimization_test.coverage" NAME="Doctests in optimization_test Coverage Results" MODIFIED="1716126476910" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/notebooks" />
     <SUITE FILE_PATH="coverage/grape$test_models.coverage" NAME="test_models Coverage Results" MODIFIED="1713368941036" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/grape/models" />
     <SUITE FILE_PATH="coverage/grape$AFP_train_test.coverage" NAME="AFP_train_test Coverage Results" MODIFIED="1715864210627" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/notebooks" />
+    <SUITE FILE_PATH="coverage/grape$analysis_plots.coverage" NAME="analysis_plots Coverage Results" MODIFIED="1716298576348" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/grape/plots" />
     <SUITE FILE_PATH="coverage/grape$FreeSolvTraining.coverage" NAME="FreeSolvTraining Coverage Results" MODIFIED="1715933199315" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/notebooks" />
     <SUITE FILE_PATH="coverage/grape$testbayes.coverage" NAME="testbayes Coverage Results" MODIFIED="1713267308595" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/notebooks" />
     <SUITE FILE_PATH="coverage/grape$optimization_test.coverage" NAME="optimization_test Coverage Results" MODIFIED="1716038275761" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/notebooks" />
     <SUITE FILE_PATH="coverage/grape$MPNN_gnn.coverage" NAME="MPNN_gnn Coverage Results" MODIFIED="1713369855594" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/grape/models" />
     <SUITE FILE_PATH="coverage/grape$MEGNet_gnn.coverage" NAME="MEGNet_gnn Coverage Results" MODIFIED="1714326296542" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/grape/models" />
+    <SUITE FILE_PATH="coverage/grape$classyfire_plots.coverage" NAME="classyfire_plots Coverage Results" MODIFIED="1716324217628" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/notebooks" />
     <SUITE FILE_PATH="coverage/grape$presentation_mpnn.coverage" NAME="presentation_mpnn Coverage Results" MODIFIED="1714327319150" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/notebooks" />
+    <SUITE FILE_PATH="coverage/grape$pallete_script.coverage" NAME="pallete_script Coverage Results" MODIFIED="1716369279503" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/notebooks" />
     <SUITE FILE_PATH="coverage/grape$test2.coverage" NAME="test2 Coverage Results" MODIFIED="1713520057829" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/notebooks" />
     <SUITE FILE_PATH="coverage/grape$opt_utils.coverage" NAME="opt_utils Coverage Results" MODIFIED="1713264989457" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/grape/utils" />
   </component>

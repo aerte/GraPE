@@ -1,20 +1,6 @@
 {
-    "best_config": {
-        "depth": 5,
-        "gnn_hidden_dim": 101,
-        "initial_lr": 0.020530410718517283
-    },
+    "best_config": null,
     "best_metrics": {
-        "trial_id": "d5ace701",
-        "date": "2024-05-18_15-18-08",
-        "timestamp": 1716038288,
-        "pid": 31781,
-        "hostname": "Felixs-Air",
-        "node_ip": "127.0.0.1",
-        "config": {
-            "depth": 5,
-            "gnn_hidden_dim": 101,
-            "initial_lr": 0.020530410718517283
-        }
+        "trial_id": "7a684770"
     }
 }
