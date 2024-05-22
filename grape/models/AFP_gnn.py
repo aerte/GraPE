@@ -3,7 +3,6 @@ from typing import Union
 from torch_geometric.nn import AttentiveFP
 from torch.nn import Module
 from torch import nn
-from grape.utils import reset_weights
 
 __all__ = ['AFP']
 
@@ -119,6 +118,7 @@ class AFP(Module):
             self.mlp_out = lambda x: x
 
     def reset_parameters(self):
+        from grape.utils import reset_weights
         self.AFP_layers.reset_parameters()
         if self.regressor:
             reset_weights(self.mlp_out)
