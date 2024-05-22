@@ -12,8 +12,6 @@ from torch_geometric.nn import Set2Set
 from torch_geometric.typing import Adj
 from torch_scatter import scatter
 
-from grape.utils import reset_weights
-
 
 __all__ = [
     'MEGNet_block',
@@ -82,6 +80,7 @@ class MEGNet_block(nn.Module):
         )
 
     def reset_parameters(self) -> None:
+        from grape.utils import reset_weights
         reset_weights(self.update_net_edge)
         reset_weights(self.update_net_node)
         reset_weights(self.update_net_global)
@@ -271,6 +270,7 @@ class MEGNet_gnn(nn.Module):
         ])
 
     def reset_parameters(self) -> None:
+        from grape.utils import reset_weights
         reset_weights(self.read_out_nodes)
         reset_weights(self.read_out_edges)
         reset_weights(self.mlp_out)

@@ -7,8 +7,6 @@ import torch.utils.data
 from torch_geometric.nn import global_mean_pool
 from torch_scatter import scatter_sum
 
-from grape.utils import reset_weights
-
 __all__ = [
     'DMPNNEncoder',
     'DMPNNModel'
@@ -191,6 +189,7 @@ class DMPNNModel(torch.nn.Module):
         self.reset_parameters()
 
     def reset_parameters(self):
+        from grape.utils import reset_weights
         reset_weights(self.mlp_out)
         reset_weights(self.encoder)
 

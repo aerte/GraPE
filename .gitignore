@@ -17,6 +17,11 @@ manual_test/
 # other local dev info
 .vscode/
 
+
+genv/*
+genv/
+
+
 # Mac OS-specific storage files
 .DS_Store
 

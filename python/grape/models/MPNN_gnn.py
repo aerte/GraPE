@@ -8,8 +8,6 @@ from torch.nn import Linear, GRU, ReLU
 from torch_geometric.nn import NNConv
 from torch_geometric.nn.aggr import Set2Set
 
-from grape.utils import reset_weights
-
 __all__ = [
     'MPNN',
     'MPNN_Model'
@@ -73,6 +71,7 @@ class MPNN(nn.Module):
         self.reset_parameters()
 
     def reset_parameters(self):
+        from grape.utils import reset_weights
         reset_weights(self.mlp_in)
         reset_weights(self.mlp)
         reset_weights(self.gru)
@@ -175,6 +174,7 @@ class MPNN_Model(nn.Module):
         self.reset_parameters()
 
     def reset_parameters(self):
+        from grape.utils import reset_weights
         reset_weights(self.mlp_out)
         reset_weights(self.read_out)
         reset_weights(self.message)
