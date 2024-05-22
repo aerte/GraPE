@@ -99,14 +99,14 @@ def atom_number(atom, type_='', allowed_set = None, encode_unknown=False):
 
     assert type_ in ['one_hot', 'regular', ''], 'Wrong type, the options are: [one_hot, regular, ]'
 
-    match type_:
-        case 'one_hot':
-            allowed_set = list(range(1,101)) if allowed_set is None else allowed_set
-            return one_hot(atom.GetAtomicNum(), allowed_set, encode_unknown)
-        case 'regular':
-            return [atom.GetAtomicNum()]
-        case _:
-            return [atom.GetAtomicNum()]
+    
+    if type_ == 'one_hot':
+        allowed_set = list(range(1,101)) if allowed_set is None else allowed_set
+        return one_hot(atom.GetAtomicNum(), allowed_set, encode_unknown)
+    elif type_ == 'regular':
+        return [atom.GetAtomicNum()]
+    else:
+        return [atom.GetAtomicNum()]
 
 
 #### Atom degree
@@ -115,19 +115,18 @@ def atom_degree(atom, type_='', allowed_set=None, encode_unknown=None):
     assert type_ in ['total_one_hot', 'total', 'one_hot', 'regular', ''], ('Wrong type, the options are:'
                                                                            '[total_one_hot, total, one_hot, regular, ]')
 
-    match type_:
-        case 'total_one_hot':
-            allowed_set = list(range(6)) if allowed_set is None else allowed_set
-            return one_hot(atom.GetTotalDegree(), allowed_set, encode_unknown)
-        case 'total':
-            return [atom.GetTotalDegree()]
-        case 'one_hot':
-            allowed_set = list(range(6)) if allowed_set is None else allowed_set
-            return one_hot(atom.GetDegree(), allowed_set, encode_unknown)
-        case 'regular':
-            return [atom.GetDegree()]
-        case _:
-            return [atom.GetDegree()]
+    if type_ == 'total_one_hot':
+        allowed_set = list(range(6)) if allowed_set is None else allowed_set
+        return one_hot(atom.GetTotalDegree(), allowed_set, encode_unknown)
+    elif type_ ==  'total':
+        return [atom.GetTotalDegree()]
+    elif type_ ==   'one_hot':
+        allowed_set = list(range(6)) if allowed_set is None else allowed_set
+        return one_hot(atom.GetDegree(), allowed_set, encode_unknown)
+    elif type_ ==   'regular':
+        return [atom.GetDegree()]
+    else:
+        return [atom.GetDegree()]
 
 
 #### Atom valency
@@ -135,19 +134,19 @@ def atom_valence(atom, type_='', allowed_set=None, encode_unknown=False):
     assert type_ in ['ex_one_hot', 'ex', 'im_one_hot', 'im', ''], ('Wrong type, the options are: '
                                                                     '[ex_one_hot, ex, im_one_hot, im, ]')
 
-    match type_:
-        case 'ex_one_hot':
-            allowed_set = list(range(0, 6)) if allowed_set is None else allowed_set
-            return one_hot(atom.GetExplicitValence(), allowed_set, encode_unknown)
-        case 'ex':
-            return [atom.GetExplicitValence()]
-        case 'im_one_hot':
-            allowed_set = list(range(0, 6)) if allowed_set is None else allowed_set
-            return one_hot(atom.GetImplicitValence(), allowed_set, encode_unknown)
-        case 'im':
-            return [atom.GetImplicitValence()]
-        case _:
-            return [atom.GetImplicitValence()]
+    
+    if type_ == 'ex_one_hot':
+        allowed_set = list(range(0, 6)) if allowed_set is None else allowed_set
+        return one_hot(atom.GetExplicitValence(), allowed_set, encode_unknown)
+    elif type_ == 'ex':
+        return [atom.GetExplicitValence()]
+    if type_ == 'im_one_hot':
+        allowed_set = list(range(0, 6)) if allowed_set is None else allowed_set
+        return one_hot(atom.GetImplicitValence(), allowed_set, encode_unknown)
+    if type_ == 'im':
+        return [atom.GetImplicitValence()]
+    else:
+        return [atom.GetImplicitValence()]
 
 
 #### Atom hybridization
@@ -167,42 +166,40 @@ def atom_num_H(atom, type_='', allowed_set=None, encode_unknown=False):
 
     assert type_ in ['one_hot', 'regular', ''], 'Wrong type, the options are: [one_hot, regular, ]'
 
-    match type_:
-        case 'one_hot':
-            allowed_set = list(range(5)) if allowed_set is None else allowed_set
-            return one_hot(atom.GetTotalNumHs(), allowed_set, encode_unknown)
-        case 'regular':
-            return [atom.GetTotalNumHs()]
-        case _:
-            return [atom.GetTotalNumHs()]
+    
+    if type_ == 'one_hot':
+        allowed_set = list(range(5)) if allowed_set is None else allowed_set
+        return one_hot(atom.GetTotalNumHs(), allowed_set, encode_unknown)
+    elif type_ == 'regular':
+        return [atom.GetTotalNumHs()]
+    else:
+        return [atom.GetTotalNumHs()]
 
 #### Formal charge
 def atom_formal_charge(atom, type_='', allowed_set=None, encode_unknown=False):
 
     assert type_ in ['one_hot', 'regular', ''], 'Wrong type, the options are: [one_hot, regular, ]'
 
-    match type_:
-        case 'one_hot':
-            allowed_set = list(range(-2,3)) if allowed_set is None else allowed_set
-            return one_hot(atom.GetFormalCharge(), allowed_set, encode_unknown)
-        case 'regular':
-            return [atom.GetFormalCharge()]
-        case _:
-            return [atom.GetFormalCharge()]
+    if type_ == 'one_hot':
+        allowed_set = list(range(-2,3)) if allowed_set is None else allowed_set
+        return one_hot(atom.GetFormalCharge(), allowed_set, encode_unknown)
+    elif type_ == 'regular':
+        return [atom.GetFormalCharge()]
+    else:
+        return [atom.GetFormalCharge()]
 
 #### Radical electrons
 def atom_num_rad_electrons(atom, type_='', allowed_set=None, encode_unknown=False):
 
     assert type_ in ['one_hot', 'regular', ''], 'Wrong type, the options are: [one_hot, regular, ]'
 
-    match type_:
-        case 'one_hot':
-            allowed_set = list(range(5)) if allowed_set is None else allowed_set
-            return one_hot(atom.GetNumRadicalElectrons(), allowed_set, encode_unknown)
-        case 'regular':
-            return [atom.GetNumRadicalElectrons()]
-        case _:
-            return [atom.GetNumRadicalElectrons()]
+    if type_ == 'one_hot':
+        allowed_set = list(range(5)) if allowed_set is None else allowed_set
+        return one_hot(atom.GetNumRadicalElectrons(), allowed_set, encode_unknown)
+    elif type_ == 'regular':
+        return [atom.GetNumRadicalElectrons()]
+    else:
+        return [atom.GetNumRadicalElectrons()]
 
 
 def atom_is_aromatic(atom):
@@ -219,23 +216,23 @@ def atom_chiral(atom, type_='', allowed_set=None, encode_unknown=False):
 
     assert type_ in ['tag', 'type', 'center'], 'Wrong type, the options are: [tag, type, center]'
 
-    match type_:
-        case 'tag':
-            if allowed_set is None:
-                allowed_set = [Chem.rdchem.ChiralType.CHI_UNSPECIFIED,
-                               Chem.rdchem.ChiralType.CHI_TETRAHEDRAL_CW,
-                               Chem.rdchem.ChiralType.CHI_TETRAHEDRAL_CCW,
-                               Chem.rdchem.ChiralType.CHI_OTHER]
-            return one_hot(atom.GetChiralTag(), allowed_set, encode_unknown)
-        case 'type':
+    if type_ == 'tag':
+        if allowed_set is None:
+            allowed_set = [Chem.rdchem.ChiralType.CHI_UNSPECIFIED,
+                            Chem.rdchem.ChiralType.CHI_TETRAHEDRAL_CW,
+                            Chem.rdchem.ChiralType.CHI_TETRAHEDRAL_CCW,
+                            Chem.rdchem.ChiralType.CHI_OTHER]
+        return one_hot(atom.GetChiralTag(), allowed_set, encode_unknown)
+    
+    elif type_ == 'type':
+        if not atom.HasProp('_CIPCode'):
+            return [False, False]
 
-            if not atom.HasProp('_CIPCode'):
-                return [False, False]
-
-            allowed_set = ['R', 'S'] if allowed_set is None else allowed_set
-            return one_hot(atom.GetProp('_CIPCode'), allowed_set, encode_unknown)
-        case 'center':
-            return [atom.HasProp('_ChiralityPossible')]
+        allowed_set = ['R', 'S'] if allowed_set is None else allowed_set
+        return one_hot(atom.GetProp('_CIPCode'), allowed_set, encode_unknown)
+    
+    elif type_ == 'center':
+        return [atom.HasProp('_ChiralityPossible')]
 
 def atom_mass(atom, scale=0.01):
 

@@ -8,7 +8,6 @@ from torch.nn import Linear, GRU, ReLU
 from torch_geometric.nn import NNConv
 from torch_geometric.nn.aggr import Set2Set
 
-
 __all__ = [
     'MPNN',
     'MPNN_Model'

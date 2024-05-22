@@ -23,7 +23,7 @@ from torch_geometric.data import Data
 from torch_geometric.utils import dense_to_sparse
 
 from grape.utils.featurizer import AtomFeaturizer, BondFeaturizer
-from grape.analysis import smiles_analysis
+#from grape.analysis import smiles_analysis
 from grape.utils.split_utils import split_data
 from grape.utils.feature_func import mol_weight
 
@@ -41,7 +41,7 @@ __all__ = ['filter_smiles',
 ##########################################################################
 
 def filter_smiles(smiles: list[str], target: Union[list[str], list[float], ndarray], allowed_atoms: list[str] = None,
-                  only_organic: bool = True, allow_dupes: bool = False, log: bool = False) -> (list,list):
+                  only_organic: bool = True, allow_dupes: bool = False, log: bool = False) -> Union[list,list]:
     """Filters a list of smiles based on the allowed atom symbols.
 
     Parameters
@@ -517,44 +517,44 @@ class DataSet(DataLoad):
 
 
 
-    def analysis(self, path_to_export:str = None, download:bool=False, plots:list = None, save_plots:bool = False,
-                 fig_size:tuple[int,int]=None, filter_output_txt:bool = True) -> tuple:
-        """Returns an overview of different aspects of the smiles dataset **after filtering** according to:
-        https://github.com/awslabs/dgl-lifesci/blob/master/python/dgllife/utils/analysis.py.
-        This includes the frequency of symbols, degree frequency and more.
+    # def analysis(self, path_to_export:str = None, download:bool=False, plots:list = None, save_plots:bool = False,
+    #              fig_size:tuple[int,int]=None, filter_output_txt:bool = True) -> tuple:
+    #     """Returns an overview of different aspects of the smiles dataset **after filtering** according to:
+    #     https://github.com/awslabs/dgl-lifesci/blob/master/python/dgllife/utils/analysis.py.
+    #     This includes the frequency of symbols, degree frequency and more.
 
-        Parameters
-        ----------
-        path_to_export: str
-            Path to the folder where analysis results should be saved. Default: None (recommended).
-        download: bool
-            Decides if the results are downloaded. If either the path is given or download is set to true, the
-            analysis results will be downloaded as a txt file.
-        plots: list of str
-            Bar plots of the analysis results. Default: None. Possible options are:
-            ['atom_type_frequency', 'degree_frequency', 'total_degree_frequency', 'explicit_valence_frequency',
-            'implicit_valence_frequency', 'hybridization_frequency', 'total_num_h_frequency', 'formal_charge_frequency',
-            'num_radical_electrons_frequency', 'aromatic_atom_frequency', 'chirality_tag_frequency',
-            'bond_type_frequency', 'conjugated_bond_frequency', 'bond_stereo_configuration_frequency',
-            'bond_direction_frequency']
-        save_plots: bool
-            Decides if the plots are saved in the processed folder.
-        fig_size: list
-            2-D list to set the figure sizes. Default: [10,6]
-        filter_output_txt: bool
-            Filters the output text file of some excessive information. Default: True
-            .
+    #     Parameters
+    #     ----------
+    #     path_to_export: str
+    #         Path to the folder where analysis results should be saved. Default: None (recommended).
+    #     download: bool
+    #         Decides if the results are downloaded. If either the path is given or download is set to true, the
+    #         analysis results will be downloaded as a txt file.
+    #     plots: list of str
+    #         Bar plots of the analysis results. Default: None. Possible options are:
+    #         ['atom_type_frequency', 'degree_frequency', 'total_degree_frequency', 'explicit_valence_frequency',
+    #         'implicit_valence_frequency', 'hybridization_frequency', 'total_num_h_frequency', 'formal_charge_frequency',
+    #         'num_radical_electrons_frequency', 'aromatic_atom_frequency', 'chirality_tag_frequency',
+    #         'bond_type_frequency', 'conjugated_bond_frequency', 'bond_stereo_configuration_frequency',
+    #         'bond_direction_frequency']
+    #     save_plots: bool
+    #         Decides if the plots are saved in the processed folder.
+    #     fig_size: list
+    #         2-D list to set the figure sizes. Default: [10,6]
+    #     filter_output_txt: bool
+    #         Filters the output text file of some excessive information. Default: True
+    #         .
 
-        Returns
-        -------
-        dictionary
-            Summary of the results.
-        figures (optional)
-            Bar plots of the specified results.
+    #     Returns
+    #     -------
+    #     dictionary
+    #         Summary of the results.
+    #     figures (optional)
+    #         Bar plots of the specified results.
 
-        """
+    #     """
 
-        return smiles_analysis(self.smiles, path_to_export, download, plots, save_plots, fig_size, filter_output_txt)
+    #     return smiles_analysis(self.smiles, path_to_export, download, plots, save_plots, fig_size, filter_output_txt)
 
 
 

@@ -336,8 +336,8 @@ def test_model(model: torch.nn.Module, loss_func: Union[Callable,str,None], test
                 #    latents = lat
             else:
                 preds = torch.concat([preds,out],dim=0)
-                if return_latents:
-                    latents = torch.concat((latents, lat), dim=0)
+                #if return_latents:
+                #    latents = torch.concat((latents, lat), dim=0)
 
             pbar.update(1)
 
@@ -415,28 +415,27 @@ def pred_metric(prediction: Union[Tensor, ndarray], target: Union[Tensor, ndarra
     prints = []
 
     for metric_ in metrics:
-        match metric_:
-            case 'mse':
-                results['mse'] = mean_squared_error(target, prediction)
-                prints.append(f'MSE: {mean_squared_error(target, prediction):.3f}')
-            case 'rmse':
-                results['rmse'] = np.sqrt(mean_squared_error(target, prediction))
-                prints.append(f'RMSE: {np.sqrt(mean_squared_error(target, prediction)):.3f}')
-            case 'sse':
-                results['sse'] = np.sum((target-prediction)**2)
-                prints.append(f'SSE: {np.sum((target-prediction)**2):.3f}')
-            case 'mae':
-                results['mae'] = mean_absolute_error(target, prediction)
-                prints.append(f'MAE: {mean_absolute_error(target, prediction):.3f}')
-            case 'r2':
-                results['r2'] = r2_score(target, prediction)
-                prints.append(f'R2: {r2_score(target, prediction):.3f}')
-            case 'mre':
-                results['mre'] = np.mean(np.abs((target-prediction))/target)*100
-                prints.append(f'MRE: {np.mean(np.abs(target - prediction) / target) * 100:.3f}%')
-                if results['mre'] > 100:
-                    prints.append(f'Mean relative error is large, here is the median relative error'
-                                  f':{np.median(np.abs(target-prediction)/target)*100:.3f}%')
+        if metric_ == 'mse':
+            results['mse'] = mean_squared_error(target, prediction)
+            prints.append(f'MSE: {mean_squared_error(target, prediction):.3f}')
+        elif metric_ == 'rmse':
+            results['rmse'] = np.sqrt(mean_squared_error(target, prediction))
+            prints.append(f'RMSE: {np.sqrt(mean_squared_error(target, prediction)):.3f}')
+        elif metric_ ==  'sse':
+            results['sse'] = np.sum((target-prediction)**2)
+            prints.append(f'SSE: {np.sum((target-prediction)**2):.3f}')
+        elif metric_ ==  'mae':
+            results['mae'] = mean_absolute_error(target, prediction)
+            prints.append(f'MAE: {mean_absolute_error(target, prediction):.3f}')
+        elif metric_ ==  'r2':
+            results['r2'] = r2_score(target, prediction)
+            prints.append(f'R2: {r2_score(target, prediction):.3f}')
+        elif metric_ ==  'mre':
+            results['mre'] = np.mean(np.abs((target-prediction))/target)*100
+            prints.append(f'MRE: {np.mean(np.abs(target - prediction) / target) * 100:.3f}%')
+            if results['mre'] > 100:
+                prints.append(f'Mean relative error is large, here is the median relative error'
+                                f':{np.median(np.abs(target-prediction)/target)*100:.3f}%')
 
     if print_out:
         for out in prints:

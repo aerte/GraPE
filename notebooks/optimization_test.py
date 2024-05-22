@@ -15,6 +15,8 @@ from ray import tune
 
 import ConfigSpace as CS
 
+device = torch.device('cuda:1')
+
 from ray import train, tune
 
 data = FreeSolv(split_type='random')
@@ -43,8 +45,12 @@ def trainable(config: dict, dataset):
                 num_layers_atom=config["depth"],
                 hidden_dim=config["gnn_hidden_dim"],
                 mlp_out_hidden=mlp_out)
+    
+    model.to(device=device)
 
     train_set, val_set, test_set = dataset.train, dataset.val, dataset.test
+
+    train_set.to(device), val_set.to(device)
 
     optimizer = torch.optim.Adam(model.parameters(), lr=config['initial_lr'], weight_decay=config['weight_decay'])
     early_Stopper = EarlyStopping(patience=20, model_name='random', skip_save=True)
@@ -85,9 +91,7 @@ config_space.add_hyperparameter(
     CS.UniformIntegerHyperparameter("mlp_layers", lower=1, upper=4))
 config_space.add_hyperparameter(
     CS.UniformIntegerHyperparameter("afp_mol_layers", lower=1, upper=4))
-# config_space.add_hyperparameter(
-#    CS.CategoricalHyperparameter(
-#        name="activation", choices=["relu", "tanh"]))
+
 
 ################################# -------------- ######################################
 
