@@ -4,13 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="115446f6-db4f-461b-90f9-f367678daa67" name="Changes" comment="added dropout and more test">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/grape/models/AFP_gnn.py" beforeDir="false" afterPath="$PROJECT_DIR$/grape/models/AFP_gnn.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/grape/models/DMPNN_gnn.py" beforeDir="false" afterPath="$PROJECT_DIR$/grape/models/DMPNN_gnn.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/grape/models/MEGNet_gnn.py" beforeDir="false" afterPath="$PROJECT_DIR$/grape/models/MEGNet_gnn.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/grape/models/MPNN_gnn.py" beforeDir="false" afterPath="$PROJECT_DIR$/grape/models/MPNN_gnn.py" afterDir="false" />
-    </list>
+    <list default="true" id="115446f6-db4f-461b-90f9-f367678daa67" name="Changes" comment="added dropout and more test" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -181,7 +175,7 @@
       <workItem from="1716220531012" duration="5266000" />
       <workItem from="1716273029046" duration="29569000" />
       <workItem from="1716366201060" duration="2880000" />
-      <workItem from="1716379817206" duration="5432000" />
+      <workItem from="1716379817206" duration="5957000" />
     </task>
     <task id="LOCAL-00001" summary="bug fixes, SubSet, pca tests, expansion of classyfire">
       <option name="closed" value="true" />
