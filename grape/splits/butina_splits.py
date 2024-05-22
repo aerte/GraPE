@@ -9,6 +9,11 @@ from rdkit.ML.Cluster import Butina
 from rdkit import DataStructs
 from sklearn.model_selection import train_test_split
 
+__all__ = [
+    "taylor_butina_clustering",
+    "butina_realistic_splits",
+    "butina_train_val_test_splits"
+]
 
 def taylor_butina_clustering(smiles: list[str], ordering: str='largest_to_smallest',
                              tol:int = 5, threshold: float=0.8, nBits: int = 2048, radius: int = 3,

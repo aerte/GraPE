@@ -5,6 +5,8 @@ from torch.nn import Module
 from torch import nn
 from grape.utils import reset_weights
 
+__all__ = ['AFP']
+
 
 class AFP(Module):
     """ A shorthand for the Attentive FP model introduced in [1] and implemented in Pytorch-Geometric [2]. In addition

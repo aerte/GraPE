@@ -7,6 +7,9 @@ from torch.nn import init
 from torch_geometric.utils import softmax
 from torch import broadcast_to
 
+__all__ = [
+    "Set2Set"
+]
 
 class Set2Set(nn.Module):
     def __init__(self, in_dim, device, num_iters=6, num_layers=3):

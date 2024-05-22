@@ -10,6 +10,10 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from grape.utils.data import DataSet
 
+__all__ = [
+    "williams_plot"
+]
+
 def williams_plot(prediction: Union[Tensor, ndarray], target: Union[Tensor, ndarray], n_features: int,
                   fig_size: tuple = (10,5), save_fig: bool = False, path_to_export: str = None) -> plt.axes:
     """Generates a williams plot based on the given predictions and targets. The plot is based on the formula:

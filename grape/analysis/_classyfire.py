@@ -8,6 +8,11 @@ from tqdm import tqdm
 import pandas as pd
 from rdkit import Chem
 
+__all__ = [
+    "classyfire",
+    "classyfire_result_analysis",
+]
+
 def print_report(string, file=None):
     file.write('\n' + string)
 
@@ -15,6 +20,7 @@ def file_in_dir(directory, filename):
     for root, dirs, files in os.walk(directory):
         if filename in files:
             return True
+
 
 def classyfire(smiles: list[str], path_to_export: str = None,
                record_log_file: bool = True, existing_log_file: str = None,

@@ -7,13 +7,16 @@
     <list default="true" id="115446f6-db4f-461b-90f9-f367678daa67" name="Changes" comment="added dropout and more test">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/grape/analysis/_classyfire.py" beforeDir="false" afterPath="$PROJECT_DIR$/grape/analysis/_classyfire.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/grape/plots/analysis_plots.py" beforeDir="false" afterPath="$PROJECT_DIR$/grape/plots/analysis_plots.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/grape/models/AFP_gnn.py" beforeDir="false" afterPath="$PROJECT_DIR$/grape/models/AFP_gnn.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/grape/plots/williamsplot.py" beforeDir="false" afterPath="$PROJECT_DIR$/grape/plots/williamsplot.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/grape/pool/set2set_layer.py" beforeDir="false" afterPath="$PROJECT_DIR$/grape/pool/set2set_layer.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/grape/splits/butina_splits.py" beforeDir="false" afterPath="$PROJECT_DIR$/grape/splits/butina_splits.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/grape/utils/model_utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/grape/utils/model_utils.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/grape/utils/plot_utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/grape/utils/plot_utils.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/notebooks/best_model.pt" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/notebooks/best_model_dmpnn.pt" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/notebooks/best_model_mpnn.pt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/optimization_test.py" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/optimization_test.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/results/best_hyperparameters_AFP.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/results/best_hyperparameters_AFP.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/tests.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/tests.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pyproject.toml" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -106,6 +109,7 @@
       <recent name="$PROJECT_DIR$/notebooks" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$" />
       <recent name="$PROJECT_DIR$/docs/source/api" />
       <recent name="$PROJECT_DIR$/grape" />
       <recent name="$PROJECT_DIR$/scripts" />
@@ -184,6 +188,7 @@
       <workItem from="1716220531012" duration="5266000" />
       <workItem from="1716273029046" duration="29569000" />
       <workItem from="1716366201060" duration="2880000" />
+      <workItem from="1716379817206" duration="1110000" />
     </task>
     <task id="LOCAL-00001" summary="bug fixes, SubSet, pca tests, expansion of classyfire">
       <option name="closed" value="true" />
@@ -457,7 +462,15 @@
       <option name="project" value="LOCAL" />
       <updated>1716125362272</updated>
     </task>
-    <option name="localTasksCounter" value="35" />
+    <task id="LOCAL-00035" summary="added dropout and more test">
+      <option name="closed" value="true" />
+      <created>1716379844728</created>
+      <option name="number" value="00035" />
+      <option name="presentableId" value="LOCAL-00035" />
+      <option name="project" value="LOCAL" />
+      <updated>1716379844728</updated>
+    </task>
+    <option name="localTasksCounter" value="36" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">

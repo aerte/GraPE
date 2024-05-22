@@ -21,7 +21,7 @@ __all__ = [
     'pred_metric'
 ]
 
-import grape.models
+# import grape.models
 
 
 ##########################################################################
@@ -300,8 +300,8 @@ def test_model(model: torch.nn.Module, loss_func: Union[Callable,str,None], test
         'mae': torch.nn.functional.l1_loss
     }
 
-    if not isinstance(model, grape.models.SimpleGNN):
-        return_latents = False
+    #if not isinstance(model, grape.models.SimpleGNN):
+    #    return_latents = False
 
 
 
@@ -321,10 +321,10 @@ def test_model(model: torch.nn.Module, loss_func: Union[Callable,str,None], test
 
         for idx, batch in enumerate(test_data_loader):
             # TODO: Broaden use of return_latents
-            if return_latents and isinstance(model, grape.models.SimpleGNN):
-                out, lat = model(batch.to(device), return_latents=True)
-            else:
-                out = model(batch.to(device))
+            #if return_latents and isinstance(model, grape.models.SimpleGNN):
+            #    out, lat = model(batch.to(device), return_latents=True)
+            #else:
+            out = model(batch.to(device))
 
             if loss_func is not None:
                 temp[idx] = loss_func(batch.y, out).detach().cpu().numpy()
@@ -332,8 +332,8 @@ def test_model(model: torch.nn.Module, loss_func: Union[Callable,str,None], test
             # Concatenate predictions and latents
             if idx == 0:
                 preds = out
-                if return_latents:
-                    latents = lat
+                #if return_latents:
+                #    latents = lat
             else:
                 preds = torch.concat([preds,out],dim=0)
                 if return_latents:
