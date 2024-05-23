@@ -1,0 +1,30 @@
+{
+    "best_config": {
+        "afp_mol_layers": 4,
+        "depth": 3,
+        "dropout": 1.0003786363094889,
+        "gnn_hidden_dim": 131,
+        "initial_lr": 0.08469549132326322,
+        "lr_reduction_factor": 0.5616017045756813,
+        "mlp_layers": 1,
+        "weight_decay": 0.09566175624313929
+    },
+    "best_metrics": {
+        "trial_id": "5f89a8da",
+        "date": "2024-05-23_10-09-14",
+        "timestamp": 1716451754,
+        "pid": 22416,
+        "hostname": "n-62-12-19",
+        "node_ip": "10.66.12.19",
+        "config": {
+            "afp_mol_layers": 4,
+            "depth": 3,
+            "dropout": 1.0003786363094889,
+            "gnn_hidden_dim": 131,
+            "initial_lr": 0.08469549132326322,
+            "lr_reduction_factor": 0.5616017045756813,
+            "mlp_layers": 1,
+            "weight_decay": 0.09566175624313929
+        }
+    }
+}
