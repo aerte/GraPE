@@ -15,7 +15,12 @@ from ray import tune
 
 import ConfigSpace as CS
 
-device = torch.device('cuda:1')
+if torch.cuda.is_available():
+    device = torch.device("cuda")
+    gpu = 1
+else:
+    device = torch.device("cpu")
+    gpu = 0
 
 from ray import train, tune
 
@@ -109,6 +114,7 @@ bohb = HyperBandForBOHB(
 ### initialize the trainable with the dataset from the top
 my_trainable = partial(trainable, dataset=data)
 
+trainable_with_resources = tune.with_resources(my_trainable, {"cpu":4, "gpu":gpu})
 ### Initialize the tuner
 tuner = Tuner(my_trainable, tune_config=tune.TuneConfig(scheduler=HyperBandForBOHB(),
                                         search_alg=algo,
