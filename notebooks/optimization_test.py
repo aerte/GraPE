@@ -178,7 +178,7 @@ if __name__ == '__main__':
     ### initialize the trainable with the dataset from the top
     my_trainable = trainable
 
-    trainable_with_resources = tune.with_resources(my_trainable, {"cpu":1, "gpu":0})
+    trainable_with_resources = tune.with_resources(my_trainable, {"cpu":1, "gpu":gpu})
     ### Initialize the tuner
     tuner = Tuner(my_trainable, tune_config=tune.TuneConfig(scheduler=HyperBandForBOHB(),
                                             search_alg=algo,
