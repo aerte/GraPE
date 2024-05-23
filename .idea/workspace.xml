@@ -7,6 +7,8 @@
     <list default="true" id="115446f6-db4f-461b-90f9-f367678daa67" name="Changes" comment="made scaling optional">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/notebooks/optimization_test.py" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/optimization_test.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/notebooks/results/best_hyperparameters_AFP_Melting Point.json" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/results/best_hyperparameters_AFP_Melting Point.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/notebooks/tests.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/tests.ipynb" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -181,7 +183,9 @@
       <workItem from="1716366201060" duration="2880000" />
       <workItem from="1716379817206" duration="10828000" />
       <workItem from="1716447789883" duration="118000" />
-      <workItem from="1716448361347" duration="316000" />
+      <workItem from="1716448361347" duration="361000" />
+      <workItem from="1716449107694" duration="2804000" />
+      <workItem from="1716452153329" duration="2131000" />
     </task>
     <task id="LOCAL-00001" summary="bug fixes, SubSet, pca tests, expansion of classyfire">
       <option name="closed" value="true" />
@@ -503,7 +507,15 @@
       <option name="project" value="LOCAL" />
       <updated>1716408289163</updated>
     </task>
-    <option name="localTasksCounter" value="41" />
+    <task id="LOCAL-00041" summary="made scaling optional">
+      <option name="closed" value="true" />
+      <created>1716448762048</created>
+      <option name="number" value="00041" />
+      <option name="presentableId" value="LOCAL-00041" />
+      <option name="project" value="LOCAL" />
+      <updated>1716448762048</updated>
+    </task>
+    <option name="localTasksCounter" value="42" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">

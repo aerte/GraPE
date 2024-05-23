@@ -74,7 +74,7 @@ def load_dataset_from_excel(dataset):
 
 
 
-def trainable(config: dict, train_set, val_set):
+def trainable(config: dict):
         """ The trainable for Ray-Tune.
 
         Parameters
@@ -87,6 +87,9 @@ def trainable(config: dict, train_set, val_set):
 
         mlp_out = return_hidden_layers(config['mlp_layers'])
 
+        data = FreeSolv(split_type='random', split_frac=[0.8, 0.1, 0.1])
+        train_set, val_set, test_set = data.train, data.val, data.test
+
         model = AFP(node_in_dim=44, edge_in_dim=12, num_layers_mol=config["afp_mol_layers"],
                     num_layers_atom=config["depth"],
                     hidden_dim=config["gnn_hidden_dim"],
@@ -95,8 +98,6 @@ def trainable(config: dict, train_set, val_set):
         model.to(device=device)
 
         ################################################################################################################
-
-        train_set.to(device), val_set.to(device)
 
         optimizer = torch.optim.Adam(model.parameters(), lr=config['initial_lr'], weight_decay=config['weight_decay'])
         early_Stopper = EarlyStopping(patience=20, model_name='random', skip_save=True)
@@ -111,7 +112,8 @@ def trainable(config: dict, train_set, val_set):
                                         batch_size=32,
                                         epochs=500,
                                         early_stopper=early_Stopper,
-                                        scheduler=scheduler)
+                                        scheduler=scheduler,
+                                        device=device)
 
         best_loss = early_Stopper.best_score
 
@@ -135,7 +137,6 @@ if __name__ == '__main__':
 
     model_name = 'AFP'
     dataset = 'Melting Point'
-    train_set, val_set, _ = load_dataset_from_excel(dataset=dataset)
 
 
     ################################# Search space ######################################
@@ -158,6 +159,8 @@ if __name__ == '__main__':
     config_space.add_hyperparameter(
         CS.UniformIntegerHyperparameter("afp_mol_layers", lower=1, upper=4))
 
+    print(config_space)
+
 
     ################################# -------------- ######################################
 
@@ -173,9 +176,9 @@ if __name__ == '__main__':
         max_t=100)
 
     ### initialize the trainable with the dataset from the top
-    my_trainable = partial(trainable, train_set, val_set)
+    my_trainable = trainable
 
-    trainable_with_resources = tune.with_resources(my_trainable, {"cpu":4, "gpu":0})
+    trainable_with_resources = tune.with_resources(my_trainable, {"cpu":1, "gpu":0})
     ### Initialize the tuner
     tuner = Tuner(my_trainable, tune_config=tune.TuneConfig(scheduler=HyperBandForBOHB(),
                                             search_alg=algo,
