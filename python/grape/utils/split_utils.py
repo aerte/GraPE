@@ -43,6 +43,10 @@ class SubSet:
         self.y = dataset.target[indices]
         self.smiles = dataset.smiles[indices]
 
+        # In the case global features are defined.
+        if dataset.global_features is not None:
+            self.global_features = dataset.global_features[indices]
+
         if hasattr(dataset, 'mol_weights'):
             self.mol_weights = dataset.mol_weights[indices]
 
