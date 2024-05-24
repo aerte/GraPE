@@ -100,7 +100,7 @@ def trainable(config: dict):
         ################################################################################################################
 
         optimizer = torch.optim.Adam(model.parameters(), lr=config['initial_lr'], weight_decay=config['weight_decay'])
-        early_Stopper = EarlyStopping(patience=20, model_name='random', skip_save=True)
+        early_Stopper = EarlyStopping(patience=30, model_name='random', skip_save=True)
         scheduler = lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=config['lr_reduction_factor'],
                                                 min_lr=0.0000000000001, patience=30)
 

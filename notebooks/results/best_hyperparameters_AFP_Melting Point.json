@@ -1,39 +1,6 @@
 {
-    "best_config": {
-        "afp_mol_layers": 4,
-        "depth": 1,
-        "dropout": 1.0881366692226322,
-        "gnn_hidden_dim": 99,
-        "initial_lr": 0.059389211356313205,
-        "lr_reduction_factor": 0.9587974727223201,
-        "mlp_layers": 1,
-        "weight_decay": 0.09966118828096604
-    },
+    "best_config": null,
     "best_metrics": {
-        "mse_loss": 0.4129713177680969,
-        "timestamp": 1716461635,
-        "checkpoint_dir_name": null,
-        "done": true,
-        "training_iteration": 1,
-        "trial_id": "8210a911",
-        "date": "2024-05-23_12-53-55",
-        "time_this_iter_s": 4.112914085388184,
-        "time_total_s": 4.112914085388184,
-        "pid": 6080,
-        "hostname": "Felixs-MacBook-Air.local",
-        "node_ip": "127.0.0.1",
-        "config": {
-            "afp_mol_layers": 4,
-            "depth": 1,
-            "dropout": 1.0881366692226322,
-            "gnn_hidden_dim": 99,
-            "initial_lr": 0.059389211356313205,
-            "lr_reduction_factor": 0.9587974727223201,
-            "mlp_layers": 1,
-            "weight_decay": 0.09966118828096604
-        },
-        "time_since_restore": 4.112914085388184,
-        "iterations_since_restore": 1,
-        "experiment_tag": "1_afp_mol_layers=4,depth=1,dropout=1.0881,gnn_hidden_dim=99,initial_lr=0.0594,lr_reduction_factor=0.9588,mlp_layers=1,weight_decay=0.0997"
+        "trial_id": "ac3ee9fc"
     }
 }

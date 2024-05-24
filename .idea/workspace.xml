@@ -185,7 +185,7 @@
       <workItem from="1716448361347" duration="361000" />
       <workItem from="1716449107694" duration="2804000" />
       <workItem from="1716452153329" duration="2228000" />
-      <workItem from="1716461594547" duration="69000" />
+      <workItem from="1716461594547" duration="5294000" />
     </task>
     <task id="LOCAL-00001" summary="bug fixes, SubSet, pca tests, expansion of classyfire">
       <option name="closed" value="true" />
@@ -523,7 +523,15 @@
       <option name="project" value="LOCAL" />
       <updated>1716454300913</updated>
     </task>
-    <option name="localTasksCounter" value="43" />
+    <task id="LOCAL-00043" summary="made scaling optional">
+      <option name="closed" value="true" />
+      <created>1716461667964</created>
+      <option name="number" value="00043" />
+      <option name="presentableId" value="LOCAL-00043" />
+      <option name="project" value="LOCAL" />
+      <updated>1716461667964</updated>
+    </task>
+    <option name="localTasksCounter" value="44" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
