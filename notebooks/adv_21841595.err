@@ -1,0 +1,2 @@
+2024-05-24 07:44:47,488	INFO worker.py:1749 -- Started a local Ray instance.
+2024-05-24 07:44:50,983	INFO tune.py:253 -- Initializing Ray automatically. For cluster usage or custom Ray initialization, call `ray.init(...)` before `Tuner(...)`.

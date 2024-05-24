@@ -108,7 +108,8 @@ def reset_weights(model: Module):
 def train_model(model: torch.nn.Module, loss_func: Union[Callable,str], optimizer: torch.optim.Optimizer,
                 train_data_loader: Union[list, Data, DataLoader], val_data_loader: Union[list, Data, DataLoader],
                 device: str = None, epochs: int = 50, batch_size: int = 32,
-                early_stopper: EarlyStopping = None, scheduler: lr_scheduler = None) -> tuple[list,list]:
+                early_stopper: EarlyStopping = None, scheduler: lr_scheduler = None,
+                tuning: bool = False) -> tuple[list,list]:
     """Auxiliary function to train and test a given model and return the (training, test) losses.
     Can initialize DataLoaders if only lists of Data objects are given.
 
@@ -135,6 +136,8 @@ def train_model(model: torch.nn.Module, loss_func: Union[Callable,str], optimize
         Optional EarlyStopping class that will apply the defined early stopping method. Default: None
     scheduler: lr_scheduler
         Optional learning rate scheduler that will take a step after validation. Default: None
+    tuning: bool
+        Will turn off the early stopping, meant for hyperparameter optimziation.
 
     Returns
     ---------
@@ -199,7 +202,10 @@ def train_model(model: torch.nn.Module, loss_func: Union[Callable,str], optimize
                 early_stopper(val_loss=loss_val, model=model)
                 if early_stopper.stop:
                     early_stopper.stop_epoch = i-early_stopper.patience
-                    break
+                    if tuning:
+                        pass
+                    else:
+                        break
 
             pbar.update(1)
 
