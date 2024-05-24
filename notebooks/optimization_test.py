@@ -5,7 +5,7 @@ import dgl
 import os
 from grape.models import AFP
 from grape.utils import EarlyStopping, train_model
-from grape.datasets import FreeSolv
+from grape.datasets import FreeSolv, BradleyDoublePlus, QM9, LogP
 from functools import partial
 import torch
 from torch.optim import lr_scheduler
@@ -15,7 +15,8 @@ from ray.tune import Tuner
 from ray import tune, train
 import numpy as np
 import pandas as pd
-from grape.utils import DataSet, split_data
+from grape.utils import DataSet, split_data, train_epoch, val_epoch
+from torch_geometric.loader import DataLoader
 
 import ConfigSpace as CS
 
@@ -60,7 +61,7 @@ def load_dataset_from_excel(dataset):
         * "FreeSolv"
     """
     
-    df = pd.read_excel('data_splits.xlsx', sheet_name=dataset)
+    df = pd.read_excel('/zhome/4a/a/156124/GraPE/notebooks/data_splits.xlsx', sheet_name=dataset)
 
     data = DataSet(smiles=df.SMILES, target=df.Target, filter=False, scale=True)
 
@@ -74,7 +75,7 @@ def load_dataset_from_excel(dataset):
 
 
 
-def trainable(config: dict):
+def trainable(config: dict, data_name:str):
         """ The trainable for Ray-Tune.
 
         Parameters
@@ -83,12 +84,21 @@ def trainable(config: dict):
                 A ConfigSpace dictionary adhering to the required parameters in the trainable. Defines the search space of the HO.
         """
 
+        ################### Loading the data #########################################################################
+
+        if data_name == 'free':
+            train_set, val_set, _ = load_dataset_from_excel("FreeSolv")
+        elif data_name == 'mp':
+            train_set, val_set, _ = load_dataset_from_excel("Melting Point")
+        elif data_name == 'qm9':
+            train_set, val_set, _ = load_dataset_from_excel("Heat capacity")
+        else:
+            train_set, val_set, _ = load_dataset_from_excel("LogP")
+
         ################### Defining the model #########################################################################
 
         mlp_out = return_hidden_layers(config['mlp_layers'])
 
-        data = FreeSolv(split_type='random', split_frac=[0.8, 0.1, 0.1])
-        train_set, val_set, test_set = data.train, data.val, data.test
 
         model = AFP(node_in_dim=44, edge_in_dim=12, num_layers_mol=config["afp_mol_layers"],
                     num_layers_atom=config["depth"],
@@ -100,32 +110,47 @@ def trainable(config: dict):
         ################################################################################################################
 
         optimizer = torch.optim.Adam(model.parameters(), lr=config['initial_lr'], weight_decay=config['weight_decay'])
-        early_Stopper = EarlyStopping(patience=20, model_name='random', skip_save=True)
+        early_Stopper = EarlyStopping(patience=30, model_name='random', skip_save=True)
         scheduler = lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=config['lr_reduction_factor'],
                                                 min_lr=0.0000000000001, patience=30)
+        
+        loss_function = torch.nn.functional.l1_loss
 
-        train_loss, val_loss = train_model(model=model,
-                                        loss_func='mse',
-                                        optimizer=optimizer,
-                                        train_data_loader=train_set,
-                                        val_data_loader=val_set,
-                                        batch_size=32,
-                                        epochs=500,
-                                        early_stopper=early_Stopper,
-                                        scheduler=scheduler,
-                                        device=device)
+        train_data = DataLoader(train_set, batch_size = 300)
+        val_data = DataLoader(val_set, batch_size = 300)
 
-        best_loss = early_Stopper.best_score
+        model.train()
 
-        train.report({"mse_loss": best_loss})  # This sends the score to Tune.
+        iterations = 300
 
+        for i in range(iterations):
+
+            train_loss = train_epoch(model=model, loss_func=loss_function, optimizer=optimizer, train_loader=train_data, device=device)
+            val_loss = val_epoch(model=model, loss_func=loss_function, val_loader=val_data, device=device)
+
+            # We report the loss to ray tune every 15 steps, that way tune's scheduler can interfere
+            if i%15 == 0:
+                train.report({"mae_loss": val_loss})
 
 
 
 
 if __name__ == '__main__':
 
-    set_seed(42)
+    model_name = 'AFP'
+
+
+    import argparse
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('data', type=str, default='free', choices=['mp', 'logp', 'qm', 'free'],
+                        help='the data that will be running (default: %(default)s)')
+    parser.add_argument('--samples', type=int, default=100,
+                        help='the number of samples/instances that will be running (default: %(default)s)')
+    
+    args = parser.parse_args()
+    data_name = args.data
+    n_samples = args.samples
 
     if torch.cuda.is_available():
         device = torch.device("cuda")
@@ -134,9 +159,14 @@ if __name__ == '__main__':
         device = torch.device("cpu")
         gpu = 0
 
-
-    model_name = 'AFP'
-    dataset = 'Melting Point'
+    if data_name == 'free':
+        dataset = 'FreeSolv'
+    elif data_name == 'mp':
+        dataset = 'Melting_Point'
+    elif data_name == 'qm':
+        dataset = 'QM9'
+    else:
+        dataset = 'LogP'
 
 
     ################################# Search space ######################################
@@ -153,43 +183,45 @@ if __name__ == '__main__':
     config_space.add_hyperparameter(
         CS.UniformFloatHyperparameter("lr_reduction_factor", lower=0.4, upper=0.99))
     config_space.add_hyperparameter(
-        CS.UniformFloatHyperparameter("dropout", lower=0., upper=1.4))
+        CS.UniformFloatHyperparameter("dropout", lower=0., upper=0.4))
     config_space.add_hyperparameter(
         CS.UniformIntegerHyperparameter("mlp_layers", lower=1, upper=4))
     config_space.add_hyperparameter(
         CS.UniformIntegerHyperparameter("afp_mol_layers", lower=1, upper=4))
 
-    print(config_space)
-
 
     ################################# -------------- ######################################
 
+    my_trainable = partial(trainable, data_name=data_name)
+
+    trainable_with_resources = tune.with_resources(my_trainable, {"cpu":4, "gpu":gpu})
 
     ### Define search algorithm
-    algo = TuneBOHB(config_space, metric="mse_loss", mode="min")
+    algo = TuneBOHB(config_space,mode='min', metric="mae_loss",)
 
-    ### Get the trial control algorithm
-    bohb = HyperBandForBOHB(
+    ## Get the trial control algorithm
+    scheduler = HyperBandForBOHB(
         time_attr="training_iteration",
-        metric="mse_loss",
-        mode="min",
-        max_t=100)
+        max_t=1000,
+        )
 
-    ### initialize the trainable with the dataset from the top
-    my_trainable = trainable
-
-    trainable_with_resources = tune.with_resources(my_trainable, {"cpu":1, "gpu":gpu})
-    ### Initialize the tuner
-    tuner = Tuner(my_trainable, tune_config=tune.TuneConfig(scheduler=HyperBandForBOHB(),
+    ## Initialize the tuner
+    tuner = Tuner(my_trainable, tune_config=tune.TuneConfig(scheduler=scheduler,
                                             search_alg=algo,
                                             mode='min',
-                                            metric="mse_loss"))
+                                            metric="mae_loss",
+                                            num_samples=n_samples),
+                                            run_config=train.RunConfig(
+                                                name="bohb_exp",
+                                                stop={"training_iteration": 100})
+    )
+
 
     result = tuner.fit()
 
     import json
 
-    best_result = result.get_best_result(metric="mse_loss", mode="min")
+    best_result = result.get_best_result(metric="mae_loss", mode="min")
     best_config = best_result.config
     best_metrics = best_result.metrics
 
@@ -198,7 +230,7 @@ if __name__ == '__main__':
         "best_metrics": best_metrics
     }
 
-    file_name = "./results/best_hyperparameters_" + model_name +"_"+dataset+".json"
+    file_name = "/zhome/4a/a/156124/GraPE/notebooks/results/best_hyperparameters_" + model_name +"_"+dataset+".json"
 
     with open(file_name, "w") as file:
         json.dump(results_to_save, file, indent=4)
