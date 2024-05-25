@@ -3,7 +3,7 @@
 from ray.air import RunConfig
 import dgl
 import os
-from grape.models import AFP
+from grape.models import AFP, MPNN_Model, DMPNNModel, MEGNet_gnn
 from grape.utils import EarlyStopping, train_model
 from grape.datasets import FreeSolv, BradleyDoublePlus, QM9, LogP
 from functools import partial
@@ -15,8 +15,9 @@ from ray.tune import Tuner
 from ray import tune, train
 import numpy as np
 import pandas as pd
-from grape.utils import DataSet, split_data, train_epoch, val_epoch
+from grape.utils import DataSet, split_data, train_epoch, val_epoch, RevIndexedSubSet
 from torch_geometric.loader import DataLoader
+from grape.utils import pred_metric
 
 import ConfigSpace as CS
 
@@ -51,7 +52,7 @@ def return_hidden_layers(num):
     """
     return [2**i*32 for i in range(num, 0,-1)]
 
-def load_dataset_from_excel(dataset):
+def load_dataset_from_excel(dataset, is_dmpnn = False):
     """
     dataset: str
         A string that defines what dataset should be used, specifically loaded from a data-splits sheet. Options:
@@ -59,6 +60,8 @@ def load_dataset_from_excel(dataset):
         * "LogP"
         * "Heat capacity"
         * "FreeSolv"
+    is_dmpnn: bool
+        If data for DMPNN has to be loaded. Default: False
     """
     
     df = pd.read_excel('/zhome/4a/a/156124/GraPE/notebooks/data_splits.xlsx', sheet_name=dataset)
@@ -70,40 +73,78 @@ def load_dataset_from_excel(dataset):
     labels = df.Split.apply(lambda x: ['train', 'val', 'test'].index(x)).to_list()
 
     train_set, val_set, test_set = split_data(data, custom_split=labels)
+    
+    # In case data for DMPNN has to be loaded:
+    if is_dmpnn:
+        train_set, val_set, test_set = RevIndexedSubSet(train_set), RevIndexedSubSet(val_set), RevIndexedSubSet(test_set)
 
     return train_set, val_set, test_set
 
 
+def load_model(model_name, config, device = None):
+    """ Function to load a model based on a model name and a config dictionary. Is supposed to reduce clutter in the trainable function.
 
-def trainable(config: dict, data_name:str):
+    model_name: str 
+        A string that defines the model to be loaded. Options:
+        * "AFP"
+        * "MPNN"
+        * "DMPNN"
+        * "MEGNet"
+    config : ConfigSpace
+    """
+
+    mlp_out = return_hidden_layers(config['mlp_layers'])
+
+    if model_name == "AFP":
+        return AFP(node_in_dim=44, edge_in_dim=12, num_layers_mol=config["afp_mol_layers"],
+                    num_layers_atom=config["depth"], rep_dropout=config["dropout"],
+                    hidden_dim=config["gnn_hidden_dim"],
+                    mlp_out_hidden=mlp_out)
+    elif model_name == "MPNN":
+        return MPNN_Model(node_in_dim=44, edge_in_dim=12, num_layers=config["depth"],
+                          mlp_out_hidden=mlp_out, rep_dropout=config["dropout"],
+                          node_hidden_dim=config["gnn_hidden_dim"])
+    elif model_name == "DMPNN":
+        return DMPNNModel(node_in_dim=44, edge_in_dim=12, node_hidden_dim=config["gnn_hidden_dim"],
+                          depth=config["depth"], dropout=0, mlp_out_hidden=mlp_out,
+                          rep_dropout=config["dropout"])
+    elif model_name == "MEGNet":
+        return MEGNet_gnn(node_in_dim=44, edge_in_dim=12, node_hidden_dim=config["gnn_hidden_dim"],
+                          edge_hidden_dim=config["edge_hidden_dim"], depth=config["depth"],
+                          mlp_out_hidden=mlp_out, rep_dropout=config["dropout"],
+                          device=device)
+
+
+
+
+
+def trainable(config: dict, data_name:str, model_name:str, is_dmpnn:bool, device:torch.device):
         """ The trainable for Ray-Tune.
 
         Parameters
         -----------
             config: dict
                 A ConfigSpace dictionary adhering to the required parameters in the trainable. Defines the search space of the HO.
+            data_name: str
+                The data to be used.
+            model_name: str
+                The model to be loaded.
         """
 
         ################### Loading the data #########################################################################
 
         if data_name == 'free':
-            train_set, val_set, _ = load_dataset_from_excel("FreeSolv")
+            train_set, val_set, _ = load_dataset_from_excel("FreeSolv",is_dmpnn=is_dmpnn)
         elif data_name == 'mp':
-            train_set, val_set, _ = load_dataset_from_excel("Melting Point")
+            train_set, val_set, _ = load_dataset_from_excel("Melting Point",is_dmpnn=is_dmpnn)
         elif data_name == 'qm9':
-            train_set, val_set, _ = load_dataset_from_excel("Heat capacity")
+            train_set, val_set, _ = load_dataset_from_excel("Heat capacity",is_dmpnn=is_dmpnn)
         else:
-            train_set, val_set, _ = load_dataset_from_excel("LogP")
+            train_set, val_set, _ = load_dataset_from_excel("LogP",is_dmpnn=is_dmpnn)
 
         ################### Defining the model #########################################################################
-
-        mlp_out = return_hidden_layers(config['mlp_layers'])
-
-
-        model = AFP(node_in_dim=44, edge_in_dim=12, num_layers_mol=config["afp_mol_layers"],
-                    num_layers_atom=config["depth"],
-                    hidden_dim=config["gnn_hidden_dim"],
-                    mlp_out_hidden=mlp_out)
+        
+        model = load_model(model_name=model_name, config=config, device = device)
         
         model.to(device=device)
 
@@ -119,19 +160,19 @@ def trainable(config: dict, data_name:str):
         train_data = DataLoader(train_set, batch_size = 300)
         val_data = DataLoader(val_set, batch_size = 300)
 
-        model.train()
-
         iterations = 300
 
         for i in range(iterations):
 
+            model.train()
             train_loss = train_epoch(model=model, loss_func=loss_function, optimizer=optimizer, train_loader=train_data, device=device)
             val_loss = val_epoch(model=model, loss_func=loss_function, val_loader=val_data, device=device)
+            
 
             # We report the loss to ray tune every 15 steps, that way tune's scheduler can interfere
             if i%15 == 0:
                 train.report({"mae_loss": val_loss})
-
+                
 
 
 
@@ -144,13 +185,19 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
     parser.add_argument('data', type=str, default='free', choices=['mp', 'logp', 'qm', 'free'],
-                        help='the data that will be running (default: %(default)s)')
+                        help='the data that will be trained on (default: %(default)s)')
     parser.add_argument('--samples', type=int, default=100,
                         help='the number of samples/instances that will be running (default: %(default)s)')
+    parser.add_argument('--model', type=str, default='afp', choices=['afp','mpnn','dmpnn','megnet'],
+                        help='the model to be used (default: %(default)s)')
     
     args = parser.parse_args()
     data_name = args.data
     n_samples = args.samples
+    model_ = args.model
+    is_dmpnn = False
+
+    ################################# Selecting the options ######################################
 
     if torch.cuda.is_available():
         device = torch.device("cuda")
@@ -167,6 +214,18 @@ if __name__ == '__main__':
         dataset = 'QM9'
     else:
         dataset = 'LogP'
+
+    if model_ == 'mpnn':
+        model_name = "MPNN"
+    elif model_ == "dmpnn":
+        model_name = "DMPNN"
+        is_dmpnn = True
+    elif model_ == "megnet":
+        model_name = "MEGNet"
+    elif model_ == "afp":
+        model_name = "AFP"
+    else:
+        model_name = "AFP"
 
 
     ################################# Search space ######################################
@@ -186,13 +245,19 @@ if __name__ == '__main__':
         CS.UniformFloatHyperparameter("dropout", lower=0., upper=0.4))
     config_space.add_hyperparameter(
         CS.UniformIntegerHyperparameter("mlp_layers", lower=1, upper=4))
-    config_space.add_hyperparameter(
-        CS.UniformIntegerHyperparameter("afp_mol_layers", lower=1, upper=4))
+    # If AFP is selected
+    if model_name == "AFP":
+        config_space.add_hyperparameter(
+            CS.UniformIntegerHyperparameter("afp_mol_layers", lower=1, upper=4))
+    elif model_name == "MEGNet":
+        config_space.add_hyperparameter(
+            CS.UniformIntegerHyperparameter("edge_hidden_dim", lower=32, upper=256))
 
 
-    ################################# -------------- ######################################
+    ################################# --------------------- ######################################
 
-    my_trainable = partial(trainable, data_name=data_name)
+    my_trainable = partial(trainable, data_name=data_name, model_name=model_name, is_dmpnn=is_dmpnn,
+                           device=device)
 
     trainable_with_resources = tune.with_resources(my_trainable, {"cpu":4, "gpu":gpu})
 
