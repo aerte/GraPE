@@ -52,8 +52,11 @@ class MEGNet_block(nn.Module):
     """
 
 
-    def __init__(self, node_in_dim: int, edge_in_dim:int, global_in_dim:int, node_hidden_dim: int, edge_hidden_dim: int):
+    def __init__(self, node_in_dim: int, edge_in_dim:int, global_in_dim:int, node_hidden_dim: int, edge_hidden_dim: int,
+                 device = torch.device("cpu")):
         super(MEGNet_block, self).__init__()
+
+        self.device = device
 
         self.update_net_edge = nn.Sequential(
             nn.Linear(node_in_dim * 2 + edge_in_dim + global_in_dim, edge_hidden_dim, bias=True),
@@ -107,8 +110,7 @@ class MEGNet_block(nn.Module):
                                              dim=0,
                                              reduce='mean')
         out = torch.cat(
-            (node_feats, edge_features_mean_by_node, global_feats[batch]),
-            dim=1)
+            (node_feats, edge_features_mean_by_node, global_feats[batch]),dim=1)
 
         out = self.update_net_node(out)
 
@@ -138,7 +140,7 @@ class MEGNet_block(nn.Module):
     def forward(self, edge_index, x, edge_attr, global_feats, batch=None):
 
         if batch is None:
-            batch = x.new_zeros(x.size(0),dtype=torch.int64)
+            batch = x.new_zeros(x.size(0),dtype=torch.int64).to(self.device)
 
         edge_batch_map = batch[edge_index[0]]
         h_e = self.update_edge_feats(node_feats=x, edge_index=edge_index, edge_feats=edge_attr,
@@ -206,9 +208,10 @@ class MEGNet_gnn(nn.Module):
 
     def __init__(self, node_in_dim: int, edge_in_dim: int, global_in_dim: int=32, node_hidden_dim: int=64,
                  edge_hidden_dim: int=64, global_hidden_dim:int=32, depth:int=2, mlp_out_hidden:Union[int, list]=512,
-                 rep_dropout:float=0.0):
+                 rep_dropout:float=0.0, device = torch.device("cpu")):
         super(MEGNet_gnn, self).__init__()
 
+        self.device = device
         self.depth = depth
         self.global_in_dim = global_in_dim
 
@@ -265,7 +268,8 @@ class MEGNet_gnn(nn.Module):
                          edge_in_dim=edge_hidden_dim,
                          global_in_dim=global_hidden_dim,
                          node_hidden_dim=node_hidden_dim,
-                         edge_hidden_dim=edge_hidden_dim)
+                         edge_hidden_dim=edge_hidden_dim,
+                         device=self.device)
             for _ in range(depth)
         ])
 
@@ -288,7 +292,7 @@ class MEGNet_gnn(nn.Module):
 
         # In the case that there are no global features in the analysis
         if global_feats is None:
-            _global_feats = torch.randn(len(torch.unique(data.batch).cpu().numpy()), self.global_in_dim)
+            _global_feats = torch.randn(len(torch.unique(data.batch).cpu().numpy()), self.global_in_dim).to(self.device)
 
         h_n = self.embed_nodes(x)
         h_e = self.embed_edges(edge_attr)
