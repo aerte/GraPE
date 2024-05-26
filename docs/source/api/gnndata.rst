@@ -13,8 +13,3 @@ data analysis features.
    :members:
    :undoc-members:
    :show-inheritance:
-
-.. automodule:: grape.utils.data_structs
-    :members:
-    :undoc-members:
-    :show-inheritance:

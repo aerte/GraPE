@@ -10,6 +10,8 @@ from torch_geometric.data import Data
 from tqdm import tqdm
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 from grape.utils import DataSet
+import os
+import dgl
 
 __all__ = [
     'EarlyStopping',
@@ -450,6 +452,58 @@ def pred_metric(prediction: Union[Tensor, ndarray], target: Union[Tensor, ndarra
     return results
 
 
+#######################################################################################################
+#################################### General tools ####################################################
+#######################################################################################################
+
+
+def set_seed(seed:int = 42, numpy_off: bool = False, is_ensemble: bool = False):
+    """ A function to set the random seed for reproducibility. This includes NumPy, PyTorch and DGL. The
+    primary purpose of this function is to guarantee that the same weights are used for model initialization.
+    This is important when optimizing and training on the optimized values.
+
+    Parameters
+    ----------
+    seed: int
+        The seed that will be used for *all* random number generators specified in the description. Default: 42
+    numpy_off: bool
+        If true, will not seed the numpy random number generator. Default: False
+    is_ensemble: bool
+        If true, will not seed the torch random number generator. Usually turned off for
+         training ensemble models. Default: False
+
+    """
+    os.environ['PYTHONHASHSEED'] = str(seed)
+    os.environ['CUBLAS_WORKSPACE_CONFIG'] = ':4096:8'
+    os.environ['OMP_NUM_THREADS'] = '1'
+    os.environ['MKL_NUM_THREADS'] = '1'
+    torch.set_num_threads(1)
+    # turn it off during optimization
+    if not numpy_off:
+        np.random.seed(seed)
+    if not is_ensemble:
+        torch.manual_seed(seed)  # annotate this line when ensembling
+    dgl.random.seed(seed)
+    dgl.seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed(seed)
+        torch.cuda.manual_seed_all(seed)
+        # torch.backends.cudnn.deterministic = True # Faster than the command below and may not fix results
+        torch.use_deterministic_algorithms(True)
+        torch.backends.cudnn.benchmark = False
+        torch.backends.cudnn.enabled = False
+
+def return_hidden_layers(num):
+    """ Returns a list of hidden layers, starting from 2**num*32, reducing the hidden dim by 2 every step.
+
+    Example
+    --------
+
+    >>>return_hidden_layers(3)
+
+    [256, 128, 64]
+    """
+    return [2**i*32 for i in range(num, 0,-1)]
 
 
 
