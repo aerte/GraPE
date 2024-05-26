@@ -20,7 +20,8 @@ __all__ = [
     'train_epoch',
     'val_epoch',
     'test_model',
-    'pred_metric'
+    'pred_metric',
+    'return_hidden_layers'
 ]
 
 # import grape.models

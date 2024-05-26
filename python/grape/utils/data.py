@@ -33,7 +33,8 @@ __all__ = ['filter_smiles',
            'construct_dataset',
            'DataLoad',
            'DataSet',
-           'GraphDataSet']
+           'GraphDataSet',
+           'load_dataset_from_excel']
 
 
 ##########################################################################

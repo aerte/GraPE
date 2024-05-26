@@ -12,7 +12,6 @@ import torch
 import torch.utils.data
 from torch_geometric.data import Data, Dataset
 from torch_geometric.data.data import size_repr
-import pandas as pd
 
 from tqdm import tqdm
 
