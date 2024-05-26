@@ -4,13 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="115446f6-db4f-461b-90f9-f367678daa67" name="Changes" comment="made scaling optional">
+    <list default="true" id="115446f6-db4f-461b-90f9-f367678daa67" name="Changes" comment="small change to spltting">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/source/api/gnndata.rst" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/api/gnndata.rst" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/source/api/split_util.rst" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/api/split_util.rst" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/python/grape/utils/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/python/grape/utils/__init__.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/python/grape/utils/data_structs.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/python/grape/utils/model_utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/python/grape/utils/model_utils.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/grape/utils/data.py" beforeDir="false" afterPath="$PROJECT_DIR$/python/grape/utils/data.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/python/grape/utils/split_utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/python/grape/utils/split_utils.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -191,7 +187,7 @@
       <workItem from="1716452153329" duration="2228000" />
       <workItem from="1716461594547" duration="5294000" />
       <workItem from="1716539276340" duration="580000" />
-      <workItem from="1716732068204" duration="1640000" />
+      <workItem from="1716732068204" duration="1945000" />
     </task>
     <task id="LOCAL-00001" summary="bug fixes, SubSet, pca tests, expansion of classyfire">
       <option name="closed" value="true" />
@@ -545,7 +541,15 @@
       <option name="project" value="LOCAL" />
       <updated>1716539303632</updated>
     </task>
-    <option name="localTasksCounter" value="45" />
+    <task id="LOCAL-00045" summary="small change to spltting">
+      <option name="closed" value="true" />
+      <created>1716733733890</created>
+      <option name="number" value="00045" />
+      <option name="presentableId" value="LOCAL-00045" />
+      <option name="project" value="LOCAL" />
+      <updated>1716733733890</updated>
+    </task>
+    <option name="localTasksCounter" value="46" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -572,7 +576,8 @@
     <MESSAGE value="Fixed MEGNet and added documentation" />
     <MESSAGE value="added dropout and more test" />
     <MESSAGE value="made scaling optional" />
-    <option name="LAST_COMMIT_MESSAGE" value="made scaling optional" />
+    <MESSAGE value="small change to spltting" />
+    <option name="LAST_COMMIT_MESSAGE" value="small change to spltting" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/grape$presentation_model.coverage" NAME="presentation_model Coverage Results" MODIFIED="1713531949866" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/notebooks" />

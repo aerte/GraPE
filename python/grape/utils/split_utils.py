@@ -13,7 +13,6 @@ import torch.utils.data
 from torch_geometric.data import Data, Dataset
 from torch_geometric.data.data import size_repr
 import pandas as pd
-from grape.utils.data import DataSet
 
 from tqdm import tqdm
 
@@ -308,45 +307,3 @@ def split_data(data, split_type: str = None, split_frac: list[float] = None, cus
 
     return mult_subset_to_SubSets(split_func[split_type].train_val_test_split(data, frac_train=split_frac[0],
                                                 frac_test=split_frac[1], frac_val=split_frac[2], **kwargs))
-
-
-def load_dataset_from_excel(file_path: str, dataset:str, is_dmpnn=False):
-    """ A convenience function to load a dataset from an excel file and a specific sheet there-in. The
-    file path given is the path to the excel file and the dataset name given is the sheet name.
-
-    Parameters
-    ----------
-    file_path: str
-        The file path of the excel file.
-    dataset: str
-        A string that defines what dataset should be used, specifically loaded from a data-splits sheet.
-        This means, that the sheet name has to correspond to ``dataset``. Options:
-
-        * "Melting Point"
-
-        * "LogP"
-
-        * "Heat capacity"
-
-        * "FreeSolv"
-    is_dmpnn: bool
-        If data for DMPNN has to be loaded. Default: False
-
-
-    """
-
-    df = pd.read_excel(file_path, sheet_name=dataset)
-
-    data = DataSet(smiles=df.SMILES, target=df.Target, filter=False, scale=True)
-
-    # convert given labels to a list of numbers and split dataset
-    labels = df.Split.apply(lambda x: ['train', 'val', 'test'].index(x)).to_list()
-
-    train_set, val_set, test_set = split_data(data, custom_split=labels)
-
-    # In case data for DMPNN has to be loaded:
-    if is_dmpnn:
-        train_set, val_set, test_set = RevIndexedSubSet(train_set), RevIndexedSubSet(val_set), RevIndexedSubSet(
-            test_set)
-
-    return train_set, val_set, test_set
