@@ -42,7 +42,8 @@ __all__ = ['filter_smiles',
 ##########################################################################
 
 def filter_smiles(smiles: list[str], target: Union[list[str], list[float], ndarray], allowed_atoms: list[str] = None,
-                  only_organic: bool = True, allow_dupes: bool = False, log: bool = False) -> Union[list,list]:
+                  only_organic: bool = True, allow_dupes: bool = False, log: bool = False,
+                  global_feats = None) -> Union[list,list]:
     """Filters a list of smiles based on the allowed atom symbols.
 
     Parameters
@@ -72,7 +73,11 @@ def filter_smiles(smiles: list[str], target: Union[list[str], list[float], ndarr
     if allowed_atoms is None:
         allowed_atoms = ['C', 'N', 'O', 'S', 'F', 'Cl', 'Br', 'I', 'P']
 
-    df = pd.DataFrame({'smiles': smiles, 'target': target})
+    if global_feats is not None:
+        df = pd.DataFrame({'smiles': smiles, 'target': target, 'global_feat': global_feats})
+    else:
+        df = pd.DataFrame({'smiles': smiles, 'target': target})
+
     indices_to_drop = []
 
     for element in smiles:
@@ -119,7 +124,9 @@ def filter_smiles(smiles: list[str], target: Union[list[str], list[float], ndarr
     if not allow_dupes:
         df.drop_duplicates(subset='smiles', inplace=True)
 
-    return np.array(df.smiles), np.array(df.target)
+    if global_feats is not None:
+        return np.array(df.smiles), np.array(df.target), np.array(df.global_feat)
+    return np.array(df.smiles), np.array(df.target), None
 
 
 ##########################################################################
@@ -127,7 +134,8 @@ def filter_smiles(smiles: list[str], target: Union[list[str], list[float], ndarr
 ##########################################################################
 
 def construct_dataset(smiles: list[str], target: Union[list[int], list[float], ndarray], allowed_atoms: list[str] = None,
-                      atom_feature_list: list[str] = None, bond_feature_list: list[str] = None) -> list[Data]:
+                      atom_feature_list: list[str] = None, bond_feature_list: list[str] = None,
+                      global_features = None) -> list[Data]:
     """Constructs a dataset out of the smiles and target lists based on the feature lists provided. The dataset will be
     a list of torch geometric Data objects, using their conventions.
 
@@ -142,9 +150,10 @@ def construct_dataset(smiles: list[str], target: Union[list[int], list[float], n
         ``I``, ``P``]
     atom_feature_list : list of str
         Features of the featurizer, see utils.featurizer for more details. Default: All implemented features.
-
     bond_feature_list : list of str
         Bond features of the bond featurizer, see utils.featurizer for more details. Default: All implemented features.
+    global_features
+        A list of global features matching the length of the SMILES or target. Default: None
 
     Returns
     --------
@@ -166,10 +175,15 @@ def construct_dataset(smiles: list[str], target: Union[list[int], list[float], n
         edge_index = dense_to_sparse(torch.tensor(rdmolops.GetAdjacencyMatrix(mol)))[0]
         x = atom_featurizer(mol) #creates nodes
         edge_attr = bond_featurizer(mol) #creates "edges" attrs
-        data.append(Data(x = x,
-                         edge_index = edge_index,
-                         edge_attr = edge_attr,
-                         y=tensor([target[i]], dtype=torch.float32)))
+        data_temp = Data(x = x, edge_index = edge_index, edge_attr = edge_attr, y=tensor([target[i]],
+                                                                                         dtype=torch.float32))
+        # TODO: Might need to be tested on multidim global feats
+        if global_features is not None:
+            data_temp['global_feats'] = tensor([global_features[i]], dtype=torch.float32)
+        else:
+            data_temp['global_feats'] = None
+
+        data.append(data_temp)
 
     return data #actual pyg graph
 
@@ -266,10 +280,13 @@ class DataSet(DataLoad):
 
         else:
             if filter:
-                self.smiles, self.raw_target = filter_smiles(smiles, target, allowed_atoms= allowed_atoms,
-                                                     only_organic=only_organic, log=log)
+                self.smiles, self.raw_target, self.global_features = filter_smiles(smiles, target,
+                                                                                   allowed_atoms= allowed_atoms,
+                                                                                    only_organic=only_organic, log=log,
+                                                                                   global_feats=global_features)
             else:
                 self.smiles, self.raw_target = np.array(smiles), np.array(target)
+                self.global_features = np.array(global_features)
 
             # standardize target
             if scale:
@@ -279,6 +296,7 @@ class DataSet(DataLoad):
 
             self.data = construct_dataset(smiles=self.smiles,
                                           target=self.target,
+                                          global_features=self.global_features,
                                           allowed_atoms = allowed_atoms,
                                           atom_feature_list = atom_feature_list,
                                           bond_feature_list = bond_feature_list)

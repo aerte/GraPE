@@ -3,6 +3,7 @@ from typing import Union
 from torch_geometric.nn import AttentiveFP
 from torch.nn import Module
 from torch import nn
+import torch
 # from grape.utils import reset_weights
 
 __all__ = ['AFP']
@@ -17,6 +18,12 @@ class AFP(Module):
     The model consists of two graph attention blocks, 'node' and 'graph'-wise, indicated by the
     ``num_layers_atom`` and ``num_layers_mol`` inputs respectively. Refer to [1] or the summary at the bottom
     for more details.
+
+    Notes
+    -------
+    If you wish to add global features, then the AFP will return the latent graph representations concatenated
+    with the flattened global features, but **will not automatically add an MLP to the end.** This means that
+    a separate model has to be built to accommodate regression or classification.
 
 
     References:
@@ -72,15 +79,16 @@ class AFP(Module):
 
     def __init__(self, node_in_dim: int, edge_in_dim:int, out_dim:int=None, hidden_dim:int=128,
                  num_layers_atom:int = 3, num_layers_mol:int = 3, dropout:float=0.0,
-                 regressor:bool=True, mlp_out_hidden:Union[int,list]=512, rep_dropout:float=0.0):
+                 regressor:bool=True, mlp_out_hidden:Union[int,list]=512, rep_dropout:float=0.0,
+                 num_global_feats:int = 0):
         super(AFP, self).__init__()
 
         self.regressor = regressor
+        self.num_global_feats = num_global_feats
 
         self.rep_dropout = nn.Dropout(rep_dropout)
 
-
-        if out_dim is None or out_dim == 1 or regressor:
+        if out_dim is None or out_dim == 1 or self.regressor:
             self.regressor = True
             if isinstance(mlp_out_hidden, int):
                 out_dim = mlp_out_hidden
@@ -98,11 +106,11 @@ class AFP(Module):
             dropout=dropout,
         )
 
-        if regressor:
+        if self.regressor:
             if isinstance(mlp_out_hidden, int):
                 self.mlp_out = nn.Sequential(
                     nn.ReLU(),
-                    nn.Linear(mlp_out_hidden, mlp_out_hidden//2),
+                    nn.Linear(mlp_out_hidden + self.num_global_feats, mlp_out_hidden//2),
                     nn.ReLU(),
                     nn.Linear(mlp_out_hidden//2, 1)
                 )
@@ -112,6 +120,8 @@ class AFP(Module):
                     self.mlp_out.append(nn.ReLU())
                     if i == len(mlp_out_hidden)-1:
                         self.mlp_out.append(nn.Linear(mlp_out_hidden[i], 1))
+                    elif i == 0:
+                        self.mlp_out.append(nn.Linear(mlp_out_hidden[i]+self.num_global_feats, mlp_out_hidden[i + 1]))
                     else:
                         self.mlp_out.append(nn.Linear(mlp_out_hidden[i], mlp_out_hidden[i+1]))
                 self.mlp_out = nn.Sequential(*self.mlp_out)
@@ -128,6 +138,11 @@ class AFP(Module):
     def forward(self, data):
         x, edge_index, edge_attr, batch = data.x, data.edge_index, data.edge_attr, data.batch
         out = self.AFP_layers(x, edge_index, edge_attr, batch)
+
+        ### Check if global data is present for each graph
+        if self.num_global_feats > 0:
+            out = torch.concat((out, data.global_feats[:,None]), dim=1)
+
         # Dropout
         out = self.rep_dropout(out)
 

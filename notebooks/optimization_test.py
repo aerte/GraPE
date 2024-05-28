@@ -5,7 +5,6 @@ import dgl
 import os
 from grape.models import AFP, MPNN_Model, DMPNNModel, MEGNet_gnn
 from grape.utils import EarlyStopping, train_model
-from grape.datasets import FreeSolv, BradleyDoublePlus, QM9, LogP
 from functools import partial
 import torch
 from torch.optim import lr_scheduler
