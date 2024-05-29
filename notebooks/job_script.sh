@@ -1,7 +1,7 @@
 #!/bin/sh
 ### General options
 ### –- specify queue --
-#BSUB -q gpua100
+#BSUB -q hpc
 ### -- set the job Name --
 #BSUB -J AFPwGF
 ### -- ask for number of cores (default: 1) --
@@ -9,7 +9,7 @@
 ### -- Select the resources: 1 gpu in exclusive process mode --
 #BSUB -gpu "num=1:mode=exclusive_process:mps=yes"
 ### -- set wall-time limit: hh:mm --  maximum 24 hours for GPU-queues right now
-#BSUB -W 12:00
+#BSUB -W 1:00
 # request 5GB of system-memory
 #BSUB -R "rusage[mem=24GB]"
 ### -- set the email address --
@@ -20,8 +20,8 @@
 #BSUB -N
 ### -- Specify the output and error file. %J is the job-id --
 ### -- -o and -e mean append, -oo and -eo mean overwrite --
-#BSUB -o adv_%J.out
-#BSUB -e adv_%J.err
+#BSUB -o AFP_%J.out
+#BSUB -e AFP_%J.err
 # -- end of LSF options --
 
 ### nvidia-smi

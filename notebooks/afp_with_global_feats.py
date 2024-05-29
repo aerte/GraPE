@@ -1,5 +1,5 @@
 from grape.models import AFP
-from grape.utils import DataSet, train_model, EarlyStopping, split_data, test_model, pred_metric, return_hidden_layers
+from grape.utils import DataSet, train_model, EarlyStopping, split_data, test_model, pred_metric, return_hidden_layers, set_seed
 from torch.optim import lr_scheduler
 import numpy as np
 import torch
@@ -13,6 +13,8 @@ def standardize(x, mean, std):
 ##########################################################################################
 #####################    Data Input Region  ##############################################
 ##########################################################################################
+
+set_seed(42)
 
 # Hyperparameters
 epochs = 50
@@ -83,14 +85,21 @@ train_model(model=model, loss_func=loss_func, optimizer=optimizer, train_data_lo
             val_data_loader=val, epochs=epochs, device=device, batch_size=batch_size)
 
 ####### Generating prediction tensor for the TEST set (Not rescaled) #########
+
 pred = test_model(model=model, loss_func=None, test_data_loader=test, device=device, batch_size=batch_size)
 pred_metric(prediction=pred, target=test.y, metrics='all', print_out=True)
 
+# ---------------------------------------------------------------------------------------
+
+
 
 ####### Example for rescaling the MAE prediction ##########
+
 test_mae = pred_metric(prediction=pred, target=test.y, metrics='mae', print_out=False)['mae']
 test_mae_rescaled = test_mae * std_target + mean_target
 print(f'Rescaled MAE for the test set {test_mae_rescaled:.3f}')
+
+# ---------------------------------------------------------------------------------------
 
 
 ####### Example for overall evaluation of the MAE #########
