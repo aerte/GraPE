@@ -119,7 +119,9 @@ class AFP(Module):
                 for i in range(len(mlp_out_hidden)):
                     self.mlp_out.append(nn.ReLU())
                     if i == len(mlp_out_hidden)-1:
-                        self.mlp_out.append(nn.Linear(mlp_out_hidden[i], 1))
+                        # Added condition if there are global features but only one MLP layer
+                        hidden_temp = mlp_out_hidden[i]+self.num_global_feats if i == 0 else mlp_out_hidden[i]
+                        self.mlp_out.append(nn.Linear(hidden_temp, 1))
                     elif i == 0:
                         self.mlp_out.append(nn.Linear(mlp_out_hidden[i]+self.num_global_feats, mlp_out_hidden[i + 1]))
                     else:

@@ -25,6 +25,6 @@
 # -- end of LSF options --
 
 ### nvidia-smi
-source /zhome/4a/a/156124/GraPE/genv/bin/activate
+source ### Add virtual environment
 
-python /zhome/4a/a/156124/GraPE/notebooks/optimization_test.py logp --samples 500
+python afp_with_global_features

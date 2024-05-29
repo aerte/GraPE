@@ -284,9 +284,10 @@ class DataSet(DataLoad):
                                                                                    allowed_atoms= allowed_atoms,
                                                                                     only_organic=only_organic, log=log,
                                                                                    global_feats=global_features)
+
             else:
                 self.smiles, self.raw_target = np.array(smiles), np.array(target)
-                self.global_features = np.array(global_features)
+                self.global_features = np.array(global_features) if global_features is not None else None
 
             # standardize target
             if scale:
@@ -321,6 +322,14 @@ class DataSet(DataLoad):
     @staticmethod
     def rescale(target, mean, std):
         return (target *std) + mean
+
+    #def reconstruct_graphs(self):
+    #    self.data = construct_dataset(smiles=self.smiles,
+    #                                  target=self.target,
+    #                                  global_features=self.global_features,
+    #                                  allowed_atoms=allowed_atoms,
+    #                                  atom_feature_list=atom_feature_list,
+    #                                  bond_feature_list=bond_feature_list)
 
     def scale_data(self):
         self.target, self.mean_target, self.std_target = self.standardize(np.array(self.raw_target))
@@ -697,7 +706,7 @@ class GraphDataSet(DataSet):
     #    assert len(names) == 3 or None, 'Names should have three elements: train, val, test'
 
 
-def load_dataset_from_excel(file_path: str, dataset:str, is_dmpnn=False):
+def load_dataset_from_excel(file_path: str, dataset:str, is_dmpnn=False, return_dataset:bool = False):
     """ A convenience function to load a dataset from an excel file and a specific sheet there-in. The
     file path given is the path to the excel file and the dataset name given is the sheet name.
 
@@ -725,7 +734,7 @@ def load_dataset_from_excel(file_path: str, dataset:str, is_dmpnn=False):
 
     df = pd.read_excel(file_path, sheet_name=dataset)
 
-    data = DataSet(smiles=df.SMILES, target=df.Target, filter=False, scale=True)
+    data = DataSet(smiles=df.SMILES, target=df.Target, global_features=None, filter=False, scale=True)
 
     # convert given labels to a list of numbers and split dataset
     labels = df.Split.apply(lambda x: ['train', 'val', 'test'].index(x)).to_list()
@@ -736,5 +745,8 @@ def load_dataset_from_excel(file_path: str, dataset:str, is_dmpnn=False):
     if is_dmpnn:
         train_set, val_set, test_set = RevIndexedSubSet(train_set), RevIndexedSubSet(val_set), RevIndexedSubSet(
             test_set)
+
+    if return_dataset:
+        return train_set, val_set, test_set, data
 
     return train_set, val_set, test_set

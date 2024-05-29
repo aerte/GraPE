@@ -21,7 +21,8 @@ __all__ = [
     'val_epoch',
     'test_model',
     'pred_metric',
-    'return_hidden_layers'
+    'return_hidden_layers',
+    'set_seed'
 ]
 
 # import grape.models
@@ -378,10 +379,12 @@ def pred_metric(prediction: Union[Tensor, ndarray], target: Union[Tensor, ndarra
     sklearn and their implementations. The options for metrics are:
 
     * ``MSE``: Mean Squared Error
+    * ``RMSE``: Root Mean Squared Error
     * ``SSE``: Sum of Squared Errors
     * ``MAE``: Mean Average Error
     * ``R2``: R-squared Error
     * ``MRE``: Mean Relative Error, which is implemented as:
+    * ``MDAPE``: Median Absolute Percentage Error
 
     ..math:
         \frac{1}{N}\sum\limits_{i=1}^{N}\frac{y_{i}-f(x_{i})}{y_{i}}\cdot100
@@ -396,7 +399,7 @@ def pred_metric(prediction: Union[Tensor, ndarray], target: Union[Tensor, ndarra
         The target array or tensor corresponding to the prediction.
     metrics: str or list[str]
         A string or a list of strings specifying what metrics should be returned. The options are:
-        [``mse``, ``sse``, ``mae``, ``r2``, ``mre``] or 'all' for every option. Default: 'mse'
+        [``mse``, ``rmse``, ``sse``, ``mae``, ``r2``, ``mre``, ``mdape``] or 'all' for every option. Default: 'mse'
     print_out: bool
         Will print out formatted results if True. Default: True
 
@@ -418,7 +421,7 @@ def pred_metric(prediction: Union[Tensor, ndarray], target: Union[Tensor, ndarra
         target = rescale_data.rescale_data(target)
 
     if metrics == 'all':
-        metrics = ['mse','rmse','sse','mae','r2','mre']
+        metrics = ['mse','rmse','sse','mae','r2','mre', 'mdape']
 
     results = dict()
     prints = []
@@ -445,6 +448,9 @@ def pred_metric(prediction: Union[Tensor, ndarray], target: Union[Tensor, ndarra
             if results['mre'] > 100:
                 prints.append(f'Mean relative error is large, here is the median relative error'
                                 f':{np.median(np.abs(target-prediction)/target)*100:.3f}%')
+            results['mdape'] = np.median(np.abs(target-prediction)/target)*100
+            prints.append(f'MDAPE: {np.median(np.abs(target-prediction)/target)*100:.3f}%')
+
 
     if print_out:
         for out in prints:

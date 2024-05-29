@@ -177,9 +177,6 @@ def trainable(config: dict, data_name:str, model_name:str, is_dmpnn:bool, device
 
 if __name__ == '__main__':
 
-    model_name = 'AFP'
-
-
     import argparse
 
     parser = argparse.ArgumentParser()
