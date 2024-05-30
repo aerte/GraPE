@@ -7,7 +7,6 @@
     <list default="true" id="115446f6-db4f-461b-90f9-f367678daa67" name="Changes" comment="fixed stuff">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/python/grape/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/python/grape/__init__.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/python/setup.py" beforeDir="false" afterPath="$PROJECT_DIR$/python/setup.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -194,6 +193,7 @@
       <workItem from="1716915555146" duration="7741000" />
       <workItem from="1716963379495" duration="12598000" />
       <workItem from="1717052043155" duration="1999000" />
+      <workItem from="1717054963186" duration="47000" />
     </task>
     <task id="LOCAL-00005" summary="bug, fixese, plots and more">
       <option name="closed" value="true" />
