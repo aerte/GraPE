@@ -15,7 +15,7 @@ from torch_scatter import scatter
 
 __all__ = [
     'MEGNet_block',
-    'MEGNet_gnn'
+    'MEGNet'
 ]
 
 
@@ -158,7 +158,7 @@ class MEGNet_block(nn.Module):
 
 
 
-class MEGNet_gnn(nn.Module):
+class MEGNet(nn.Module):
     """An implementation of the **MatErials Graph Network (MEGNet)** block by Chen et al. [1]. The MEGNet block
         operates on three different types of input data: nodes, edges and global variables. The global
         variables are *graph*-wise, for example, the melting point of a molecule or any other graph level information.
@@ -209,7 +209,7 @@ class MEGNet_gnn(nn.Module):
     def __init__(self, node_in_dim: int, edge_in_dim: int, global_in_dim: int=32, node_hidden_dim: int=64,
                  edge_hidden_dim: int=64, global_hidden_dim:int=32, depth:int=2, mlp_out_hidden:Union[int, list]=512,
                  rep_dropout:float=0.0, device = torch.device("cpu")):
-        super(MEGNet_gnn, self).__init__()
+        super(MEGNet, self).__init__()
 
         self.device = device
         self.depth = depth

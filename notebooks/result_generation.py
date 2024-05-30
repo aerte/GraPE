@@ -27,15 +27,15 @@ def load_model(model_name, config, device = None):
                     hidden_dim=config["gnn_hidden_dim"],
                     mlp_out_hidden=mlp_out)
     elif model_name == "MPNN":
-        return MPNN_Model(node_in_dim=44, edge_in_dim=12, num_layers=config["depth"],
+        return MPNN(node_in_dim=44, edge_in_dim=12, num_layers=config["depth"],
                           mlp_out_hidden=mlp_out, rep_dropout=config["dropout"],
                           node_hidden_dim=config["gnn_hidden_dim"])
     elif model_name == "DMPNN":
-        return DMPNNModel(node_in_dim=44, edge_in_dim=12, node_hidden_dim=config["gnn_hidden_dim"],
+        return DMPNN(node_in_dim=44, edge_in_dim=12, node_hidden_dim=config["gnn_hidden_dim"],
                           depth=config["depth"], dropout=0, mlp_out_hidden=mlp_out,
                           rep_dropout=config["dropout"])
     elif model_name == "MEGNet":
-        return MEGNet_gnn(node_in_dim=44, edge_in_dim=12, node_hidden_dim=config["gnn_hidden_dim"],
+        return MEGNet(node_in_dim=44, edge_in_dim=12, node_hidden_dim=config["gnn_hidden_dim"],
                           edge_hidden_dim=config["edge_hidden_dim"], depth=config["depth"],
                           mlp_out_hidden=mlp_out, rep_dropout=config["dropout"],
                           device=device)

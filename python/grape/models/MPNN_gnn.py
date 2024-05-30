@@ -9,11 +9,11 @@ from torch_geometric.nn import NNConv
 from torch_geometric.nn.aggr import Set2Set
 
 __all__ = [
-    'MPNN',
-    'MPNN_Model'
+    'MPNNEncoder',
+    'MPNN'
 ]
 
-class MPNN(nn.Module):
+class MPNNEncoder(nn.Module):
     """Implements the MPNN network described by Justin Gilmer et al. in [1]. It uses a simple, 3 layered MLP as the
     free neural network that projects the edge features. The MPNN layer itself is the native pytorch geometric
     implementation (NNConv).
@@ -100,7 +100,7 @@ class MPNN(nn.Module):
 
         return h
 
-class MPNN_Model(nn.Module):
+class MPNN(nn.Module):
     """Implements the complete MPNN model described by Justin Gilmer et al. in [1]. It uses a simple, 2 layered MLP as
     the free neural network that projects the edge features. The MPNN layer itself is the native pytorch geometric
     implementation (NNConv), the readout layer is set2set and the output model is another MLP.
@@ -144,7 +144,7 @@ class MPNN_Model(nn.Module):
         super().__init__()
 
         if message_nn is None:
-            message_nn = MPNN(node_in_dim, edge_in_dim, node_hidden_dim, num_layers, num_gru_layers)
+            message_nn = MPNNEncoder(node_in_dim, edge_in_dim, node_hidden_dim, num_layers, num_gru_layers)
         self.message = message_nn
 
         self.read_out = Set2Set(in_channels=node_hidden_dim, processing_steps=set2set_steps)

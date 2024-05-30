@@ -9,7 +9,7 @@ from torch_scatter import scatter_sum
 
 __all__ = [
     'DMPNNEncoder',
-    'DMPNNModel'
+    'DMPNN'
 ]
 
 
@@ -113,7 +113,7 @@ class DMPNNEncoder(nn.Module):
             return node_attr
 
 
-class DMPNNModel(torch.nn.Module):
+class DMPNN(torch.nn.Module):
     """D-MPNN [1,2] model from graph to prediction. It extends the DMPNNEncoder with a 3 layered MLP for prediction.
 
     -------
@@ -150,7 +150,7 @@ class DMPNNModel(torch.nn.Module):
     """
     def __init__(self, node_in_dim:int, edge_in_dim:int,node_hidden_dim:int=64, depth=3, dropout=0.15,
                         mlp_out_hidden:Union[int, list]=512, rep_dropout:float=0.0):
-        super(DMPNNModel, self).__init__()
+        super(DMPNN, self).__init__()
 
         self.hidden_size = node_hidden_dim
         self.node_dim = node_in_dim
