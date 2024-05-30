@@ -5,11 +5,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="115446f6-db4f-461b-90f9-f367678daa67" name="Changes" comment="fixed stuff">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/result_generation.py" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/result_generation.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/python/grape/models/DMPNN_gnn.py" beforeDir="false" afterPath="$PROJECT_DIR$/python/grape/models/DMPNN_gnn.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/python/grape/models/MEGNet_gnn.py" beforeDir="false" afterPath="$PROJECT_DIR$/python/grape/models/MEGNet_gnn.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/python/grape/models/MPNN_gnn.py" beforeDir="false" afterPath="$PROJECT_DIR$/python/grape/models/MPNN_gnn.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/setup.py" beforeDir="false" afterPath="$PROJECT_DIR$/python/setup.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -196,15 +192,7 @@
       <workItem from="1716915555146" duration="7741000" />
       <workItem from="1716963379495" duration="12598000" />
       <workItem from="1717052043155" duration="1999000" />
-      <workItem from="1717054963186" duration="611000" />
-    </task>
-    <task id="LOCAL-00006" summary="bug, fixese, plots and more">
-      <option name="closed" value="true" />
-      <created>1712501534798</created>
-      <option name="number" value="00006" />
-      <option name="presentableId" value="LOCAL-00006" />
-      <option name="project" value="LOCAL" />
-      <updated>1712501534798</updated>
+      <workItem from="1717054963186" duration="686000" />
     </task>
     <task id="LOCAL-00007" summary="documentation">
       <option name="closed" value="true" />
@@ -590,7 +578,15 @@
       <option name="project" value="LOCAL" />
       <updated>1717055014274</updated>
     </task>
-    <option name="localTasksCounter" value="55" />
+    <task id="LOCAL-00055" summary="fixed stuff">
+      <option name="closed" value="true" />
+      <created>1717055583997</created>
+      <option name="number" value="00055" />
+      <option name="presentableId" value="LOCAL-00055" />
+      <option name="project" value="LOCAL" />
+      <updated>1717055583997</updated>
+    </task>
+    <option name="localTasksCounter" value="56" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
