@@ -18,6 +18,8 @@ the ``Advanced Demonstration``, the following requirements need to be met:
 
 ``
 python==3.9
+``
+``
 cuda==12.1
 ``
 
@@ -25,10 +27,20 @@ and the following package need to be re-installed using the correct cuda-version
 
 ``
 torch==2.1.2
+``
+``
 dgl~=1.1.3
+``
+``
 torch-scatter -f https://data.pyg.org/whl/torch-2.1.2+cu121.html
+``
+``
 ray
+``
+``
 ConfigSpace==0.4.18
+``
+``
 hpbandster==0.7.4
 ``
 
