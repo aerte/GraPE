@@ -6,8 +6,9 @@
   <component name="ChangeListManager">
     <list default="true" id="115446f6-db4f-461b-90f9-f367678daa67" name="Changes" comment="fixed stuff">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/afp_with_global_feats.py" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/afp_with_global_feats.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/job_script.sh" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/job_script.sh" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/notebooks/result_generation.py" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/result_generation.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/grape/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/python/grape/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/setup.py" beforeDir="false" afterPath="$PROJECT_DIR$/python/setup.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -192,15 +193,8 @@
       <workItem from="1716539276340" duration="580000" />
       <workItem from="1716732068204" duration="2389000" />
       <workItem from="1716915555146" duration="7741000" />
-      <workItem from="1716963379495" duration="11188000" />
-    </task>
-    <task id="LOCAL-00002" summary="fixed butina clustering">
-      <option name="closed" value="true" />
-      <created>1712214804459</created>
-      <option name="number" value="00002" />
-      <option name="presentableId" value="LOCAL-00002" />
-      <option name="project" value="LOCAL" />
-      <updated>1712214804459</updated>
+      <workItem from="1716963379495" duration="12598000" />
+      <workItem from="1717052043155" duration="1176000" />
     </task>
     <task id="LOCAL-00003" summary="code re-organization, bug fixes">
       <option name="closed" value="true" />
@@ -586,7 +580,15 @@
       <option name="project" value="LOCAL" />
       <updated>1716996844762</updated>
     </task>
-    <option name="localTasksCounter" value="51" />
+    <task id="LOCAL-00051" summary="fixed stuff">
+      <option name="closed" value="true" />
+      <created>1716997013848</created>
+      <option name="number" value="00051" />
+      <option name="presentableId" value="LOCAL-00051" />
+      <option name="project" value="LOCAL" />
+      <updated>1716997013848</updated>
+    </task>
+    <option name="localTasksCounter" value="52" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">

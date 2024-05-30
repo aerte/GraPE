@@ -52,6 +52,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('data', type=str, default='free', choices=['mp', 'logp', 'qm', 'free'],
                         help='the data that will be trained on (default: %(default)s)')
+    parser.add_argument('--mode', type=str, default='pred', choices=['pred', 'metric','plots'],
+                        help='the results generated (default: %(default)s)')
+
     data_name = parser.parse_args().data
 
     if data_name == 'free':
