@@ -82,11 +82,11 @@ class MEGNet_block(nn.Module):
             nn.Linear(global_in_dim, global_in_dim, bias=True),
         )
 
-    def reset_parameters(self) -> None:
-        from grape.utils import reset_weights
-        reset_weights(self.update_net_edge)
-        reset_weights(self.update_net_node)
-        reset_weights(self.update_net_global)
+    # def reset_parameters(self) -> None:
+    #     from grape.utils import reset_weights
+    #     reset_weights(self.update_net_edge)
+    #     reset_weights(self.update_net_node)
+    #     reset_weights(self.update_net_global)
 
     def update_edge_feats(self, edge_index: Adj, node_feats, edge_feats, global_feats,
                           batch) -> Tensor:
@@ -273,17 +273,17 @@ class MEGNet_gnn(nn.Module):
             for _ in range(depth)
         ])
 
-    def reset_parameters(self) -> None:
-        from grape.utils import reset_weights
-        reset_weights(self.read_out_nodes)
-        reset_weights(self.read_out_edges)
-        reset_weights(self.mlp_out)
-        reset_weights(self.dense_layers_nodes)
-        for i in range(self.depth):
-            reset_weights(self.dense_layers_edges[i])
-            reset_weights(self.dense_layers_nodes[i])
-            reset_weights(self.dense_layers_global[i])
-            reset_weights(self.blocks[i])
+    # def reset_parameters(self) -> None:
+    #     from grape.utils import reset_weights
+    #     reset_weights(self.read_out_nodes)
+    #     reset_weights(self.read_out_edges)
+    #     reset_weights(self.mlp_out)
+    #     reset_weights(self.dense_layers_nodes)
+    #     for i in range(self.depth):
+    #         reset_weights(self.dense_layers_edges[i])
+    #         reset_weights(self.dense_layers_nodes[i])
+    #         reset_weights(self.dense_layers_global[i])
+    #         reset_weights(self.blocks[i])
 
 
     def forward(self, data, global_feats: Tensor = None) -> Tensor:
