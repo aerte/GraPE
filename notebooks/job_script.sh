@@ -1,15 +1,15 @@
 #!/bin/sh
 ### General options
 ### –- specify queue --
-#BSUB -q hpc
+#BSUB -q gpua100
 ### -- set the job Name --
-#BSUB -J AFPwGF
+#BSUB -J mpAFP
 ### -- ask for number of cores (default: 1) --
-#BSUB -n 4
+#BSUB -n 12
 ### -- Select the resources: 1 gpu in exclusive process mode --
 #BSUB -gpu "num=1:mode=exclusive_process:mps=yes"
-### -- set wall-time limit: hh:mm --  maximum 24 hours for GPU-queues right now
-#BSUB -W 1:00
+### -- set walltime limit: hh:mm --  maximum 24 hours for GPU-queues right now
+#BSUB -W 16:00
 # request 5GB of system-memory
 #BSUB -R "rusage[mem=24GB]"
 ### -- set the email address --
@@ -20,11 +20,10 @@
 #BSUB -N
 ### -- Specify the output and error file. %J is the job-id --
 ### -- -o and -e mean append, -oo and -eo mean overwrite --
-#BSUB -o AFP_%J.out
-#BSUB -e AFP_%J.err
+#BSUB -o megnet_%J.out
+#BSUB -e megnet_%J.err
 # -- end of LSF options --
-
 ### nvidia-smi
-source ### Add virtual environment
+source /zhome/4a/a/156124/GraPE/genv/bin/activate
 
-python afp_with_global_features
+python /zhome/4a/a/156124/GraPE/notebooks/optimization_test.py mp --samples 500 --model afp

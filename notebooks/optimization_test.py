@@ -3,22 +3,21 @@
 from ray.air import RunConfig
 import dgl
 import os
-from grape.models import AFP, MPNN_Model, DMPNNModel, MEGNet_gnn
+from grape.models import AFP, MPNN, DMPNN, MEGNet
 from grape.utils import EarlyStopping, train_model
 from functools import partial
 import torch
 from torch.optim import lr_scheduler
-from ray.tune.search.bohb import TuneBOHB
-from ray.tune.schedulers import HyperBandForBOHB
+from ray.tune.search.optuna import OptunaSearch
 from ray.tune import Tuner
 from ray import tune, train
 import numpy as np
 import pandas as pd
 from grape.utils import DataSet, split_data, train_epoch, val_epoch, RevIndexedSubSet
 from torch_geometric.loader import DataLoader
-from grape.utils import pred_metric
 
-import ConfigSpace as CS
+#root = '/zhome/4a/a/156124/GraPE/notebooks/data_splits.xlsx'
+root = '/Users/faerte/Desktop/grape/notebooks/data_splits.xlsx'
 
 def set_seed(seed):
     os.environ['PYTHONHASHSEED'] = str(seed)
@@ -51,7 +50,7 @@ def return_hidden_layers(num):
     """
     return [2**i*32 for i in range(num, 0,-1)]
 
-def load_dataset_from_excel(dataset, is_dmpnn = False):
+def load_dataset_from_excel(dataset, is_dmpnn = False, is_megnet = False):
     """
     dataset: str
         A string that defines what dataset should be used, specifically loaded from a graphs-splits sheet. Options:
@@ -63,15 +62,18 @@ def load_dataset_from_excel(dataset, is_dmpnn = False):
         If graphs for DMPNN has to be loaded. Default: False
     """
     
-    df = pd.read_excel('/zhome/4a/a/156124/GraPE/notebooks/data_splits.xlsx', sheet_name=dataset)
+    df = pd.read_excel(root, sheet_name=dataset)
 
-    data = DataSet(smiles=df.SMILES, target=df.Target, filter=False, scale=True)
+    data = DataSet(smiles=df.SMILES, target=df.Target, filter=False, scale=False)
 
 
     # convert given labels to a list of numbers and split dataset
     labels = df.Split.apply(lambda x: ['train', 'val', 'test'].index(x)).to_list()
 
-    train_set, val_set, test_set = split_data(data, custom_split=labels)
+
+    if is_megnet:
+        data.generate_global_feats(seed=42)
+    train_set, val_set, test_set = data.split_and_scale(custom_split=labels, scale=True)
     
     # In case graphs for DMPNN has to be loaded:
     if is_dmpnn:
@@ -92,24 +94,24 @@ def load_model(model_name, config, device = None):
     config : ConfigSpace
     """
 
-    mlp_out = return_hidden_layers(config['mlp_layers'])
+    mlp_out = return_hidden_layers(int(config['mlp_layers']))
 
     if model_name == "AFP":
-        return AFP(node_in_dim=44, edge_in_dim=12, num_layers_mol=config["afp_mol_layers"],
-                    num_layers_atom=config["depth"], rep_dropout=config["dropout"],
-                    hidden_dim=config["gnn_hidden_dim"],
+        return AFP(node_in_dim=44, edge_in_dim=12, num_layers_mol=int(config["afp_mol_layers"]),
+                    num_layers_atom=int(config["depth"]), rep_dropout=config["dropout"],
+                    hidden_dim=int(config["gnn_hidden_dim"]),
                     mlp_out_hidden=mlp_out)
     elif model_name == "MPNN":
-        return MPNN_Model(node_in_dim=44, edge_in_dim=12, num_layers=config["depth"],
+        return MPNN(node_in_dim=44, edge_in_dim=12, num_layers=int(config["depth"]),
                           mlp_out_hidden=mlp_out, rep_dropout=config["dropout"],
-                          node_hidden_dim=config["gnn_hidden_dim"])
+                          node_hidden_dim=int(config["gnn_hidden_dim"]))
     elif model_name == "DMPNN":
-        return DMPNNModel(node_in_dim=44, edge_in_dim=12, node_hidden_dim=config["gnn_hidden_dim"],
-                          depth=config["depth"], dropout=0, mlp_out_hidden=mlp_out,
+        return DMPNN(node_in_dim=44, edge_in_dim=12, node_hidden_dim=int(config["gnn_hidden_dim"]),
+                          depth=int(config["depth"]), dropout=0, mlp_out_hidden=mlp_out,
                           rep_dropout=config["dropout"])
     elif model_name == "MEGNet":
-        return MEGNet_gnn(node_in_dim=44, edge_in_dim=12, node_hidden_dim=config["gnn_hidden_dim"],
-                          edge_hidden_dim=config["edge_hidden_dim"], depth=config["depth"],
+        return MEGNet(node_in_dim=44, edge_in_dim=12, global_in_dim=1,node_hidden_dim=int(config["gnn_hidden_dim"]),
+                          edge_hidden_dim=int(config["edge_hidden_dim"]), depth=int(config["depth"]),
                           mlp_out_hidden=mlp_out, rep_dropout=config["dropout"],
                           device=device)
 
@@ -117,7 +119,7 @@ def load_model(model_name, config, device = None):
 
 
 
-def trainable(config: dict, data_name:str, model_name:str, is_dmpnn:bool, device:torch.device):
+def trainable(config: dict, data_name:str, model_name:str, is_dmpnn:bool, device:torch.device, is_megnet:bool):
         """ The trainable for Ray-Tune.
 
         Parameters
@@ -133,13 +135,13 @@ def trainable(config: dict, data_name:str, model_name:str, is_dmpnn:bool, device
         ################### Loading the graphs #########################################################################
 
         if data_name == 'free':
-            train_set, val_set, _ = load_dataset_from_excel("FreeSolv",is_dmpnn=is_dmpnn)
+            train_set, val_set, _ = load_dataset_from_excel("FreeSolv",is_dmpnn=is_dmpnn, is_megnet=is_megnet)
         elif data_name == 'mp':
-            train_set, val_set, _ = load_dataset_from_excel("Melting Point",is_dmpnn=is_dmpnn)
-        elif data_name == 'qm9':
-            train_set, val_set, _ = load_dataset_from_excel("Heat capacity",is_dmpnn=is_dmpnn)
+            train_set, val_set, _ = load_dataset_from_excel("Melting Point",is_dmpnn=is_dmpnn, is_megnet=is_megnet)
+        elif data_name == 'qm':
+            train_set, val_set, _ = load_dataset_from_excel("Heat capacity",is_dmpnn=is_dmpnn, is_megnet=is_megnet)
         else:
-            train_set, val_set, _ = load_dataset_from_excel("LogP",is_dmpnn=is_dmpnn)
+            train_set, val_set, _ = load_dataset_from_excel("LogP",is_dmpnn=is_dmpnn, is_megnet=is_megnet)
 
         ################### Defining the model #########################################################################
         
@@ -164,10 +166,15 @@ def trainable(config: dict, data_name:str, model_name:str, is_dmpnn:bool, device
         for i in range(iterations):
 
             model.train()
-            train_loss = train_epoch(model=model, loss_func=loss_function, optimizer=optimizer, train_loader=train_data, device=device)
+            train_loss = train_epoch(model=model, loss_func=loss_function, optimizer=optimizer, train_loader=train_data,
+                                     device=device)
             val_loss = val_epoch(model=model, loss_func=loss_function, val_loader=val_data, device=device)
+            scheduler.step(val_loss)
+            early_Stopper(val_loss=val_loss, model=model)
             
-
+            if early_Stopper.stop:
+                train.report({"mae_loss": val_loss})
+                break
             # We report the loss to ray tune every 15 steps, that way tune's scheduler can interfere
             if i%15 == 0:
                 train.report({"mae_loss": val_loss})
@@ -180,8 +187,8 @@ if __name__ == '__main__':
     import argparse
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('graphs', type=str, default='free', choices=['mp', 'logp', 'qm', 'free'],
-                        help='the graphs that will be trained on (default: %(default)s)')
+    parser.add_argument('data', type=str, default='free', choices=['mp', 'logp', 'qm', 'free'],
+                        help='the data that will be trained on (default: %(default)s)')
     parser.add_argument('--samples', type=int, default=100,
                         help='the number of samples/instances that will be running (default: %(default)s)')
     parser.add_argument('--model', type=str, default='afp', choices=['afp','mpnn','dmpnn','megnet'],
@@ -192,6 +199,7 @@ if __name__ == '__main__':
     n_samples = args.samples
     model_ = args.model
     is_dmpnn = False
+    is_megnet = False
 
     ################################# Selecting the options ######################################
 
@@ -211,6 +219,7 @@ if __name__ == '__main__':
     else:
         dataset = 'LogP'
 
+
     if model_ == 'mpnn':
         model_name = "MPNN"
     elif model_ == "dmpnn":
@@ -218,6 +227,7 @@ if __name__ == '__main__':
         is_dmpnn = True
     elif model_ == "megnet":
         model_name = "MEGNet"
+        is_megnet = True
     elif model_ == "afp":
         model_name = "AFP"
     else:
@@ -226,72 +236,93 @@ if __name__ == '__main__':
 
     ################################# Search space ######################################
 
-    config_space = CS.ConfigurationSpace()
-    config_space.add_hyperparameter(
-        CS.UniformIntegerHyperparameter("depth", lower=1, upper=5))
-    config_space.add_hyperparameter(
-        CS.UniformIntegerHyperparameter("gnn_hidden_dim", lower=32, upper=256))
-    config_space.add_hyperparameter(
-        CS.UniformFloatHyperparameter('initial_lr', lower=1e-5, upper=1e-1))
-    config_space.add_hyperparameter(
-        CS.UniformFloatHyperparameter("weight_decay", lower=1e-6, upper=1e-1))
-    config_space.add_hyperparameter(
-        CS.UniformFloatHyperparameter("lr_reduction_factor", lower=0.4, upper=0.99))
-    config_space.add_hyperparameter(
-        CS.UniformFloatHyperparameter("dropout", lower=0., upper=0.4))
-    config_space.add_hyperparameter(
-        CS.UniformIntegerHyperparameter("mlp_layers", lower=1, upper=4))
-    # If AFP is selected
+    # config_space = CS.ConfigurationSpace()
+    # config_space.add_hyperparameter(
+    #     CS.UniformIntegerHyperparameter("depth", lower=1, upper=5))
+    # config_space.add_hyperparameter(
+    #     CS.UniformIntegerHyperparameter("gnn_hidden_dim", lower=32, upper=256))
+    # config_space.add_hyperparameter(
+    #     CS.UniformFloatHyperparameter('initial_lr', lower=1e-5, upper=1e-1))
+    # config_space.add_hyperparameter(
+    #     CS.UniformFloatHyperparameter("weight_decay", lower=1e-6, upper=1e-1))
+    # config_space.add_hyperparameter(
+    #     CS.UniformFloatHyperparameter("lr_reduction_factor", lower=0.4, upper=0.99))
+    # config_space.add_hyperparameter(
+    #     CS.UniformFloatHyperparameter("dropout", lower=0., upper=0.4))
+    # config_space.add_hyperparameter(
+    #     CS.UniformIntegerHyperparameter("mlp_layers", lower=1, upper=4))
+    # # If AFP is selected
+    # if model_name == "AFP":
+    #     config_space.add_hyperparameter(
+    #         CS.UniformIntegerHyperparameter("afp_mol_layers", lower=1, upper=4))
+    # elif model_name == "MEGNet":
+    #     config_space.add_hyperparameter(
+    #         CS.UniformIntegerHyperparameter("edge_hidden_dim", lower=32, upper=256))
+
+    search_space = {
+        "depth": tune.randint(1,5),
+        "gnn_hidden_dim": tune.randint(32, 256),
+        "lr_reduction_factor": tune.uniform(0.4, 0.99),
+        "dropout": tune.uniform(0.1, 0.4),
+        "afp_mol_layers": tune.randint(1, 4),
+        "initial_lr": tune.uniform(1e-5, 1e-1),
+        "weight_decay": tune.uniform(1e-6, 1e-1),
+        "mlp_layers": tune.randint(1, 4)
+    }
+
     if model_name == "AFP":
-        config_space.add_hyperparameter(
-            CS.UniformIntegerHyperparameter("afp_mol_layers", lower=1, upper=4))
+        search_space['afp_mol_layers'] = tune.randint(1, 4)
     elif model_name == "MEGNet":
-        config_space.add_hyperparameter(
-            CS.UniformIntegerHyperparameter("edge_hidden_dim", lower=32, upper=256))
+        search_space['edge_hidden_dim'] = tune.randint(32, 256)
 
 
     ################################# --------------------- ######################################
 
     my_trainable = partial(trainable, data_name=data_name, model_name=model_name, is_dmpnn=is_dmpnn,
-                           device=device)
+                           is_megnet=is_megnet, device=device)
 
     trainable_with_resources = tune.with_resources(my_trainable, {"cpu":4, "gpu":gpu})
 
     ### Define search algorithm
-    algo = TuneBOHB(config_space,mode='min', metric="mae_loss",)
+    #algo = TuneBOHB(config_space,mode='min', metric="mae_loss",)
 
     ## Get the trial control algorithm
-    scheduler = HyperBandForBOHB(
-        time_attr="training_iteration",
-        max_t=1000,
-        )
+    # scheduler = HyperBandForBOHB(
+    #     time_attr="training_iteration",
+    #     max_t=1000,
+    #     )
+
+    algo = OptunaSearch()
 
     ## Initialize the tuner
-    tuner = Tuner(my_trainable, tune_config=tune.TuneConfig(scheduler=scheduler,
+    tuner = Tuner(trainable_with_resources,
+                  tune_config=tune.TuneConfig(
+                                            # scheduler=scheduler,
                                             search_alg=algo,
                                             mode='min',
                                             metric="mae_loss",
                                             num_samples=n_samples),
-                                            run_config=train.RunConfig(
-                                                name="bohb_exp",
-                                                stop={"training_iteration": 100})
+                  run_config=train.RunConfig(
+                                            name="bo_exp",
+                                            stop={"training_iteration": 100}),
+                  param_space=search_space
     )
 
 
     result = tuner.fit()
 
-    import json
-
-    best_result = result.get_best_result(metric="mae_loss", mode="min")
-    best_config = best_result.config
-    best_metrics = best_result.metrics
-
-    results_to_save = {
-        "best_config": best_config,
-        "best_metrics": best_metrics
-    }
-
-    file_name = "/zhome/4a/a/156124/GraPE/notebooks/results/best_hyperparameters_" + model_name +"_"+dataset+".json"
-
-    with open(file_name, "w") as file:
-        json.dump(results_to_save, file, indent=4)
+    # import json
+    #
+    # best_result = result.get_best_result(metric="mae_loss", mode="min")
+    # best_config = best_result.config
+    # best_metrics = best_result.metrics
+    #
+    # results_to_save = {
+    #     "best_config": best_config,
+    #     "best_metrics": best_metrics
+    # }
+    #
+    # file_name = "/zhome/4a/a/156124/GraPE/notebooks/results/best_hyperparameters_" + model_name +"_"+dataset+".json"
+    #
+    # with open(file_name, "w") as file:
+    #     json.dump(results_to_save, file, indent=4)
