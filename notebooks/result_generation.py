@@ -1,6 +1,6 @@
 import json
 from grape.models import *
-from grape.utils import load_dataset_from_excel, return_hidden_layers, set_seed, EarlyStopping, rescale_arrays
+from grape.utils import return_hidden_layers, set_seed, EarlyStopping, rescale_arrays, DataSet, RevIndexedSubSet
 from grape.utils import train_model, test_model, pred_metric
 import torch
 from torch.optim import lr_scheduler
@@ -8,6 +8,40 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib import rcParams
+
+
+def load_dataset_from_excel(file_path, dataset, is_dmpnn=False, is_megnet=False, return_dataset=False):
+    """
+    dataset: str
+        A string that defines what dataset should be used, specifically loaded from a graphs-splits sheet. Options:
+        * "Melting Point"
+        * "LogP"
+        * "Heat capacity"
+        * "FreeSolv"
+    is_dmpnn: bool
+        If graphs for DMPNN has to be loaded. Default: False
+    """
+
+    df = pd.read_excel(file_path, sheet_name=dataset)
+
+    data = DataSet(smiles=df.SMILES, target=df.Target, filter=False, scale=False)
+
+    # convert given labels to a list of numbers and split dataset
+    labels = df.Split.apply(lambda x: ['train', 'val', 'test'].index(x)).to_list()
+
+    if is_megnet:
+        data.generate_global_feats(seed=42)
+    train_set, val_set, test_set = data.split_and_scale(custom_split=labels, scale=True)
+
+    # In case graphs for DMPNN has to be loaded:
+    if is_dmpnn:
+        train_set, val_set, test_set = RevIndexedSubSet(train_set), RevIndexedSubSet(val_set), RevIndexedSubSet(
+            test_set)
+
+    if return_dataset:
+        return train_set, val_set, test_set, data
+    return train_set, val_set, test_set
+
 
 def load_model(model_name, config, device = None):
     """ Function to load a model based on a model name and a config dictionary. Is supposed to reduce clutter in the trainable function.
@@ -37,7 +71,7 @@ def load_model(model_name, config, device = None):
                           depth=config["depth"], dropout=0, mlp_out_hidden=mlp_out,
                           rep_dropout=config["dropout"])
     elif model_name == "MEGNet":
-        return MEGNet(node_in_dim=44, edge_in_dim=12, node_hidden_dim=config["gnn_hidden_dim"],
+        return MEGNet(node_in_dim=44, edge_in_dim=12, global_in_dim=1, node_hidden_dim=config["gnn_hidden_dim"],
                          edge_hidden_dim=config["edge_hidden_dim"], depth=config["depth"],
                          mlp_out_hidden=mlp_out, rep_dropout=config["dropout"],
                          device=device)
@@ -62,27 +96,29 @@ if __name__ == "__main__":
 
     if data_name == 'free':
         train_set, val_set, test_set, data = load_dataset_from_excel(file_path=root, dataset="FreeSolv", is_dmpnn=True,
-                                                                     return_dataset=True)
+                                                                     return_dataset=True, is_megnet=True)
         data_name = "FreeSolv"
         data_name_ = data_name
 
     elif data_name == 'mp':
         train_set, val_set, test_set, data = load_dataset_from_excel(file_path=root, dataset="Melting Point", is_dmpnn=True,
-                                                                     return_dataset=True)
+                                                                     return_dataset=True, is_megnet=True)
         data_name_ = "Melting_Point"
         data_name = "Melting Point"
 
     elif data_name == 'qm':
         train_set, val_set, test_set, data = load_dataset_from_excel(file_path=root, dataset="Heat capacity", is_dmpnn=True,
-                                                                     return_dataset=True)
+                                                                     return_dataset=True, is_megnet=True)
         data_name = "QM9"
         data_name_ = data_name
 
     else:
         train_set, val_set, test_set, data = load_dataset_from_excel(file_path=root, dataset="LogP", is_dmpnn=True,
-                                                                     return_dataset=True)
+                                                                     return_dataset=True, is_megnet=True)
         data_name = "LogP"
         data_name_ = data_name
+
+
 
     #model_names = ["AFP", "MPNN", "DMPNN", "MEGNet"]
     #model_names = ["MEGNet"]

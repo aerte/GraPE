@@ -508,12 +508,14 @@ class DataSet(DataLoad):
         return [self[i] for i in indices]
 
     def draw_smile(self, index: int = None, smile:str = None)->rdkit.Chem.Draw.MolDraw2D:
-        """Draw the smile at a desired index, best used in the jupyter environment.
+        """Draw the smile at a desired index or a passed SMILE, best used in the jupyter environment.
 
         Parameters
         ----------
         index: int
             The index of the smile that should be drawn.
+        smile:str
+            The smile that should be drawn.
 
         Returns
         -------
@@ -601,7 +603,7 @@ class DataSet(DataLoad):
                             split_frac = split_frac, custom_split = custom_split, **kwargs)
 
     def generate_global_feats(self, seed:int = None):
-        """Generates normally distributed random global features, used for example for MEGNet. Subsequently,
+        """Generates normally distributed random global features, fx. used for MEGNet. Subsequently,
         the global features are added to all the dataset graphs."""
         if seed is not None:
             np.random.seed(seed)
@@ -615,12 +617,19 @@ class DataSet(DataLoad):
     def scale_array(array, mean, std):
         return (array-mean)/std
 
-    def split_and_scale(self, scale: bool = True, seed:int=None, return_scaling:bool = False, split_type:str = None,
+    def split_and_scale(self, scale: bool = True, seed:int=None, return_scaling_params:bool = False, split_type:str = None,
                     split_frac:list[float, float, float] = None, custom_split:list[list] = None, **kwargs):
-        """Splits and rescales the dataset based on the training set.
+        """Splits and (optionally) rescales the dataset based on the training set. If it is rescaled,
+        the mean and std will be saved inside the DataSet object.
 
         Parameters
         ----------
+        scale: bool
+            Decides if the data should be rescaled using the training set. Default: True.
+        seed: int
+            Numpy seed used for splitting. Default: None.
+        return_scaling_params: bool
+            Decides if the rescaling parameters (mean, std) should be returned. Default: False.
         split_type: str
             Indicates what split should be used. It will either take a new argument or default
              to the initialized split fractions. The default initialization is 'random'. The options are:
@@ -632,6 +641,7 @@ class DataSet(DataLoad):
             The custom split that should be applied. Has to be an array matching the length of the filtered smiles,
             where 0 indicates a training sample, 1 a testing sample and 2 a validation sample. It will either take
             a new argument of default to the initialized custom split. The default initialization is None.
+
 
         Returns
         -------
@@ -663,14 +673,40 @@ class DataSet(DataLoad):
                                             allowed_atoms=self.allowed_atoms,
                                             atom_feature_list=self.atom_feature_list,
                                             bond_feature_list=self.bond_feature_list)
-        if return_scaling is True:
+        if return_scaling_params is True:
             return split_data(self, split_type = split_type, split_frac = split_frac, custom_split = custom_split,
                               **kwargs), self.mean, self.std
         return split_data(self, split_type=split_type, split_frac=split_frac, custom_split=custom_split,
                           **kwargs)
 
 
-    def predict_smiles(self, smiles:Union[str, list[str]], model):
+    def predict_smiles(self, smiles:Union[str, list[str]], model) -> Union[float, list[float]]:
+        """A dataset-dependent prediction function. When a SMILE or a list of SMILES is passed together
+        with a model that used the **same dataset or property** for training, that specific property is
+        predicted from the passed SMILES.
+
+        DataSet -> Model -> new smiles -> prediction and rescaling
+
+        Notes
+        ------
+        The DataSet used for training **must have the same atom/bond features and target property**. But in a practical
+        setting, one just has to make sure that the model predict the same target property given in the
+        DataSet.
+
+
+        Parameters
+        ----------
+        smiles: str and list of str
+            A SMILE or a list of SMILES that will be used for prediction.
+        model:
+            A model using the **same features** as defined for the graphs inside the DataSet.
+
+        Returns
+        -------
+        float or list of float
+            Predictions corresponding to each input SMILE in order.
+
+        """
         from torch_geometric.loader import DataLoader
         out = []
         model.eval()

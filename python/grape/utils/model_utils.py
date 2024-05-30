@@ -407,7 +407,7 @@ def rescale_arrays(arrays: Union[Tensor, tuple[Tensor,Tensor], list], data:objec
         if isinstance(array, Tensor):
             array = array.cpu().detach().numpy()
         if data is not None:
-            out.append(data.rescale_data(array))
+            out.append(data.rescale(array))
         elif mean is not None and std is not None:
             out.append((array * std)+mean)
 
