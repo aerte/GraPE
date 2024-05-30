@@ -1,8 +1,5 @@
 torch==2.1.2
-torch-cluster -f https://data.pyg.org/whl/torch-2.1.2+cu121.html # if it hangs, install manually using pip
 torch-scatter -f https://data.pyg.org/whl/torch-2.1.2+cu121.html # if it hangs, install manually using pip
-# torch-sparse -f https://data.pyg.org/whl/torch-2.1.2+cu121.html
-# torch-spline-conv -f https://data.pyg.org/whl/torch-2.1.2+cu121.html
 torch_geometric==2.4.0
 rdkit~=2023.9.5
 dgl~=1.1.3
