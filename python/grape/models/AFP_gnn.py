@@ -129,18 +129,18 @@ class AFP(Module):
         else:
             self.mlp_out = lambda x: x
 
-    # def reset_parameters(self):
-    #     from grape.utils import reset_weights
-    #     self.AFP_layers.reset_parameters()
-    #     if self.regressor:
-    #         reset_weights(self.mlp_out)
+    def reset_parameters(self):
+        from grape.utils import reset_weights
+        self.AFP_layers.reset_parameters()
+        if self.regressor:
+            reset_weights(self.mlp_out)
 
 
     def forward(self, data):
         x, edge_index, edge_attr, batch = data.x, data.edge_index, data.edge_attr, data.batch
         out = self.AFP_layers(x, edge_index, edge_attr, batch)
 
-        ### Check if global data is present for each graph
+        ### Check if global graphs is present for each graph
         if self.num_global_feats > 0:
             out = torch.concat((out, data.global_feats[:,None]), dim=1)
 

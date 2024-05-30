@@ -16,7 +16,7 @@ class QM9(GraphDataSet):
 
     Notes
     ------
-    This is a large dataset, and in the current implementation, loading the data from scratch can
+    This is a large dataset, and in the current implementation, loading the graphs from scratch can
     take up to 2 minutes depending on the CPU.
 
 
@@ -79,7 +79,7 @@ class QM9(GraphDataSet):
                  custom_split: list[int] = None, log: bool = False, save_data_filename: str =None):
 
 
-        self.root = './data' if root is None else root
+        self.root = './graphs' if root is None else root
 
         self.raw_path = self.raw_dir
 

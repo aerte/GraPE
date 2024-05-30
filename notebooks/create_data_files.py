@@ -1,8 +1,9 @@
 from grape.datasets import *
+from grape.utils import set_seed
 import pandas as pd
 import numpy as np
 
-np.random.seed(42)
+set_seed(42)
 
 with pd.ExcelWriter('data_splits.xlsx', engine='openpyxl') as writer:
     ##### Bradley double plus #####

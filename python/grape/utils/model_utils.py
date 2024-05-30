@@ -22,7 +22,8 @@ __all__ = [
     'test_model',
     'pred_metric',
     'return_hidden_layers',
-    'set_seed'
+    'set_seed',
+    'rescale_arrays'
 ]
 
 # import grape.models
@@ -113,7 +114,7 @@ def train_model(model: torch.nn.Module, loss_func: Union[Callable,str], optimize
                 train_data_loader: Union[list, Data, DataLoader], val_data_loader: Union[list, Data, DataLoader],
                 device: str = None, epochs: int = 50, batch_size: int = 32,
                 early_stopper: EarlyStopping = None, scheduler: lr_scheduler = None,
-                tuning: bool = False) -> tuple[list,list]:
+                tuning: bool = False, model_name:str = None) -> tuple[list,list]:
     """Auxiliary function to train and test a given model and return the (training, test) losses.
     Can initialize DataLoaders if only lists of Data objects are given.
 
@@ -127,9 +128,9 @@ def train_model(model: torch.nn.Module, loss_func: Union[Callable,str], optimize
     optimizer: torch.optim.Optimizer
         Torch optimization algorithm like Adam or SDG.
     train_data_loader: list of Data or DataLoader
-        A list of Data objects or the DataLoader directly to be used as the training data.
+        A list of Data objects or the DataLoader directly to be used as the training graphs.
     val_data_loader: list of Data or DataLoader
-        A list of Data objects or the DataLoader directly to be used as the validation data.
+        A list of Data objects or the DataLoader directly to be used as the validation graphs.
     device: str
         Torch device to be used ('cpu','cuda' or 'mps'). Default: 'cpu'
     epochs: int
@@ -142,6 +143,8 @@ def train_model(model: torch.nn.Module, loss_func: Union[Callable,str], optimize
         Optional learning rate scheduler that will take a step after validation. Default: None
     tuning: bool
         Will turn off the early stopping, meant for hyperparameter optimziation.
+    model_name:str
+        If given, it will be used to save it if early stopping did not set in. Default: None
 
     Returns
     ---------
@@ -212,6 +215,9 @@ def train_model(model: torch.nn.Module, loss_func: Union[Callable,str], optimize
                         break
 
             pbar.update(1)
+        if early_stopper.stop is False and model_name is not None:
+            torch.save(model.state_dict(), model_name)
+            print(f'Model saved at: {model_name}')
 
     return train_loss, val_loss
 
@@ -284,7 +290,7 @@ def test_model(model: torch.nn.Module, loss_func: Union[Callable,str,None], test
         Loss function like F.mse_loss that will be used as a loss or None, in which case just the predictions are
         returned.
     test_data_loader: list of Data or DataLoader
-        A list of Data objects or the DataLoader directly to be used as the test data.
+        A list of Data objects or the DataLoader directly to be used as the test graphs.
     device: str
         Torch device to be used ('cpu','cuda' or 'mps'). Default: 'cpu'
     batch_size: int
@@ -370,6 +376,45 @@ def test_model(model: torch.nn.Module, loss_func: Union[Callable,str,None], test
 ########### Prediction Metrics ###########################################
 ##########################################################################
 
+def rescale_arrays(arrays: Union[Tensor, tuple[Tensor,Tensor], list], data:object = None,
+                   mean:float = None, std: float = None) -> Union[Tensor, tuple[Tensor,Tensor], list]:
+    """ A helper function to rescale the input arrayso or tensors based on a GraPE dataset or a given mean/std.
+
+    Parameters
+    ----------
+    arrays: Union[Tensor, tuple[Tensor,Tensor], list]
+        The input arrays or tensors to be rescaled. Can be singular, a tuple or a list of tensors.
+    data: object
+        A GraPE DataSet or GraphDataSet object. Default: None
+    mean: float
+        The mean value of the scaling. Default: None
+    std: float
+        The std value of the scaling. Default: None
+
+
+    Returns
+    -------
+    All arrays given rescaled.
+
+
+    """
+
+    assert data is not None or (mean is not None and std is not None), ('Either a graphs object from GraPE'
+            'with a valid mean and std, or a mean and std must be given.')
+
+    out = []
+    for array in arrays:
+        if isinstance(array, Tensor):
+            array = array.cpu().detach().numpy()
+        if data is not None:
+            out.append(data.rescale_data(array))
+        elif mean is not None and std is not None:
+            out.append((array * std)+mean)
+
+    return out
+
+
+
 
 def pred_metric(prediction: Union[Tensor, ndarray], target: Union[Tensor, ndarray],
                 metrics: Union[str,list[str]] = 'mse', print_out: \
@@ -448,6 +493,7 @@ def pred_metric(prediction: Union[Tensor, ndarray], target: Union[Tensor, ndarra
             if results['mre'] > 100:
                 prints.append(f'Mean relative error is large, here is the median relative error'
                                 f':{np.median(np.abs(target-prediction)/target)*100:.3f}%')
+        elif metric_ == 'mdape':
             results['mdape'] = np.median(np.abs(target-prediction)/target)*100
             prints.append(f'MDAPE: {np.median(np.abs(target-prediction)/target)*100:.3f}%')
 

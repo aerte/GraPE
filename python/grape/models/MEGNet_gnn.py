@@ -21,7 +21,7 @@ __all__ = [
 
 class MEGNet_block(nn.Module):
     """An implementation of the MatErials Graph Network (MEGNet) block by Chen et al. [1]. The MEGNet block
-    operates on three different types of input data: nodes, edges and global variables. The global
+    operates on three different types of input graphs: nodes, edges and global variables. The global
     variables are *graph*-wise, for example, the melting point of a molecule or any other graph level information.
 
     Note that each element-wise update function is a three-depth MLP, so not many blocks are needed for good
@@ -93,7 +93,7 @@ class MEGNet_block(nn.Module):
         src_index, dst_index = edge_index
 
         out = torch.cat((node_feats[src_index], node_feats[dst_index],
-                         edge_feats, global_feats[batch]), dim=-1)
+                         edge_feats, global_feats[batch]), dim=1)
 
         out = self.update_net_edge(out)
 
@@ -160,7 +160,7 @@ class MEGNet_block(nn.Module):
 
 class MEGNet(nn.Module):
     """An implementation of the **MatErials Graph Network (MEGNet)** block by Chen et al. [1]. The MEGNet block
-        operates on three different types of input data: nodes, edges and global variables. The global
+        operates on three different types of input graphs: nodes, edges and global variables. The global
         variables are *graph*-wise, for example, the melting point of a molecule or any other graph level information.
 
         Note that each element-wise update function is a three-depth MLP, so not many blocks are needed for good
@@ -203,12 +203,14 @@ class MEGNet(nn.Module):
              weights are then used in the same order as given. Default: 512.
         rep_dropout: float
             The probability of dropping a node from the embedding representation. Default: 0.0.
+        device: torch.device
+            The device on which the code is run. Default: 'cpu'
     """
 
 
     def __init__(self, node_in_dim: int, edge_in_dim: int, global_in_dim: int=32, node_hidden_dim: int=64,
                  edge_hidden_dim: int=64, global_hidden_dim:int=32, depth:int=2, mlp_out_hidden:Union[int, list]=512,
-                 rep_dropout:float=0.0, device = torch.device("cpu")):
+                 rep_dropout:float=0.0 ,device = torch.device("cpu")):
         super(MEGNet, self).__init__()
 
         self.device = device
@@ -273,30 +275,31 @@ class MEGNet(nn.Module):
             for _ in range(depth)
         ])
 
-    # def reset_parameters(self) -> None:
-    #     from grape.utils import reset_weights
-    #     reset_weights(self.read_out_nodes)
-    #     reset_weights(self.read_out_edges)
-    #     reset_weights(self.mlp_out)
-    #     reset_weights(self.dense_layers_nodes)
-    #     for i in range(self.depth):
-    #         reset_weights(self.dense_layers_edges[i])
-    #         reset_weights(self.dense_layers_nodes[i])
-    #         reset_weights(self.dense_layers_global[i])
-    #         reset_weights(self.blocks[i])
+    def reset_parameters(self) -> None:
+        from grape.utils import reset_weights
+        reset_weights(self.read_out_nodes)
+        reset_weights(self.read_out_edges)
+        reset_weights(self.mlp_out)
+        reset_weights(self.dense_layers_nodes)
+        for i in range(self.depth):
+            reset_weights(self.dense_layers_edges[i])
+            reset_weights(self.dense_layers_nodes[i])
+            reset_weights(self.dense_layers_global[i])
+            reset_weights(self.blocks[i])
 
 
-    def forward(self, data, global_feats: Tensor = None) -> Tensor:
+    def forward(self, data) -> Tensor:
 
-        x, edge_index, edge_attr = data.x, data.edge_index, data.edge_attr
+        x, edge_index, edge_attr, global_feats = data.x, data.edge_index, data.edge_attr, data.global_feats
 
         # In the case that there are no global features in the analysis
-        if global_feats is None:
-            _global_feats = torch.randn(len(torch.unique(data.batch).cpu().numpy()), self.global_in_dim).to(self.device)
+        # if global_feats is None:
+        #     _global_feats = torch.zeros(len(torch.unique(graphs.batch).cpu().numpy()), self.global_in_dim,
+        #                                requires_grad=True).to(self.device)
 
         h_n = self.embed_nodes(x)
         h_e = self.embed_edges(edge_attr)
-        h_u = self.embed_global(_global_feats)
+        h_u = self.embed_global(global_feats[:,None])
 
         for i in range(self.depth):
             h_n = self.dense_layers_nodes[i](h_n)

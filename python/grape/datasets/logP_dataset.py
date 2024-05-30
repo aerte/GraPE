@@ -67,7 +67,7 @@ class LogP(GraphDataSet):
                  custom_split: list[int] = None, log: bool = False, save_data_filename: str =None):
 
 
-        self.root = './data' if root is None else root
+        self.root = './graphs' if root is None else root
 
         file_name = 'LogP'
 

@@ -50,7 +50,7 @@ def classyfire(smiles: list[str], path_to_export: str = None,
     Returns
     -------
     tuple[list[int], list[int]]
-        The indices of the SMILES where data was successfully retrieved. Could be used for an output analysis. As well
+        The indices of the SMILES where graphs was successfully retrieved. Could be used for an output analysis. As well
         as the indices of all the smiles that could be retrieved *relative to the input list*.
 
     References
@@ -87,7 +87,7 @@ def classyfire(smiles: list[str], path_to_export: str = None,
             log_file = existing_log_file
 
             if log:
-                print('Loaded existing log_file. Here is the data head:')
+                print('Loaded existing log_file. Here is the graphs head:')
                 print(log_frame.head(10))
         except:
             print('Passed log_file is not valid, creating a new one.')
@@ -184,7 +184,7 @@ def classyfire(smiles: list[str], path_to_export: str = None,
 
 def classyfire_result_analysis(path_to_classyfire: str = None, idx: list[int] = None,
                                layer:int = 1, log: bool = False) -> tuple[dict,dict]:
-    """Uses the json files generated through the classyfire procedure to perform a 1st layer data analysis. It will
+    """Uses the json files generated through the classyfire procedure to perform a 1st layer graphs analysis. It will
     return two dictionaries, one with the molecule class and the corresponding id, and the other with the class
     frequencies. It is assumed that one molecule corresponds to one json file.
 

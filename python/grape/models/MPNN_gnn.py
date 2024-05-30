@@ -70,12 +70,12 @@ class MPNNEncoder(nn.Module):
 
         self.reset_parameters()
 
-    # def reset_parameters(self):
-    #     from grape.utils import reset_weights
-    #     reset_weights(self.mlp_in)
-    #     reset_weights(self.mlp)
-    #     reset_weights(self.gru)
-    #     reset_weights(self.gnn_layers)
+    def reset_parameters(self):
+        from grape.utils import reset_weights
+        reset_weights(self.mlp_in)
+        reset_weights(self.mlp)
+        reset_weights(self.gru)
+        reset_weights(self.gnn_layers)
 
     def forward(self, data):
         """
@@ -173,11 +173,11 @@ class MPNN(nn.Module):
 
         self.reset_parameters()
 
-    # def reset_parameters(self):
-    #     from grape.utils import reset_weights
-    #     reset_weights(self.mlp_out)
-    #     reset_weights(self.read_out)
-    #     reset_weights(self.message)
+    def reset_parameters(self):
+        from grape.utils import reset_weights
+        reset_weights(self.mlp_out)
+        reset_weights(self.read_out)
+        reset_weights(self.message)
 
     def forward(self, data):
         """

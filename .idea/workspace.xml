@@ -6,14 +6,26 @@
   <component name="ChangeListManager">
     <list default="true" id="115446f6-db4f-461b-90f9-f367678daa67" name="Changes" comment="fixed stuff">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/python/grape/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/python/grape/__init__.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/python/grape/optim/__init__.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/python/grape/optim/objectives.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/python/grape/pool/__init__.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/python/grape/pool/set2set_layer.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/python/setup.py" beforeDir="false" afterPath="$PROJECT_DIR$/python/setup.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/requirements_gpu.txt" beforeDir="false" afterPath="$PROJECT_DIR$/requirements_gpu.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/notebooks/classyfire_plots.py" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/classyfire_plots.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/notebooks/create_data_files.py" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/create_data_files.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/notebooks/data_splits.xlsx" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/data_splits.xlsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/notebooks/optimization_test.py" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/optimization_test.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/notebooks/result_generation.py" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/result_generation.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/notebooks/tests.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/tests.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/grape/analysis/_classyfire.py" beforeDir="false" afterPath="$PROJECT_DIR$/python/grape/analysis/_classyfire.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/grape/datasets/FreeSolv_dataset.py" beforeDir="false" afterPath="$PROJECT_DIR$/python/grape/datasets/FreeSolv_dataset.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/grape/datasets/QM9_dataset.py" beforeDir="false" afterPath="$PROJECT_DIR$/python/grape/datasets/QM9_dataset.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/grape/datasets/jean_claude_bradley_double_plus.py" beforeDir="false" afterPath="$PROJECT_DIR$/python/grape/datasets/jean_claude_bradley_double_plus.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/grape/datasets/logP_dataset.py" beforeDir="false" afterPath="$PROJECT_DIR$/python/grape/datasets/logP_dataset.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/grape/models/AFP_gnn.py" beforeDir="false" afterPath="$PROJECT_DIR$/python/grape/models/AFP_gnn.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/grape/models/DMPNN_gnn.py" beforeDir="false" afterPath="$PROJECT_DIR$/python/grape/models/DMPNN_gnn.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/grape/models/MEGNet_gnn.py" beforeDir="false" afterPath="$PROJECT_DIR$/python/grape/models/MEGNet_gnn.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/grape/models/MPNN_gnn.py" beforeDir="false" afterPath="$PROJECT_DIR$/python/grape/models/MPNN_gnn.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/grape/splits/butina_splits.py" beforeDir="false" afterPath="$PROJECT_DIR$/python/grape/splits/butina_splits.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/grape/utils/data.py" beforeDir="false" afterPath="$PROJECT_DIR$/python/grape/utils/data.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/grape/utils/model_utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/python/grape/utils/model_utils.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/grape/utils/opt_utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/python/grape/utils/opt_utils.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/grape/utils/split_utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/python/grape/utils/split_utils.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -119,8 +131,8 @@
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
-        <option value="bundled-js-predefined-1d06a55b98c1-74d2a5396914-JavaScript-PY-241.14494.241" />
-        <option value="bundled-python-sdk-0509580d9d50-28c9f5db9ffe-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-241.14494.241" />
+        <option value="bundled-js-predefined-1d06a55b98c1-0b3e54e931b4-JavaScript-PY-241.17011.127" />
+        <option value="bundled-python-sdk-48aec45f0201-7e9c3bbb6e34-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-241.17011.127" />
       </set>
     </attachedChunks>
   </component>
@@ -200,23 +212,10 @@
       <workItem from="1716915555146" duration="7741000" />
       <workItem from="1716963379495" duration="12598000" />
       <workItem from="1717052043155" duration="1999000" />
-      <workItem from="1717054963186" duration="3545000" />
-    </task>
-    <task id="LOCAL-00010" summary="new butina split and bug fixes">
-      <option name="closed" value="true" />
-      <created>1712757400546</created>
-      <option name="number" value="00010" />
-      <option name="presentableId" value="LOCAL-00010" />
-      <option name="project" value="LOCAL" />
-      <updated>1712757400546</updated>
-    </task>
-    <task id="LOCAL-00011" summary="new butina split and bug fixes">
-      <option name="closed" value="true" />
-      <created>1712759146127</created>
-      <option name="number" value="00011" />
-      <option name="presentableId" value="LOCAL-00011" />
-      <option name="project" value="LOCAL" />
-      <updated>1712759146127</updated>
+      <workItem from="1717054963186" duration="10323000" />
+      <workItem from="1717066406858" duration="56000" />
+      <workItem from="1717066499706" duration="729000" />
+      <workItem from="1717067243223" duration="12175000" />
     </task>
     <task id="LOCAL-00012" summary="new butina split and bug fixes">
       <option name="closed" value="true" />
@@ -594,7 +593,23 @@
       <option name="project" value="LOCAL" />
       <updated>1717055783566</updated>
     </task>
-    <option name="localTasksCounter" value="59" />
+    <task id="LOCAL-00059" summary="fixed stuff">
+      <option name="closed" value="true" />
+      <created>1717058603256</created>
+      <option name="number" value="00059" />
+      <option name="presentableId" value="LOCAL-00059" />
+      <option name="project" value="LOCAL" />
+      <updated>1717058603257</updated>
+    </task>
+    <task id="LOCAL-00060" summary="fixed stuff">
+      <option name="closed" value="true" />
+      <created>1717058665823</created>
+      <option name="number" value="00060" />
+      <option name="presentableId" value="LOCAL-00060" />
+      <option name="project" value="LOCAL" />
+      <updated>1717058665823</updated>
+    </task>
+    <option name="localTasksCounter" value="61" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -640,7 +655,7 @@
     <SUITE FILE_PATH="coverage/grape$FreeSolvTraining.coverage" NAME="FreeSolvTraining Coverage Results" MODIFIED="1715933199315" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/notebooks" />
     <SUITE FILE_PATH="coverage/grape$testbayes.coverage" NAME="testbayes Coverage Results" MODIFIED="1713267308595" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/notebooks" />
     <SUITE FILE_PATH="coverage/grape$optimization_test.coverage" NAME="optimization_test Coverage Results" MODIFIED="1716038275761" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/notebooks" />
-    <SUITE FILE_PATH="coverage/grape$create_data_files.coverage" NAME="create_data_files Coverage Results" MODIFIED="1716408061023" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/notebooks" />
+    <SUITE FILE_PATH="coverage/grape$create_data_files.coverage" NAME="create_data_files Coverage Results" MODIFIED="1717062855100" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/notebooks" />
     <SUITE FILE_PATH="coverage/grape$MPNN_gnn.coverage" NAME="MPNN_gnn Coverage Results" MODIFIED="1713369855594" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/grape/models" />
     <SUITE FILE_PATH="coverage/grape$MEGNet_gnn.coverage" NAME="MEGNet_gnn Coverage Results" MODIFIED="1714326296542" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/grape/models" />
     <SUITE FILE_PATH="coverage/grape$classyfire_plots.coverage" NAME="classyfire_plots Coverage Results" MODIFIED="1716324217628" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/notebooks" />

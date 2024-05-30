@@ -23,7 +23,7 @@ already_run = False
 
 if not already_run:
 
-    #dataset = DataSet(file_path='./data/processed/QM9.pickle')
+    #dataset = DataSet(file_path='./graphs/processed/QM9.pickle')
     dataset = BradleyDoublePlus()
 
     data = dataset.smiles

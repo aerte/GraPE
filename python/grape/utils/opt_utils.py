@@ -22,8 +22,8 @@ class RayTuner:
 
     Notes
     -----
-    The objective function has to include the **whole** training procedure (incl. data loading, model application
-    and validation). This means it either needs to be able to take training data, validation data and a model,
+    The objective function has to include the **whole** training procedure (incl. graphs loading, model application
+    and validation). This means it either needs to be able to take training graphs, validation graphs and a model,
     or it needs to load these inside the function, as each run is separately instantiated models. See the
     ``adam_objective`` function for information on how to use this interface.
 
@@ -40,10 +40,10 @@ class RayTuner:
         A dictionary with the search spaces of each hyperparameter with their name as a key (e.g. ``{'lr':
         ray.tune.grid_search([1e-4, 1e-3, 1e-2, 1e-1, 1e-2])}``).
     train_loader: Data or DataLoader
-        The training data loader to be used for training **if** one of the native objectives like
+        The training graphs loader to be used for training **if** one of the native objectives like
         ``adam_objective`` in optim.objectives is used. Default: None
     train_loader: Data or DataLoader
-        The validation data loader to be used for training **if** one of the native objectives like
+        The validation graphs loader to be used for training **if** one of the native objectives like
         ``adam_objective`` in optim.objectives is used. Default: None
     model: Module
         The model to be used for training and optimization **if** one of the native objectives like

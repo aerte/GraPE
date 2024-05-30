@@ -44,7 +44,7 @@ def taylor_butina_clustering(smiles: list[str], ordering: str='largest_to_smalle
 
     Parameters
     -----------
-    data: object
+    graphs: object
         An object like the DataSet class that can be indexed and stores the SMILES via datasets.smiles.
     ordering: str
         Decides how the clusters should be returned. The options are: ``largest_to_smallest`` and ``small_and_large``.
@@ -129,7 +129,7 @@ def taylor_butina_clustering(smiles: list[str], ordering: str='largest_to_smalle
 
 
 
-#    return SubSet(data, split_out[0]), SubSet(data, split_out[1]), SubSet(data, split_out[2])
+#    return SubSet(graphs, split_out[0]), SubSet(graphs, split_out[1]), SubSet(graphs, split_out[2])
 
 def butina_train_val_test_splits(smiles: list[int], split_frac: list[int] = [0.8, 0.1, 0.1], tol: int = 5,
                                  random_state=None, **kwargs) -> tuple[list[int], list[int], list[int]]:
@@ -204,7 +204,7 @@ def butina_realistic_splits(smiles, split_frac: list[int] = [0.8,0.1,0.1], **kwa
 
     After the molecules are clustered, they are assigned to the train split from largest to smallest until it is
     filled up, then the val split and finally the rest is assigned to the test split. This results in a realistic
-    data split, as demonstrated by [3].
+    graphs split, as demonstrated by [3].
 
     Notes
     ------

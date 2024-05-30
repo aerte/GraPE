@@ -54,13 +54,13 @@ def return_hidden_layers(num):
 def load_dataset_from_excel(dataset, is_dmpnn = False):
     """
     dataset: str
-        A string that defines what dataset should be used, specifically loaded from a data-splits sheet. Options:
+        A string that defines what dataset should be used, specifically loaded from a graphs-splits sheet. Options:
         * "Melting Point"
         * "LogP"
         * "Heat capacity"
         * "FreeSolv"
     is_dmpnn: bool
-        If data for DMPNN has to be loaded. Default: False
+        If graphs for DMPNN has to be loaded. Default: False
     """
     
     df = pd.read_excel('/zhome/4a/a/156124/GraPE/notebooks/data_splits.xlsx', sheet_name=dataset)
@@ -73,7 +73,7 @@ def load_dataset_from_excel(dataset, is_dmpnn = False):
 
     train_set, val_set, test_set = split_data(data, custom_split=labels)
     
-    # In case data for DMPNN has to be loaded:
+    # In case graphs for DMPNN has to be loaded:
     if is_dmpnn:
         train_set, val_set, test_set = RevIndexedSubSet(train_set), RevIndexedSubSet(val_set), RevIndexedSubSet(test_set)
 
@@ -125,12 +125,12 @@ def trainable(config: dict, data_name:str, model_name:str, is_dmpnn:bool, device
             config: dict
                 A ConfigSpace dictionary adhering to the required parameters in the trainable. Defines the search space of the HO.
             data_name: str
-                The data to be used.
+                The graphs to be used.
             model_name: str
                 The model to be loaded.
         """
 
-        ################### Loading the data #########################################################################
+        ################### Loading the graphs #########################################################################
 
         if data_name == 'free':
             train_set, val_set, _ = load_dataset_from_excel("FreeSolv",is_dmpnn=is_dmpnn)
@@ -180,8 +180,8 @@ if __name__ == '__main__':
     import argparse
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('data', type=str, default='free', choices=['mp', 'logp', 'qm', 'free'],
-                        help='the data that will be trained on (default: %(default)s)')
+    parser.add_argument('graphs', type=str, default='free', choices=['mp', 'logp', 'qm', 'free'],
+                        help='the graphs that will be trained on (default: %(default)s)')
     parser.add_argument('--samples', type=int, default=100,
                         help='the number of samples/instances that will be running (default: %(default)s)')
     parser.add_argument('--model', type=str, default='afp', choices=['afp','mpnn','dmpnn','megnet'],

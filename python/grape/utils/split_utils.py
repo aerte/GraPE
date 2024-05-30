@@ -57,6 +57,8 @@ class SubSet:
         # In the case global features are defined.
         if dataset.global_features is not None:
             self.global_features = dataset.global_features[indices]
+        else:
+            self.global_features = None
 
         if hasattr(dataset, 'mol_weights'):
             self.mol_weights = dataset.mol_weights[indices]
@@ -171,7 +173,7 @@ class RevIndexedDataset(Dataset):
 
     This class takes a list of Data objects and stores all the new Data objects after applying
     the RevIndexedData class to them. This acts like a Torch Subset or a Grape SubSet, but is limited to the
-    data itself.
+    graphs itself.
 
     Parameters
     -----------

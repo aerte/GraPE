@@ -199,7 +199,7 @@ class DataLoad(object):
     """
     def __int__(self, root = None):
         if root is None:
-            root = './data'
+            root = './graphs'
         self.root = root
 
     @property
@@ -272,11 +272,11 @@ class DataSet(DataLoad):
 
             self.smiles = np.array(df.smiles)
 
-            if scale:
-                self.target, self.mean_target, self.std_target = self.standardize(np.array(df.target))
+            # if scale:
+            #     self.target, self.mean_target, self.std_target = self.standardize(np.array(df.target))
 
             self.global_features = np.array(df.global_features)
-            self.data = list(df.graphs)
+            self.graphs = list(df.graphs)
 
         else:
             if filter:
@@ -290,24 +290,28 @@ class DataSet(DataLoad):
                 self.global_features = np.array(global_features) if global_features is not None else None
 
             # standardize target
-            if scale:
-                self.target, self.mean_target, self.std_target = self.standardize(np.array(self.raw_target))
-            else:
-                self.target = self.raw_target
+            # if scale:
+            #     self.target, self.mean_target, self.std_target = self.standardize(np.array(self.raw_target))
+            # else:
+            self.target = self.raw_target
 
-            self.data = construct_dataset(smiles=self.smiles,
-                                          target=self.target,
-                                          global_features=self.global_features,
-                                          allowed_atoms = allowed_atoms,
-                                          atom_feature_list = atom_feature_list,
-                                          bond_feature_list = bond_feature_list)
+            self.graphs = construct_dataset(smiles=self.smiles,
+                                            target=self.target,
+                                            global_features=self.global_features,
+                                            allowed_atoms = allowed_atoms,
+                                            atom_feature_list = atom_feature_list,
+                                            bond_feature_list = bond_feature_list)
 
             self.global_features = global_features
 
+        self.allowed_atoms = allowed_atoms
+        self.atom_feature_list = atom_feature_list
+        self.bond_feature_list = bond_feature_list
         self._indices = indices
-        self.num_node_features = self.data[0].num_node_features
-        self.num_edge_features = self.data[0].num_edge_features
+        self.num_node_features = self.graphs[0].num_node_features
+        self.num_edge_features = self.graphs[0].num_edge_features
         self.data_name=None
+        self.mean, self.std = None, None
 
         self.mol_weights = np.zeros(len(self.smiles))
 
@@ -324,18 +328,18 @@ class DataSet(DataLoad):
         return (target *std) + mean
 
     #def reconstruct_graphs(self):
-    #    self.data = construct_dataset(smiles=self.smiles,
+    #    self.graphs = construct_dataset(smiles=self.smiles,
     #                                  target=self.target,
     #                                  global_features=self.global_features,
     #                                  allowed_atoms=allowed_atoms,
     #                                  atom_feature_list=atom_feature_list,
     #                                  bond_feature_list=bond_feature_list)
 
-    def scale_data(self):
-        self.target, self.mean_target, self.std_target = self.standardize(np.array(self.raw_target))
-
-    def rescale_data(self, target):
-        return self.rescale(target, self.mean_target, self.std_target)
+    # def scale_data(self):
+    #     self.target, self.mean_target, self.std_target = self.standardize(np.array(self.raw_target))
+    #
+    # def rescale_data(self, target):
+    #     return self.rescale(target, self.mean_target, self.std_target)
 
     def get_mol_weight(self):
         """Calculates the molecular weights of the DataSet smiles.
@@ -379,7 +383,7 @@ class DataSet(DataLoad):
             os.makedirs(path)
 
         df_save = pd.DataFrame({'smiles':self.smiles,'target':self.raw_target,'global_features':self.global_features,
-                   'graphs':self.data})
+                   'graphs':self.graphs})
 
         path = os.path.join(path,filename+'.pickle')
 
@@ -430,57 +434,20 @@ class DataSet(DataLoad):
         return list(map(lambda x: MolFromSmiles(x), self.smiles))
 
     def indices(self):
-        """
-
-        Returns
-        ---------
-        list
-            Indices of the dataset
-
-        """
-
-        return range(len(self.data)) if self._indices is None else self._indices
+        return range(len(self.graphs)) if self._indices is None else self._indices
 
     def __len__(self):
-        """
-
-        Returns
-        ---------
-        int
-            Length of the dataset.
-
-        """
-        return len(self.data)
+        return len(self.graphs)
 
     def __getitem__(self, idx):
-        """
-
-        Parameters
-        ----------
-        idx: int
-            Index of item to be returned.
-
-        Returns
-        -------
-        obj
-            Data object at index [item].
-
-        """
-
         if isinstance(idx, (int, np.integer)):
-            return self.data[idx]
+            return self.graphs[idx]
         else:
             return self.index_select(idx)
 
     def __iter__(self):
-        """
-
-        Returns:
-
-        """
-
-        for i in range(len(self.data)):
-            yield self.data[i]
+        for i in range(len(self.graphs)):
+            yield self.graphs[i]
 
     def index_select(self, idx:object):
         r"""Creates a subset of the dataset from specified indices :obj:`idx`.
@@ -540,7 +507,7 @@ class DataSet(DataLoad):
 
         return [self[i] for i in indices]
 
-    def draw_smile(self, index: int)->rdkit.Chem.Draw.MolDraw2D:
+    def draw_smile(self, index: int = None, smile:str = None)->rdkit.Chem.Draw.MolDraw2D:
         """Draw the smile at a desired index, best used in the jupyter environment.
 
         Parameters
@@ -553,6 +520,10 @@ class DataSet(DataLoad):
         Image
 
         """
+        if index is None and smile is None:
+            index = np.random.choice(len(self), size=1)
+        elif smile is not None:
+            Draw.MolToImage(MolFromSmiles(smile))
         return Draw.MolToImage(MolFromSmiles(self.smiles[index]))
 
 
@@ -629,6 +600,113 @@ class DataSet(DataLoad):
         return split_data(data = self, split_type = split_type,
                             split_frac = split_frac, custom_split = custom_split, **kwargs)
 
+    def generate_global_feats(self, seed:int = None):
+        """Generates normally distributed random global features, used for example for MEGNet. Subsequently,
+        the global features are added to all the dataset graphs."""
+        if seed is not None:
+            np.random.seed(seed)
+        self.global_features = np.random.randn(len(self))
+
+        for i in range(len(self.graphs)):
+            self.graphs[i]['global_feats'] = self.global_features[i]
+
+
+    @staticmethod
+    def scale_array(array, mean, std):
+        return (array-mean)/std
+
+    def split_and_scale(self, scale: bool = True, seed:int=None, return_scaling:bool = False, split_type:str = None,
+                    split_frac:list[float, float, float] = None, custom_split:list[list] = None, **kwargs):
+        """Splits and rescales the dataset based on the training set.
+
+        Parameters
+        ----------
+        split_type: str
+            Indicates what split should be used. It will either take a new argument or default
+             to the initialized split fractions. The default initialization is 'random'. The options are:
+             ['consecutive', 'random', 'molecular weight', 'scaffold', 'stratified', 'custom']
+        split_frac: array
+            Indicates what the split fractions should be. It will either take a new argument or default
+             to the initialized split fractions. The default initialization is [0.8,0.1,0.1].
+        custom_split: array
+            The custom split that should be applied. Has to be an array matching the length of the filtered smiles,
+            where 0 indicates a training sample, 1 a testing sample and 2 a validation sample. It will either take
+            a new argument of default to the initialized custom split. The default initialization is None.
+
+        Returns
+        -------
+        SubSet, SubSet, SubSet
+            List containing the respective datasets objects.
+
+        """
+        if seed is not None:
+            np.random.seed(seed)
+
+        split_type = 'random' if split_type is None else split_type
+        split_frac = [0.8, 0.1, 0.1] if split_frac is None else split_frac
+
+        if scale is True:
+            train, val, test = split_data(data = self, split_type = split_type,
+                                split_frac = split_frac, custom_split = custom_split, **kwargs)
+
+            train_y, self.mean, self.std = self.standardize(train.y)
+            self.target = self.scale_array(self.target, self.mean, self.std)
+
+            if train.global_features is not None:
+                train_glob, self.mean_gobal_feats, self.std_gobal_feats = self.standardize(train.global_features)
+                self.gobal_features = self.scale_array(self.global_features, self.mean_gobal_feats,
+                                                       self.std_gobal_feats)
+
+            self.graphs = construct_dataset(smiles=self.smiles,
+                                            target = self.target,
+                                            global_features=self.global_features,
+                                            allowed_atoms=self.allowed_atoms,
+                                            atom_feature_list=self.atom_feature_list,
+                                            bond_feature_list=self.bond_feature_list)
+        if return_scaling is True:
+            return split_data(self, split_type = split_type, split_frac = split_frac, custom_split = custom_split,
+                              **kwargs), self.mean, self.std
+        return split_data(self, split_type=split_type, split_frac=split_frac, custom_split=custom_split,
+                          **kwargs)
+
+
+    def predict_smiles(self, smiles:Union[str, list[str]], model):
+        from torch_geometric.loader import DataLoader
+        out = []
+        model.eval()
+        for smile in smiles:
+            try:
+                graph = construct_dataset(smiles=[smile],
+                                          target=list([0]),
+                                          global_features=list([0]),
+                                          allowed_atoms=self.allowed_atoms,
+                                          atom_feature_list=self.atom_feature_list,
+                                          bond_feature_list=self.bond_feature_list)
+
+                data_temp = next(iter(DataLoader(graph)))
+                temp = model(data_temp).cpu().detach().numpy()
+                if self.mean is not None and self.std is not None:
+                    temp = self.rescale(temp, self.mean, self.std)
+                    out.append(float(temp))
+            except:
+                print(f'{smiles[i]} is not valid.')
+
+        return out
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 class GraphDataSet(DataSet):
     """A class that takes a path to a pickle file or a list of smiles and targets. The dataset is stored in
@@ -702,8 +780,6 @@ class GraphDataSet(DataSet):
                                                         split_frac = self.split_frac, custom_split = self.custom_split)
 
 
-    #def save_train_val_test_data(self, names: list[str]=None):
-    #    assert len(names) == 3 or None, 'Names should have three elements: train, val, test'
 
 
 def load_dataset_from_excel(file_path: str, dataset:str, is_dmpnn=False, return_dataset:bool = False):
@@ -715,7 +791,7 @@ def load_dataset_from_excel(file_path: str, dataset:str, is_dmpnn=False, return_
     file_path: str
         The file path of the excel file.
     dataset: str
-        A string that defines what dataset should be used, specifically loaded from a data-splits sheet.
+        A string that defines what dataset should be used, specifically loaded from a graphs-splits sheet.
         This means, that the sheet name has to correspond to ``dataset``. Options:
 
         * "Melting Point"
@@ -726,7 +802,7 @@ def load_dataset_from_excel(file_path: str, dataset:str, is_dmpnn=False, return_
 
         * "FreeSolv"
     is_dmpnn: bool
-        If data for DMPNN has to be loaded. Default: False
+        If graphs for DMPNN has to be loaded. Default: False
 
 
     """
@@ -734,14 +810,14 @@ def load_dataset_from_excel(file_path: str, dataset:str, is_dmpnn=False, return_
 
     df = pd.read_excel(file_path, sheet_name=dataset)
 
-    data = DataSet(smiles=df.SMILES, target=df.Target, global_features=None, filter=False, scale=True)
+    data = DataSet(smiles=df.SMILES, target=df.Target, global_features=None, filter=False, scale=False)
 
     # convert given labels to a list of numbers and split dataset
     labels = df.Split.apply(lambda x: ['train', 'val', 'test'].index(x)).to_list()
 
     train_set, val_set, test_set = split_data(data, custom_split=labels)
 
-    # In case data for DMPNN has to be loaded:
+    # In case graphs for DMPNN has to be loaded:
     if is_dmpnn:
         train_set, val_set, test_set = RevIndexedSubSet(train_set), RevIndexedSubSet(val_set), RevIndexedSubSet(
             test_set)
