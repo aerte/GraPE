@@ -263,18 +263,17 @@ def butina_realistic_splits(smiles, split_frac: list[int] = [0.8,0.1,0.1], **kwa
             if split == 3: break
 
             splits[split] = []
-            #print('next split')
+            print('next split')
 
         splits[split].append([point for point in all_indices[Idx==cluster]])
         processed_len += np.sum(Idx==cluster)
-            #print(f'{processed_len/nPoints*100}% processed.')#
+        print(f'{processed_len/nPoints*100}% processed.')#
 
-    #splits[0] = np.array(splits[0])
     split_out = dict()
 
     for i in range(3):
         split_out[i] = []
-        for split in splits[0]:
+        for split in splits[i]:
             for item in split:
                 split_out[i].append(item)
 

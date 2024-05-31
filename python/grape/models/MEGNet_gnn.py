@@ -288,7 +288,7 @@ class MEGNet(nn.Module):
             reset_weights(self.blocks[i])
 
 
-    def forward(self, data) -> Tensor:
+    def forward(self, data, return_lats:bool = False) -> Tensor:
 
         x, edge_index, edge_attr, global_feats = data.x, data.edge_index, data.edge_attr, data.global_feats
 
@@ -313,6 +313,9 @@ class MEGNet(nn.Module):
         src_index, dst_index = edge_index
         h_n = self.read_out_nodes(h_n, data.batch)
         h_e = self.read_out_edges(h_e, data.batch[src_index])
+
+        if return_lats:
+            return h_n
 
         out = torch.concat((h_n, h_e, h_u), dim=1)
 

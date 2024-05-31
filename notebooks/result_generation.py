@@ -151,9 +151,9 @@ if __name__ == "__main__":
 
             model.load_state_dict(torch.load(relative_model_name+'.pt'))
 
-            train_preds = test_model(model=model, loss_func=None, test_data_loader=train_set)
-            val_preds = test_model(model=model, loss_func=None, test_data_loader=val_set)
-            test_preds = test_model(model=model, loss_func=None, test_data_loader=test_set)
+            train_preds = test_model(model=model, test_data_loader=train_set)
+            val_preds = test_model(model=model, test_data_loader=val_set)
+            test_preds = test_model(model=model, test_data_loader=test_set)
 
             trp, vap, tep =  rescale_arrays((train_preds, val_preds, test_preds), data=data)
 

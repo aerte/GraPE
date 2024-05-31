@@ -15,8 +15,7 @@ __all__ = [
 
 
 def pca_2d_plot(latents: Union[Tensor, ndarray], labels: Union[list[str]] = None, fig_size: tuple = (20, 6),
-                fontsize = 'medium', save_fig: bool = False, path_to_export: str = None,
-                log: bool = True) -> plt.axes:
+                fontsize = 'medium', save_fig: bool = False, path_to_export: str = None) -> plt.axes:
     """A function that projects latents or any other matrix onto it's first two principal components and plots it. Can
     use given labels to colorcode the projections.
 
@@ -35,8 +34,6 @@ def pca_2d_plot(latents: Union[Tensor, ndarray], labels: Union[list[str]] = None
         Decides if the plot is saved, is overridden if a path is given. Default: False
     path_to_export: str
         File location to save. Default: None
-    log: bool
-        Decides if additional PCA output like the explained variance should be printed out. Default: True
 
     Returns
     -------

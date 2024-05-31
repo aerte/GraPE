@@ -64,7 +64,7 @@ def load_dataset_from_excel(dataset, is_dmpnn = False, is_megnet = False):
     
     df = pd.read_excel(root, sheet_name=dataset)
 
-    data = DataSet(smiles=df.SMILES, target=df.Target, filter=False, scale=False)
+    data = DataSet(smiles=df.SMILES, target=df.Target, filter=False)
 
 
     # convert given labels to a list of numbers and split dataset

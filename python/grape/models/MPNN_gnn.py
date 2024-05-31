@@ -179,7 +179,7 @@ class MPNN(nn.Module):
         reset_weights(self.read_out)
         reset_weights(self.message)
 
-    def forward(self, data):
+    def forward(self, data, return_lats:bool=False):
         """
         Parameters
         ------------
@@ -194,6 +194,9 @@ class MPNN(nn.Module):
 
         h_t = self.message(data)
         h = self.read_out(h_t, data.batch)
+
+        if return_lats:
+            return h
 
         h = self.rep_dropout(h)
 

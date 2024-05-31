@@ -136,9 +136,12 @@ class AFP(Module):
             reset_weights(self.mlp_out)
 
 
-    def forward(self, data):
+    def forward(self, data, return_lats:bool=False):
         x, edge_index, edge_attr, batch = data.x, data.edge_index, data.edge_attr, data.batch
         out = self.AFP_layers(x, edge_index, edge_attr, batch)
+
+        if return_lats:
+            return out
 
         ### Check if global graphs is present for each graph
         if self.num_global_feats > 0:

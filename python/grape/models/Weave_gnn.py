@@ -258,7 +258,7 @@ class Weave_Model(nn.Module):
 
 
 
-    def forward(self, data: Data or DataLoader) -> float:
+    def forward(self, data: Data or DataLoader, return_lats:bool = False) -> float:
         """
         Parameters
         ----------
@@ -277,6 +277,8 @@ class Weave_Model(nn.Module):
 
         h = self.encoder(data)
         x = self.pool(h, batch)
+        if return_lats:
+            return x
         x = self.rep_dropout(x)
         return self.mlp_out(x).view(-1)
 

@@ -274,21 +274,22 @@ def val_epoch(model: torch.nn.Module, loss_func: Callable, val_loader, device: s
 
 
 
-def test_model(model: torch.nn.Module, loss_func: Union[Callable,str,None], test_data_loader: Union[list, Data, DataLoader],
+def test_model(model: torch.nn.Module, test_data_loader: Union[list, Data, DataLoader],
                 device: str = None, batch_size: int = 32, return_latents: bool = False) -> (
         Union[Tensor, tuple[Tensor,Tensor], tuple[Tensor, Tensor, list]]):
-    # TODO: Change this function to something intuitive
-    """Auxiliary function to test a trained model and return the predictions as well as the latents node
+    """Auxiliary function to test a trained model and return the predictions as well as the latent node
     representations. If a loss function is specified, then it will also return a list containing the testing losses.
     Can initialize DataLoaders if only list of Data objects are given.
+
+        Notes
+    ------
+    This function is made for native models. If the model does not include a return_latents parameter, then consider
+    building a custom test function.
 
     Parameters
     ------------
     model: torch.nn.Module
         Model that will be trained and tested. Has to be a torch Module.
-    loss_func: Callable or None
-        Loss function like F.mse_loss that will be used as a loss or None, in which case just the predictions are
-        returned.
     test_data_loader: list of Data or DataLoader
         A list of Data objects or the DataLoader directly to be used as the test graphs.
     device: str
@@ -304,25 +305,8 @@ def test_model(model: torch.nn.Module, loss_func: Union[Callable,str,None], test
     float
         Mean test loss over the test set batches.
 
-    Notes
-    ------
-    This function is made for native models. If the model does not include a return_latents parameter, then consider
-    building a custom test function.
-
     """
 
-    loss_functions = {
-        'mse': torch.nn.functional.mse_loss,
-        'mae': torch.nn.functional.l1_loss
-    }
-
-    #if not isinstance(model, grape.models.SimpleGNN):
-    #    return_latents = False
-
-
-
-    if isinstance(loss_func, str):
-        loss_func = loss_functions[loss_func]
 
     device = torch.device('cpu') if device is None else device
 
@@ -333,42 +317,26 @@ def test_model(model: torch.nn.Module, loss_func: Union[Callable,str,None], test
 
     with tqdm(total = len(test_data_loader)) as pbar:
 
-        temp = np.zeros(len(test_data_loader))
-
         for idx, batch in enumerate(test_data_loader):
             # TODO: Broaden use of return_latents
-            #if return_latents and isinstance(model, grape.models.SimpleGNN):
-            #    out, lat = model(batch.to(device), return_latents=True)
-            #else:
             out = model(batch.to(device))
-
-            if loss_func is not None:
-                temp[idx] = loss_func(batch.y, out).detach().cpu().numpy()
+            if return_latents:
+               lat = model(batch.to(device), return_lats=True)
 
             # Concatenate predictions and latents
             if idx == 0:
                 preds = out
-                #if return_latents:
-                #    latents = lat
+                if return_latents:
+                    latents = lat
             else:
                 preds = torch.concat([preds,out],dim=0)
-                #if return_latents:
-                #    latents = torch.concat((latents, lat), dim=0)
+                if return_latents:
+                    latents = torch.concat((latents, lat), dim=0)
 
             pbar.update(1)
 
-    loss_test = np.mean(temp)
-
-    # TODO: fix this mess
-
-    #if loss_func is not None and return_latents:
-    #    print(f'Test loss: {loss_test:.3f}')
-    #    return preds, latents, loss_test
-    #elif loss_func is not None:
-    #    print(f'Test loss: {loss_test:.3f}')
-    #    return preds, loss_test
-    #elif return_latents:
-    #    return preds, latents
+    if return_latents:
+        return preds, latents
     return preds
 
 

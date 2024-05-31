@@ -232,38 +232,18 @@ def mult_subset_to_SubSets(subsets: Union[tuple[dgl.data.Subset],tuple[torch.uti
 ##########################################################################
 
 
-def split_data(data, split_type: str = None, split_frac: list[float] = None, custom_split: list = None, **kwargs) -> (
-        tuple[SubSet, SubSet, SubSet]):
-    """
-
-    Parameters
-    ------------
-    data: Any iterable
-        An object that can be accessed per an index and iterated upon. Ex: a DataSet or array object
-    split_type: str
-        Indicates what split should be used. Default: random. The options are: ['consecutive', 'random',
-        'molecular weight', 'scaffold', 'stratified', 'custom']
-    split_frac: list of float
-        Indicates what the split fractions should be. Default: [0.8, 0.1, 0.1]
-    custom_split: list
-        The custom split that should be applied. Has to be an array matching the length of the filtered smiles,
-        where 0 indicates a training sample, 1 a testing sample and 2 a validation sample. Default: None
-
-    Returns
-    ---------
-    tuple[SubSet, SubSet, SubSet]
-        The train, val and test splits respectively.
+def split_data(data, split_type: str = None, split_frac: list[float] = None, custom_split: list = None,
+               is_dmpnn:bool = False,**kwargs) -> (tuple[SubSet, SubSet, SubSet]):
+    """ Splits the data based on a split type into SubSets that access the original data via indices.
 
     Notes
     ------
     The stratified splitter from dgllife requires *two extra* inputs, specifically:
 
-    labels: array
-        An array of shape (N,T) where N is the number of datasets points and T is the number of tasks. Used for the
-        Stratified Splitter.
+    * labels (array): An array of shape (N,T) where N is the number of datasets points and T is the number of tasks. Used for the
+      Stratified Splitter.
 
-    task_id: int
-        The task that will be used for the Stratified Splitter.
+    * task_id (int): The task that will be used for the Stratified Splitter.
 
     For all the other functions, please refer to their respective documentation to see what arguments can be used.
 
@@ -271,6 +251,28 @@ def split_data(data, split_type: str = None, split_frac: list[float] = None, cus
     ---------
     https://lifesci.dgl.ai/api/utils.splitters.html
     # Here I should be inserting links to some documentation or my own documentation.
+
+    Parameters
+    ------------
+    data: Any iterable
+        An object that can be accessed per an index and iterated upon. Ex: a DataSet or array object
+    split_type: str
+        Indicates what split should be used. Default: random. The options are: ['consecutive', 'random',
+        'molecular weight', 'scaffold', 'stratified', 'butina_realistic', 'butina', 'custom']
+    split_frac: list of float
+        Indicates what the split fractions should be. Default: [0.8, 0.1, 0.1]
+    custom_split: list
+        The custom split that should be applied. Has to be an array matching the length of the filtered smiles,
+        where 0 indicates a training sample, 1 a testing sample and 2 a validation sample. Default: None
+    is_dmpnn: bool
+        Specifies if the input data should be a DMPNN Dataset, ie. the edges will be saved
+        directionally. Default: False
+
+    Returns
+    ---------
+    tuple[SubSet, SubSet, SubSet]
+        The train, val and test splits respectively.
+
     """
 
     if split_type is None:
@@ -304,7 +306,16 @@ def split_data(data, split_type: str = None, split_frac: list[float] = None, cus
 
     elif split_type == 'butina' or split_type == 'butina_realistic':
         train, val, test  = split_func[split_type](data.smiles, **kwargs)
+        if is_dmpnn:
+            return (RevIndexedSubSet(SubSet(data, train)), RevIndexedSubSet(SubSet(data, val)),
+                    RevIndexedSubSet(SubSet(data, test)))
         return SubSet(data, train), SubSet(data, val), SubSet(data, test)
 
-    return mult_subset_to_SubSets(split_func[split_type].train_val_test_split(data, frac_train=split_frac[0],
-                                                frac_test=split_frac[1], frac_val=split_frac[2], **kwargs))
+
+    train, val, test = mult_subset_to_SubSets(split_func[split_type].train_val_test_split(data, frac_train=split_frac[0],
+                                                                       frac_test=split_frac[1], frac_val=split_frac[2],
+                                                                       **kwargs))
+    if is_dmpnn:
+        train, val, test = RevIndexedSubSet(train), RevIndexedSubSet(val), RevIndexedSubSet(test)
+
+    return train, val, test

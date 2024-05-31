@@ -193,14 +193,15 @@ class DMPNN(torch.nn.Module):
         reset_weights(self.mlp_out)
         reset_weights(self.encoder)
 
-    def forward(self, data):
+    def forward(self, data, return_lats:bool=False):
 
         z = self.encoder(data)
-        # Dropout
+
+        if return_lats:
+            return z
+
         z = self.rep_dropout(z)
-
         out = self.mlp_out(z)
-
         return out.view(-1)
 
 

@@ -199,7 +199,7 @@ class DataLoad(object):
     """
     def __int__(self, root = None):
         if root is None:
-            root = './graphs'
+            root = './data'
         self.root = root
 
     @property
@@ -246,8 +246,6 @@ class DataSet(DataLoad):
         List of features to be applied. Default: All implemented features.
     bond_feature_list: list of str
         List of features that will be applied. Default: All implemented features.
-    scale: bool
-        Decides if the dataset should be scaled. Default: True
     log: bool
         Decides if the filtering output and other outputs will be shown.
 
@@ -256,7 +254,7 @@ class DataSet(DataLoad):
     def __init__(self, file_path: str = None, smiles: list[str] = None, target: Union[list[int], list[float],
     ndarray] = None, global_features:Union[list[float], ndarray] = None, filter: bool=True,allowed_atoms:list[str] = None,
     only_organic: bool = True, atom_feature_list: list[str] = None, bond_feature_list: list[str] = None,
-    scale: bool = True, log: bool = False, root: str = None, indices:list[int] = None):
+    log: bool = False, root: str = None, indices:list[int] = None):
 
         assert (file_path is not None) or (smiles is not None and target is not None),'path or (smiles and target) must given.'
 
@@ -272,9 +270,6 @@ class DataSet(DataLoad):
 
             self.smiles = np.array(df.smiles)
 
-            # if scale:
-            #     self.target, self.mean_target, self.std_target = self.standardize(np.array(df.target))
-
             self.global_features = np.array(df.global_features)
             self.graphs = list(df.graphs)
 
@@ -289,10 +284,6 @@ class DataSet(DataLoad):
                 self.smiles, self.raw_target = np.array(smiles), np.array(target)
                 self.global_features = np.array(global_features) if global_features is not None else None
 
-            # standardize target
-            # if scale:
-            #     self.target, self.mean_target, self.std_target = self.standardize(np.array(self.raw_target))
-            # else:
             self.target = self.raw_target
 
             self.graphs = construct_dataset(smiles=self.smiles,
@@ -338,8 +329,12 @@ class DataSet(DataLoad):
     # def scale_data(self):
     #     self.target, self.mean_target, self.std_target = self.standardize(np.array(self.raw_target))
     #
-    # def rescale_data(self, target):
-    #     return self.rescale(target, self.mean_target, self.std_target)
+    def rescale_data(self, target):
+        if self.mean is None or self.std is None:
+            mean, std = np.mean(self.target), np.std(self.target)
+        else:
+            mean, std = self.mean, self.std
+        return self.rescale(target, mean, std)
 
     def get_mol_weight(self):
         """Calculates the molecular weights of the DataSet smiles.
@@ -530,44 +525,45 @@ class DataSet(DataLoad):
 
 
 
-    # def analysis(self, path_to_export:str = None, download:bool=False, plots:list = None, save_plots:bool = False,
-    #              fig_size:tuple[int,int]=None, filter_output_txt:bool = True) -> tuple:
-    #     """Returns an overview of different aspects of the smiles dataset **after filtering** according to:
-    #     https://github.com/awslabs/dgl-lifesci/blob/master/python/dgllife/utils/analysis.py.
-    #     This includes the frequency of symbols, degree frequency and more.
+    def analysis(self, path_to_export:str = None, download:bool=False, plots:list = None, save_plots:bool = False,
+                 fig_size:tuple[int,int]=None, filter_output_txt:bool = True) -> tuple:
+        """Returns an overview of different aspects of the smiles dataset **after filtering** according to:
+        https://github.com/awslabs/dgl-lifesci/blob/master/python/dgllife/utils/analysis.py.
+        This includes the frequency of symbols, degree frequency and more.
 
-    #     Parameters
-    #     ----------
-    #     path_to_export: str
-    #         Path to the folder where analysis results should be saved. Default: None (recommended).
-    #     download: bool
-    #         Decides if the results are downloaded. If either the path is given or download is set to true, the
-    #         analysis results will be downloaded as a txt file.
-    #     plots: list of str
-    #         Bar plots of the analysis results. Default: None. Possible options are:
-    #         ['atom_type_frequency', 'degree_frequency', 'total_degree_frequency', 'explicit_valence_frequency',
-    #         'implicit_valence_frequency', 'hybridization_frequency', 'total_num_h_frequency', 'formal_charge_frequency',
-    #         'num_radical_electrons_frequency', 'aromatic_atom_frequency', 'chirality_tag_frequency',
-    #         'bond_type_frequency', 'conjugated_bond_frequency', 'bond_stereo_configuration_frequency',
-    #         'bond_direction_frequency']
-    #     save_plots: bool
-    #         Decides if the plots are saved in the processed folder.
-    #     fig_size: list
-    #         2-D list to set the figure sizes. Default: [10,6]
-    #     filter_output_txt: bool
-    #         Filters the output text file of some excessive information. Default: True
-    #         .
+        Parameters
+        ----------
+        path_to_export: str
+            Path to the folder where analysis results should be saved. Default: None (recommended).
+        download: bool
+            Decides if the results are downloaded. If either the path is given or download is set to true, the
+            analysis results will be downloaded as a txt file.
+        plots: list of str
+            Bar plots of the analysis results. Default: None. Possible options are:
+            ['atom_type_frequency', 'degree_frequency', 'total_degree_frequency', 'explicit_valence_frequency',
+            'implicit_valence_frequency', 'hybridization_frequency', 'total_num_h_frequency', 'formal_charge_frequency',
+            'num_radical_electrons_frequency', 'aromatic_atom_frequency', 'chirality_tag_frequency',
+            'bond_type_frequency', 'conjugated_bond_frequency', 'bond_stereo_configuration_frequency',
+            'bond_direction_frequency']
+        save_plots: bool
+            Decides if the plots are saved in the processed folder.
+        fig_size: list
+            2-D list to set the figure sizes. Default: [10,6]
+        filter_output_txt: bool
+            Filters the output text file of some excessive information. Default: True
+            .
 
-    #     Returns
-    #     -------
-    #     dictionary
-    #         Summary of the results.
-    #     figures (optional)
-    #         Bar plots of the specified results.
+        Returns
+        -------
+        dictionary
+            Summary of the results.
+        figures (optional)
+            Bar plots of the specified results.
 
-    #     """
+        """
+        from grape.analysis import smiles_analysis
 
-    #     return smiles_analysis(self.smiles, path_to_export, download, plots, save_plots, fig_size, filter_output_txt)
+        return smiles_analysis(self.smiles, path_to_export, download, plots, save_plots, fig_size, filter_output_txt)
 
 
 
@@ -618,7 +614,8 @@ class DataSet(DataLoad):
         return (array-mean)/std
 
     def split_and_scale(self, scale: bool = True, seed:int=None, return_scaling_params:bool = False, split_type:str = None,
-                    split_frac:list[float, float, float] = None, custom_split:list[list] = None, **kwargs):
+                    split_frac:list[float, float, float] = None, custom_split:list[list] = None,
+                    is_dmpnn: bool = False, **kwargs):
         """Splits and (optionally) rescales the dataset based on the training set. If it is rescaled,
         the mean and std will be saved inside the DataSet object.
 
@@ -633,7 +630,8 @@ class DataSet(DataLoad):
         split_type: str
             Indicates what split should be used. It will either take a new argument or default
              to the initialized split fractions. The default initialization is 'random'. The options are:
-             ['consecutive', 'random', 'molecular weight', 'scaffold', 'stratified', 'custom']
+             ['consecutive', 'random', 'molecular weight', 'scaffold', 'stratified', 'butina_realistic', 'butina',
+             'custom']
         split_frac: array
             Indicates what the split fractions should be. It will either take a new argument or default
              to the initialized split fractions. The default initialization is [0.8,0.1,0.1].
@@ -641,6 +639,9 @@ class DataSet(DataLoad):
             The custom split that should be applied. Has to be an array matching the length of the filtered smiles,
             where 0 indicates a training sample, 1 a testing sample and 2 a validation sample. It will either take
             a new argument of default to the initialized custom split. The default initialization is None.
+        is_dmpnn: bool
+            Specifies if the input data should be a DMPNN Dataset, ie. the edges will be saved directionally.
+            Default: False
 
 
         Returns
@@ -673,11 +674,12 @@ class DataSet(DataLoad):
                                             allowed_atoms=self.allowed_atoms,
                                             atom_feature_list=self.atom_feature_list,
                                             bond_feature_list=self.bond_feature_list)
+
+        train, val, test = split_data(self, split_type=split_type, split_frac=split_frac, custom_split=custom_split,
+                   is_dmpnn=is_dmpnn,**kwargs)
         if return_scaling_params is True:
-            return split_data(self, split_type = split_type, split_frac = split_frac, custom_split = custom_split,
-                              **kwargs), self.mean, self.std
-        return split_data(self, split_type=split_type, split_frac=split_frac, custom_split=custom_split,
-                          **kwargs)
+            return train, val, test, self.mean, self.std
+        return train, val, test
 
 
     def predict_smiles(self, smiles:Union[str, list[str]], model) -> Union[float, list[float]]:
@@ -775,8 +777,6 @@ class GraphDataSet(DataSet):
     custom_split: list
         The custom split that should be applied. Has to be an array matching the length of the filtered smiles,
         where 0 indicates a training sample, 1 a testing sample and 2 a validation sample.
-    scale: bool
-        Decides if the dataset should be scaled. Default: True
     log: bool
         Decides if the filtering output and other outputs will be shown.
     indices: list[int]
@@ -789,11 +789,11 @@ class GraphDataSet(DataSet):
     ndarray] = None, global_features:Union[list[float], ndarray] = None,
     allowed_atoms:list[str] = None, only_organic: bool = True, atom_feature_list:list[str] = None,
     bond_feature_list:list[str] = None, split: bool = True, split_type:str = None, split_frac:list[float, float, float]
-    = None, custom_split: list[int] = None, scale: bool = True, log: bool = False, indices:list[int] = None):
+    = None, custom_split: list[int] = None, log: bool = False, indices:list[int] = None):
 
         super().__init__(file_path=file_path, smiles=smiles, target=target, global_features=global_features,
                          allowed_atoms=allowed_atoms, only_organic=only_organic,
-                         atom_feature_list=atom_feature_list, scale=scale,
+                         atom_feature_list=atom_feature_list,
                          bond_feature_list=bond_feature_list, log=log, indices=indices)
 
         if split_type is None:
@@ -846,7 +846,7 @@ def load_dataset_from_excel(file_path: str, dataset:str, is_dmpnn=False, return_
 
     df = pd.read_excel(file_path, sheet_name=dataset)
 
-    data = DataSet(smiles=df.SMILES, target=df.Target, global_features=None, filter=False, scale=False)
+    data = DataSet(smiles=df.SMILES, target=df.Target, global_features=None, filter=False)
 
     # convert given labels to a list of numbers and split dataset
     labels = df.Split.apply(lambda x: ['train', 'val', 'test'].index(x)).to_list()

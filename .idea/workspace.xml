@@ -4,11 +4,27 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="115446f6-db4f-461b-90f9-f367678daa67" name="Changes" comment="optuna optimization">
+    <list default="true" id="115446f6-db4f-461b-90f9-f367678daa67" name="Changes" comment="more stuff">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/source/Demonstration.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/Demonstration.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/notebooks/optimization_test.py" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/optimization_test.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/notebooks/result_generation.py" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/result_generation.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/notebooks/tests.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/tests.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/grape/analysis/_classyfire.py" beforeDir="false" afterPath="$PROJECT_DIR$/python/grape/analysis/_classyfire.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/grape/datasets/FreeSolv_dataset.py" beforeDir="false" afterPath="$PROJECT_DIR$/python/grape/datasets/FreeSolv_dataset.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/grape/datasets/QM9_dataset.py" beforeDir="false" afterPath="$PROJECT_DIR$/python/grape/datasets/QM9_dataset.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/grape/datasets/jean_claude_bradley_double_plus.py" beforeDir="false" afterPath="$PROJECT_DIR$/python/grape/datasets/jean_claude_bradley_double_plus.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/grape/datasets/logP_dataset.py" beforeDir="false" afterPath="$PROJECT_DIR$/python/grape/datasets/logP_dataset.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/grape/models/AFP_gnn.py" beforeDir="false" afterPath="$PROJECT_DIR$/python/grape/models/AFP_gnn.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/grape/models/DMPNN_gnn.py" beforeDir="false" afterPath="$PROJECT_DIR$/python/grape/models/DMPNN_gnn.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/grape/models/MEGNet_gnn.py" beforeDir="false" afterPath="$PROJECT_DIR$/python/grape/models/MEGNet_gnn.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/grape/models/MPNN_gnn.py" beforeDir="false" afterPath="$PROJECT_DIR$/python/grape/models/MPNN_gnn.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/grape/models/Weave_gnn.py" beforeDir="false" afterPath="$PROJECT_DIR$/python/grape/models/Weave_gnn.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/grape/plots/pca_plot.py" beforeDir="false" afterPath="$PROJECT_DIR$/python/grape/plots/pca_plot.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/grape/splits/butina_splits.py" beforeDir="false" afterPath="$PROJECT_DIR$/python/grape/splits/butina_splits.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/python/grape/utils/data.py" beforeDir="false" afterPath="$PROJECT_DIR$/python/grape/utils/data.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/python/grape/utils/model_utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/python/grape/utils/model_utils.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/grape/utils/split_utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/python/grape/utils/split_utils.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -198,15 +214,9 @@
       <workItem from="1717054963186" duration="10323000" />
       <workItem from="1717066406858" duration="56000" />
       <workItem from="1717066499706" duration="729000" />
-      <workItem from="1717067243223" duration="20292000" />
-    </task>
-    <task id="LOCAL-00014" summary="optimization">
-      <option name="closed" value="true" />
-      <created>1713268683829</created>
-      <option name="number" value="00014" />
-      <option name="presentableId" value="LOCAL-00014" />
-      <option name="project" value="LOCAL" />
-      <updated>1713268683829</updated>
+      <workItem from="1717067243223" duration="20326000" />
+      <workItem from="1717141469156" duration="31000" />
+      <workItem from="1717151480370" duration="9651000" />
     </task>
     <task id="LOCAL-00015" summary="optimization">
       <option name="closed" value="true" />
@@ -592,14 +602,21 @@
       <option name="project" value="LOCAL" />
       <updated>1717099144460</updated>
     </task>
-    <option name="localTasksCounter" value="63" />
+    <task id="LOCAL-00063" summary="more stuff">
+      <option name="closed" value="true" />
+      <created>1717102366084</created>
+      <option name="number" value="00063" />
+      <option name="presentableId" value="LOCAL-00063" />
+      <option name="project" value="LOCAL" />
+      <updated>1717102366084</updated>
+    </task>
+    <option name="localTasksCounter" value="64" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="bug fixes, SubSet, pca tests, expansion of classyfire" />
     <MESSAGE value="fixed butina clustering" />
     <MESSAGE value="code re-organization, bug fixes" />
     <MESSAGE value="bug, fixese, plots and more" />
@@ -624,7 +641,8 @@
     <MESSAGE value="fixed stuff" />
     <MESSAGE value="fixed and added a bunch of stuff" />
     <MESSAGE value="optuna optimization" />
-    <option name="LAST_COMMIT_MESSAGE" value="optuna optimization" />
+    <MESSAGE value="more stuff" />
+    <option name="LAST_COMMIT_MESSAGE" value="more stuff" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/grape$alkanes_test.coverage" NAME="alkanes_test Coverage Results" MODIFIED="1713775345542" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/notebooks" />

@@ -73,8 +73,7 @@ def classyfire(smiles: list[str], path_to_export: str = None,
 
         if existing_log_file is None:
             if file_in_dir(path_to_export, 'recorded_SMILES.csv'):
-                if log:
-                    print('Found log file in working directory.')
+                print('Found log file in working directory.')
                 existing_log_file = os.path.join(path_to_export,'recorded_SMILES.csv')
 
     if record_log_file and existing_log_file is None:
@@ -122,7 +121,7 @@ def classyfire(smiles: list[str], path_to_export: str = None,
 
     if existing_log == len(standard_smiles):
         print('All passed smiles are already in the passed log_file.')
-        return
+        return ids_out, input_output_ids
 
     # download classification using inchikey
     path_folder = os.path.join(path_to_export,'classyfire')
@@ -183,7 +182,7 @@ def classyfire(smiles: list[str], path_to_export: str = None,
 
 
 def classyfire_result_analysis(path_to_classyfire: str = None, idx: list[int] = None,
-                               layer:int = 1, log: bool = False) -> tuple[dict,dict]:
+                               layer:int = 1, return_relative_ids:bool = False) -> tuple[dict,dict]:
     """Uses the json files generated through the classyfire procedure to perform a 1st layer graphs analysis. It will
     return two dictionaries, one with the molecule class and the corresponding id, and the other with the class
     frequencies. It is assumed that one molecule corresponds to one json file.
@@ -198,13 +197,15 @@ def classyfire_result_analysis(path_to_classyfire: str = None, idx: list[int] = 
     layer: int
         Decides the layer of information accessed, see [1] for more information. The layers are: ``0``- Kingdom,
         ``1``- Super-Class, ``2``- Class. Default: 1.
-    log: bool
-        Prints out an error message should a molecule not contain the layer 2 class. Default: False
+    return_relative_ids: bool
+        If true, will return the relative ids of the json files that worked in the same order as
+        the ids were passed. Default: False
 
     Returns
     -------
-    mols_class, class_freq: tuple[dict,dict]
-        The molecule-class and class frequency dictionaries respectively.
+    mols_class, class_freq, working_ids: tuple[dict,dict, list]
+        The molecule-class, class frequency dictionaries and (optionally) a list over the indices of the json file
+        indices that worked respectively.
 
     References
     ----------
@@ -227,8 +228,9 @@ def classyfire_result_analysis(path_to_classyfire: str = None, idx: list[int] = 
 
     class_freq = dict()
     mols_class = dict()
+    working_ids = []
 
-    for id_mol, file in zip(idx, os.listdir(path_to_classyfire)):
+    for id_mol, file, i in zip(idx, os.listdir(path_to_classyfire), range(len(idx))):
         file_path = os.path.join(path_to_classyfire, file)
 
         try:
@@ -243,7 +245,10 @@ def classyfire_result_analysis(path_to_classyfire: str = None, idx: list[int] = 
                 class_freq[class_name] = 1
             mols_class[id_mol] = class_name
 
+            working_ids.append(i)
+
         except:
             print(f'Key error occurred using {layer_name} for file {file}.')
-
+    if return_relative_ids:
+        return mols_class, class_freq, working_ids
     return mols_class, class_freq
