@@ -26,10 +26,10 @@ def pca_2d_plot(latents: Union[Tensor, ndarray], labels: Union[list[str]] = None
         components. The first dimension should be the observations and the second the features.
     labels: list[str]
         Optional list of labels that will be used for the plot. *Has to be equal to the latent length.* Default: None
-    fontsize: str
-        Decides the fontsize of the legend. Default: 'medium'
     fig_size: tuple
         The output figure size. Default: (20,6)
+    fontsize: str
+        Decides the fontsize of the legend. Default: 'medium'
     save_fig: bool
         Decides if the plot is saved, is overridden if a path is given. Default: False
     path_to_export: str
@@ -64,7 +64,7 @@ def pca_2d_plot(latents: Union[Tensor, ndarray], labels: Union[list[str]] = None
 
     if labels is not None:
         for label in np.unique(labels):
-            idx = labels == label
+            idx = np.array(labels) == np.array(label)
             ax.scatter(projection[idx, 0], projection[idx, 1], label=label)
         ax.legend(fontsize=fontsize)
     else:

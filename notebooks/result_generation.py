@@ -8,6 +8,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib import rcParams
+import seaborn as sns
 
 
 def load_dataset_from_excel(file_path, dataset, is_dmpnn=False, is_megnet=False, return_dataset=False):
@@ -24,7 +25,7 @@ def load_dataset_from_excel(file_path, dataset, is_dmpnn=False, is_megnet=False,
 
     df = pd.read_excel(file_path, sheet_name=dataset)
 
-    data = DataSet(smiles=df.SMILES, target=df.Target, filter=False, scale=False)
+    data = DataSet(smiles=df.SMILES, target=df.Target, filter=False)
 
     # convert given labels to a list of numbers and split dataset
     labels = df.Split.apply(lambda x: ['train', 'val', 'test'].index(x)).to_list()
@@ -86,7 +87,7 @@ if __name__ == "__main__":
     root = '/Users/faerte/Desktop/grape/notebooks/data_splits.xlsx'
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('graphs', type=str, default='free', choices=['mp', 'logp', 'qm', 'free'],
+    parser.add_argument('data', type=str, default='free', choices=['mp', 'logp', 'qm', 'free'],
                         help='the graphs that will be trained on (default: %(default)s)')
     parser.add_argument('--mode', type=str, default='pred', choices=['pred', 'metric','plots'],
                         help='the results generated (default: %(default)s)')
@@ -217,58 +218,164 @@ if __name__ == "__main__":
         #rcParams.update({'figure.autolayout': True})
         plt.rcParams.update({'font.size': 22})
 
-        title_names = dict({'mp': 'Melting Point',
-                            'qm':'Heat Capacity',
-                            'free':'FreeSolv',
-                            'logp':'Logp'})
+        title_names = dict({'mp': 'Melting Point - Parity Plot',
+                            'qm':'Heat Capacity - Parity Plot',
+                            'free':'FreeSolv - Parity Plot',
+                            'logp':'Logp - Parity Plot'})
 
 
         true_labels = dict({'mp': '$T_{m}$(exp) in $[Celcius]$ \n (a)',
-                            'logp': '$\log K_{ow}$(exp), ratio',
-                            'free': '$H_{hyd}$(exp) $[\\frac{kJ}{mol}]$',
-                            'qm': '$c_v$(exp) $[\\frac{\\text{cal}}{\\text{mol} K}]$'})
+                            'logp': '$\log K_{ow}$(exp), ratio \n (b)',
+                            'free': '$H_{hyd}$(exp) $[\\frac{kJ}{mol}]$ \n (d)',
+                            'qm': '$c_v$(exp) $[\\frac{\\text{cal}}{\\text{mol} K}]$ \n (c)'})
 
         pred_labels = dict({'mp': '$T_{m}$(pred) in $[Celcius]$',
                             'logp': '$\log K_{ow}$(pred), ratio',
                             'free': '$H_{hyd}$(pred) $[\\frac{kJ}{mol}]$',
                             'qm': '$c_v$(pred) $[\\frac{\\text{cal}}{\\text{mol} K}]$'})
 
-        plot_name = parser.parse_args().data
-        title_name, true_label, pred_label = title_names[plot_name], true_labels[plot_name], pred_labels[plot_name]
-
-        df_data = pd.read_excel(root, sheet_name=data_name, engine='openpyxl')
-        test_target = df_data["Target"][df_data.Split == "test"].to_numpy()
-
+        axis_dict = dict({'mp': {'row': 0, 'col':0},
+                            'logp': {'row': 0, 'col':1},
+                            'free': {'row': 1, 'col':1},
+                            'qm': {'row': 1, 'col':0}})
 
 
-        #################### Parity Plot ###################
-        fig, ax = plt.subplots(figsize = (10,10))
+        #plot_names = ['mp', 'logp', 'qm', 'free']
+        #data_names = ['Melting Point', 'LogP', 'QM9', 'FreeSolv']
+        plot_names = ['mp']
+        data_names = ['Melting Point']
 
-        min_val, max_val = np.min(test_target), np.max(test_target)
+        #################### Parity Plots ###################
+        fig, ax = plt.subplots(nrows=2, ncols= 2, figsize = (20,20))
 
-        styles = ['x', 's', 'o', '*']
-        colors = ['b','g','r','orange']
-        widths = [2, 0.7, 0.7, 0.7]
+        for plot_name, data_name in zip(plot_names, data_names):
 
-        for name, style, color, width in zip(model_names, styles, colors, widths):
-            test_pred = df_data[name + " Prediction"][df_data.Split == "test"].to_numpy()
+            i,j = axis_dict[plot_name]['row'], axis_dict[plot_name]['col']
 
-            min_val = min(np.min(test_pred), min_val)
-            max_val = max(np.max(test_pred), np.max(max_val))
+            title_name, true_label, pred_label = title_names[plot_name], true_labels[plot_name], pred_labels[plot_name]
 
-            ax.scatter(test_target, test_pred, linewidth=width, marker=style, color=color, label=name)
+            df_data = pd.read_excel(root, sheet_name=data_name, engine='openpyxl')
+            test_target = df_data["Target"][df_data.Split == "test"].to_numpy()
 
-        ax.axline((0, 0), slope=1, color='black')
-        ax.set_xlabel(true_label)
-        ax.set_ylabel(pred_label)
-        plt.xlim(min_val-50, max_val+50)
-        plt.ylim(min_val-50, max_val+50)
-        plt.legend()
-        plt.title(title_name)
-        ax.set_aspect('equal', adjustable='box')
-        plt.tight_layout()
-        fig.savefig(fname=f'results/parity_plot_'+plot_name+'.svg', format='svg')
-        plt.show()
+            min_val, max_val = np.min(test_target), np.max(test_target)
+
+            styles = ['x', 's', 'o', '*']
+            colors = ['b','g','r','orange']
+            widths = np.array([2, 0.7, 0.7, 0.7])*2
+
+            for name, style, color, width in zip(model_names, styles, colors, widths):
+                test_pred = df_data[name + " Prediction"][df_data.Split == "test"].to_numpy()
+
+                min_val = min(np.min(test_pred), min_val)
+                max_val = max(np.max(test_pred), np.max(max_val))
+
+                ax[i,j].scatter(test_target, test_pred, linewidth=width, marker=style, color=color, label=name)
+
+            ax[i,j].axline((0, 0), slope=1, color='black')
+            ax[i,j].set_xlabel(true_label)
+            ax[i,j].set_ylabel(pred_label)
+            ax[i,j].set_xlim(min_val-50, max_val+50)
+            ax[i,j].set_ylim(min_val-50, max_val+50)
+            ax[i,j].legend()
+            #ax[i,j].set_title(title_name)
+        #ax.set_aspect('equal', adjustable='box')
+        fig.tight_layout()
+
+        for axs in ax.flat:
+            axs.tick_params(axis='both', which='major', labelsize=20)
+
+        fig.savefig(fname=f'results/parity_plots.svg', format='svg')
+
+
+
+
+
+
+
+
+        #################### Residual Density Plots ###################
+
+
+
+
+        #plot_names = ['mp', 'logp', 'qm', 'free']
+        #data_names = ['Melting Point', 'LogP', 'QM9', 'FreeSolv']
+
+        #### Plots are split in two
+
+        for i in range(2):
+            print(i)
+
+            if i == 0:
+                #plot_names = ['mp', 'logp']
+                #data_names = ['Melting Point', 'LogP']
+
+                plot_names = ['mp']
+                data_names = ['Melting Point']
+
+                best_models = ["AFP", "MPNN"]
+                title_names = dict({'mp': 'Melting Point - ' + best_models[0],
+                                    'logp': 'Logp  - ' + best_models[1]})
+                bottom_labels = dict({'mp': '$T_{m}$(error) in $[Celcius]$ \n (a)',
+                                      'logp': '$\log K_{ow}$(error) (scaled), ratio \n (b)'})
+            else:
+                #plot_names = ['qm','free']
+                #data_names = ['QM9', 'FreeSolv']
+
+
+                plot_names = ['mp']
+                data_names = ['Melting Point']
+
+                best_models = ["AFP", "MEGNet"]
+                title_names = dict({'qm': 'Heat Capacity - ' + best_models[0],
+                                    'free': 'FreeSolv - ' + best_models[1]})
+                bottom_labels = dict({'free': '$H_{hyd}$(error) $[\\frac{kJ}{mol}]$ \n (d)',
+                                  'qm': '$c_v$(error) $[\\frac{\\text{cal}}{\\text{mol} K}]$ \n (c)'})
+
+            fig, ax = plt.subplots(nrows=2, figsize=(15, 10))
+
+            for plot_name, data_name, best_model, i in zip(plot_names, data_names, best_models, range(2)):
+
+                #i, j = axis_dict[plot_name]['row'], axis_dict[plot_name]['col']
+
+                title_name, bottom_label = title_names[plot_name], bottom_labels[plot_name]
+
+                df_data = pd.read_excel(root, sheet_name=data_name, engine='openpyxl')
+                train_target = df_data["Target"][df_data.Split == "train"].to_numpy()
+                val_target = df_data["Target"][df_data.Split == "val"].to_numpy()
+                test_target = df_data["Target"][df_data.Split == "test"].to_numpy()
+
+                test_pred = df_data[best_model + " Prediction"][df_data.Split == "test"].to_numpy()
+                train_pred = df_data[best_model + " Prediction"][df_data.Split == "train"].to_numpy()
+                val_pred = df_data[best_model + " Prediction"][df_data.Split == "val"].to_numpy()
+
+                residual_train = train_pred - train_target
+                residual_val = val_pred - val_target
+                residual_test = test_pred - test_target
+
+                lim = max(np.abs(residual_train).max(), np.abs(residual_val).max(), np.abs(residual_test).max())
+                lim += 0.5 * lim
+
+                sns.histplot(ax=ax[i],data=residual_train, bins=70, kde=True, color='cyan', edgecolor="black",
+                             label='train', alpha=0.3, line_kws={"lw":5})
+                sns.histplot(ax=ax[i],data=residual_val, bins=70, kde=True, color='orange', edgecolor="black",
+                             label='val', alpha=0.5, line_kws={"lw":5})
+                sns.histplot(ax=ax[i],data=residual_test, bins=70, kde=True, color='blue', edgecolor="black", label='test',
+                             alpha=0.3, line_kws={"lw":2})
+
+                ax[i].set_xlabel(bottom_label)
+                ax[i].set_ylabel('Count')
+                ax[i].set_xlim(-lim, lim)
+                ax[i].legend()
+                ax[i].set_title(title_name)
+
+            fig.tight_layout()
+            fig.show()
+
+            for axs in ax.flat:
+                axs.tick_params(axis='both', which='major', labelsize=20)
+
+            fig.savefig(fname=f'results/residual_density_plots'+str(i)+'.svg', format='svg')
 
 
 

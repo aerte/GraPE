@@ -263,11 +263,11 @@ def butina_realistic_splits(smiles, split_frac: list[int] = [0.8,0.1,0.1], **kwa
             if split == 3: break
 
             splits[split] = []
-            print('next split')
+            #print('next split')
 
         splits[split].append([point for point in all_indices[Idx==cluster]])
         processed_len += np.sum(Idx==cluster)
-        print(f'{processed_len/nPoints*100}% processed.')#
+        # print(f'{processed_len/nPoints*100}% processed.')
 
     split_out = dict()
 

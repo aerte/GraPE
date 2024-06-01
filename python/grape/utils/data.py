@@ -521,7 +521,7 @@ class DataSet(DataLoad):
             index = np.random.choice(len(self), size=1)
         elif smile is not None:
             Draw.MolToImage(MolFromSmiles(smile))
-        return Draw.MolToImage(MolFromSmiles(self.smiles[index]))
+        return Draw.MolToImage(MolFromSmiles(self.smiles[index]), size=(100,100))
 
 
 
@@ -682,7 +682,8 @@ class DataSet(DataLoad):
         return train, val, test
 
 
-    def predict_smiles(self, smiles:Union[str, list[str]], model) -> Union[float, list[float]]:
+    def predict_smiles(self, smiles:Union[str, list[str]], model, mean:float = None,
+                       std:float = None) -> Union[float, list[float]]:
         """A dataset-dependent prediction function. When a SMILE or a list of SMILES is passed together
         with a model that used the **same dataset or property** for training, that specific property is
         predicted from the passed SMILES.
@@ -702,6 +703,11 @@ class DataSet(DataLoad):
             A SMILE or a list of SMILES that will be used for prediction.
         model:
             A model using the **same features** as defined for the graphs inside the DataSet.
+        mean: float
+            A float representing the mean in the standardization. Default: None.
+        std: float
+            A float representing the standard deviation in the standardization. Default: None.
+
 
         Returns
         -------
@@ -710,9 +716,10 @@ class DataSet(DataLoad):
 
         """
         from torch_geometric.loader import DataLoader
+        from grape.utils import RevIndexedData
         out = []
         model.eval()
-        for smile in smiles:
+        for smile, i in zip(smiles, range(len(smiles))):
             try:
                 graph = construct_dataset(smiles=[smile],
                                           target=list([0]),
@@ -720,12 +727,15 @@ class DataSet(DataLoad):
                                           allowed_atoms=self.allowed_atoms,
                                           atom_feature_list=self.atom_feature_list,
                                           bond_feature_list=self.bond_feature_list)
-
-                data_temp = next(iter(DataLoader(graph)))
+                # Account for dmpnn models
+                graph = RevIndexedData(graph[0])
+                data_temp = next(iter(DataLoader([graph])))
                 temp = model(data_temp).cpu().detach().numpy()
                 if self.mean is not None and self.std is not None:
                     temp = self.rescale(temp, self.mean, self.std)
-                    out.append(float(temp))
+                elif mean is not None and std is None:
+                    temp = self.rescale(temp, mean, std)
+                out.append(float(temp))
             except:
                 print(f'{smiles[i]} is not valid.')
 

@@ -15,3 +15,8 @@ Plots
    :members:
    :undoc-members:
    :show-inheritance:
+
+.. automodule:: grape.plots.tSNE
+   :members:
+   :undoc-members:
+   :show-inheritance:
