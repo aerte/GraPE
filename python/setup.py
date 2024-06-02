@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='grape',
-    version='0.0.3',
+    version='0.0.5',
     author='Felix Ærtebjerg',
     description='Tools for computational chemistry and deep learning.',
     packages=['grape'],  # List of packages to be included

@@ -233,7 +233,7 @@ def mult_subset_to_SubSets(subsets: Union[tuple[dgl.data.Subset],tuple[torch.uti
 
 
 def split_data(data, split_type: str = None, split_frac: list[float] = None, custom_split: list = None,
-               is_dmpnn:bool = False,**kwargs) -> (tuple[SubSet, SubSet, SubSet]):
+               is_dmpnn:bool = False, seed:int = None, **kwargs) -> (tuple[SubSet, SubSet, SubSet]):
     """ Splits the data based on a split type into SubSets that access the original data via indices.
 
     Notes
@@ -267,6 +267,8 @@ def split_data(data, split_type: str = None, split_frac: list[float] = None, cus
     is_dmpnn: bool
         Specifies if the input data should be a DMPNN Dataset, ie. the edges will be saved
         directionally. Default: False
+    seed: int
+        The numpy seed used to generate the splits. Default: None
 
     Returns
     ---------
@@ -274,6 +276,8 @@ def split_data(data, split_type: str = None, split_frac: list[float] = None, cus
         The train, val and test splits respectively.
 
     """
+    if seed is not None:
+        np.random.seed(seed)
 
     if split_type is None:
         split_type = 'random'

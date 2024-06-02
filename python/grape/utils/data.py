@@ -717,7 +717,7 @@ class DataSet(DataLoad):
         """
         from torch_geometric.loader import DataLoader
         from grape.utils import RevIndexedData
-        out = dict()
+        out = dict({})
         model.eval()
         for smile, i in zip(smiles, range(len(smiles))):
             try:
@@ -789,6 +789,8 @@ class GraphDataSet(DataSet):
         where 0 indicates a training sample, 1 a testing sample and 2 a validation sample.
     log: bool
         Decides if the filtering output and other outputs will be shown.
+    seed: int
+        The numpy seed used to generate the splits. Default: None
     indices: list[int]
         Can be used to override the indices of the datasets objects. Recommended not to use.
 
@@ -799,7 +801,7 @@ class GraphDataSet(DataSet):
     ndarray] = None, global_features:Union[list[float], ndarray] = None,
     allowed_atoms:list[str] = None, only_organic: bool = True, atom_feature_list:list[str] = None,
     bond_feature_list:list[str] = None, split: bool = True, split_type:str = None, split_frac:list[float, float, float]
-    = None, custom_split: list[int] = None, log: bool = False, indices:list[int] = None):
+    = None, custom_split: list[int] = None, log: bool = False, seed:int = None, indices:list[int] = None):
 
         super().__init__(file_path=file_path, smiles=smiles, target=target, global_features=global_features,
                          allowed_atoms=allowed_atoms, only_organic=only_organic,
@@ -823,7 +825,8 @@ class GraphDataSet(DataSet):
 
         if split or (self.custom_split is not None):
             self.train, self.val, self.test = split_data(data = self, split_type = self.split_type,
-                                                        split_frac = self.split_frac, custom_split = self.custom_split)
+                                                        split_frac = self.split_frac, custom_split = self.custom_split,
+                                                         seed=seed)
 
 
 

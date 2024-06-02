@@ -13,11 +13,11 @@ import numpy as np
 
 
 __all__ = [
-    'RayTuner'
+    'SimpleRayTuner'
 ]
 
 
-class RayTuner:
+class SimpleRayTuner:
     """A simple implementation of the Ray Tuner interface.
 
     Notes

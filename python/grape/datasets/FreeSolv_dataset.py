@@ -54,6 +54,8 @@ class FreeSolv(GraphDataSet):
     save_data_filename: str
         The filename of the saved dataset. If given, the dataset will be automatically saved after processing.
         Default: None
+    seed: int
+        The numpy seed used to generate the splits. Default: None
 
     """
 
@@ -63,7 +65,7 @@ class FreeSolv(GraphDataSet):
                  allowed_atoms: list[str] = None, only_organic: bool = True,
                  atom_feature_list: list[str] = None, bond_feature_list: list[str] = None,
                  split: bool = False, split_type: str = None, split_frac: list[float] = None,
-                 custom_split: list[int] = None, log: bool = False, save_data_filename: str =None):
+                 custom_split: list[int] = None, log: bool = False, save_data_filename: str =None, seed: int = None):
 
 
         self.root = './graphs' if root is None else root
@@ -79,7 +81,7 @@ class FreeSolv(GraphDataSet):
                          allowed_atoms = allowed_atoms, only_organic=only_organic,
                          atom_feature_list = atom_feature_list,
                          bond_feature_list = bond_feature_list, split=split, split_type=split_type,
-                         split_frac=split_frac, custom_split=custom_split, log = log)
+                         split_frac=split_frac, custom_split=custom_split, log = log, seed=seed)
 
         self.data_name = 'FreeSolv'
 

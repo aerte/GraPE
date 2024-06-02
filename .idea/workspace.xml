@@ -6,7 +6,15 @@
   <component name="ChangeListManager">
     <list default="true" id="115446f6-db4f-461b-90f9-f367678daa67" name="Changes" comment="fixed and added a bunch of stuff">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/source/Demonstration.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/Demonstration.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/grape/datasets/FreeSolv_dataset.py" beforeDir="false" afterPath="$PROJECT_DIR$/python/grape/datasets/FreeSolv_dataset.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/grape/datasets/QM9_dataset.py" beforeDir="false" afterPath="$PROJECT_DIR$/python/grape/datasets/QM9_dataset.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/grape/datasets/jean_claude_bradley_double_plus.py" beforeDir="false" afterPath="$PROJECT_DIR$/python/grape/datasets/jean_claude_bradley_double_plus.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/grape/datasets/logP_dataset.py" beforeDir="false" afterPath="$PROJECT_DIR$/python/grape/datasets/logP_dataset.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/python/grape/utils/data.py" beforeDir="false" afterPath="$PROJECT_DIR$/python/grape/utils/data.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/grape/utils/opt_utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/python/grape/utils/opt_utils.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/grape/utils/split_utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/python/grape/utils/split_utils.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/setup.py" beforeDir="false" afterPath="$PROJECT_DIR$/python/setup.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -202,15 +210,8 @@
       <workItem from="1717163741178" duration="7233000" />
       <workItem from="1717186839015" duration="883000" />
       <workItem from="1717231725607" duration="12086000" />
-      <workItem from="1717320282485" duration="1221000" />
-    </task>
-    <task id="LOCAL-00017" summary="more plots and fixes">
-      <option name="closed" value="true" />
-      <created>1713693828609</created>
-      <option name="number" value="00017" />
-      <option name="presentableId" value="LOCAL-00017" />
-      <option name="project" value="LOCAL" />
-      <updated>1713693828609</updated>
+      <workItem from="1717320282485" duration="1847000" />
+      <workItem from="1717322148425" duration="1603000" />
     </task>
     <task id="LOCAL-00018" summary="some reformatting and presentation files">
       <option name="closed" value="true" />
@@ -596,7 +597,15 @@
       <option name="project" value="LOCAL" />
       <updated>1717260579264</updated>
     </task>
-    <option name="localTasksCounter" value="66" />
+    <task id="LOCAL-00066" summary="fixed and added a bunch of stuff">
+      <option name="closed" value="true" />
+      <created>1717321527818</created>
+      <option name="number" value="00066" />
+      <option name="presentableId" value="LOCAL-00066" />
+      <option name="project" value="LOCAL" />
+      <updated>1717321527818</updated>
+    </task>
+    <option name="localTasksCounter" value="67" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
