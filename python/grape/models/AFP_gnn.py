@@ -62,6 +62,8 @@ class AFP(Module):
          weights are then used in the same order as given. Default: 512.
     rep_dropout: float
         The probability of dropping a node from the embedding representation. Default: 0.0.
+    num_global_feats: int
+        The number of global features that are passed to the model. Default:0
 
     ______
 
@@ -143,12 +145,13 @@ class AFP(Module):
         if return_lats:
             return out
 
+        # Dropout
+        out = self.rep_dropout(out)
+
         ### Check if global graphs is present for each graph
         if self.num_global_feats > 0:
             out = torch.concat((out, data.global_feats[:,None]), dim=1)
 
-        # Dropout
-        out = self.rep_dropout(out)
 
         if self.regressor:
             out = self.mlp_out(out)

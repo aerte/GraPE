@@ -292,11 +292,6 @@ class MEGNet(nn.Module):
 
         x, edge_index, edge_attr, global_feats = data.x, data.edge_index, data.edge_attr, data.global_feats
 
-        # In the case that there are no global features in the analysis
-        # if global_feats is None:
-        #     _global_feats = torch.zeros(len(torch.unique(graphs.batch).cpu().numpy()), self.global_in_dim,
-        #                                requires_grad=True).to(self.device)
-
         h_n = self.embed_nodes(x)
         h_e = self.embed_edges(edge_attr)
         h_u = self.embed_global(global_feats[:,None])

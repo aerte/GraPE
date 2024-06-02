@@ -34,8 +34,11 @@ class QM9(GraphDataSet):
     Parameters
     ------------
     target_id: int
-        An integer that indicates which of the features from the dataset should be the 'target'. The
+        An integer that indicates, which of the features from the dataset should be the 'target'. The
         default is ``5``:``heat capacity``
+    global_feature_id: int
+        An integer that indicates, which of the features from the dataset should be a global feature. For
+        example, one could choose ``0``:``Dipole moment``. Default: None
     root: str
         Indicates what the root or working directory is. Default: None
     global_features: list of str
@@ -71,7 +74,7 @@ class QM9(GraphDataSet):
     """
 
 
-    def __init__(self, target_id: int = 5,
+    def __init__(self, target_id: int = 5, global_feature_id: int = None,
                  root: str = None, global_features: list or str = None,
                  allowed_atoms: list[str] = None, only_organic: bool = True,
                  atom_feature_list: list[str] = None, bond_feature_list: list[str] = None,
@@ -87,6 +90,9 @@ class QM9(GraphDataSet):
 
         SMILES = data.smiles
         TARGET = data.y[:, target_id]
+
+        if global_feature_id is not None:
+            global_features = data.y[:, global_feature_id]
 
         super().__init__(smiles = SMILES, target = TARGET, global_features=global_features,
                          allowed_atoms = allowed_atoms, only_organic=only_organic,

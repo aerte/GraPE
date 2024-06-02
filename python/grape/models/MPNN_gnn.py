@@ -133,13 +133,15 @@ class MPNN(nn.Module):
              weights are then used in the same order as given. Default: 512.
     rep_dropout: float
         The probability of dropping a node from the embedding representation. Default: 0.0.
+    num_global_feats: int
+        The number of global features that are passed to the model. Default:0
 
     """
 
     def __init__(self, node_in_dim: int, edge_in_dim: int, message_nn: nn.Module = None,
                  node_hidden_dim: int = 64, num_layers: int = 1, num_gru_layers: int = 1,
                  set2set_steps: int = 1, mlp_out_hidden:Union[int, list]=512,
-                 rep_dropout: float = 0.0):
+                 rep_dropout: float = 0.0, num_global_feats:int = 0):
 
         super().__init__()
 
@@ -148,12 +150,12 @@ class MPNN(nn.Module):
         self.message = message_nn
 
         self.read_out = Set2Set(in_channels=node_hidden_dim, processing_steps=set2set_steps)
-
         self.rep_dropout = nn.Dropout(rep_dropout)
+        self.num_global_feats = num_global_feats
 
         if isinstance(mlp_out_hidden, int):
             self.mlp_out = nn.Sequential(
-                nn.Linear(node_hidden_dim *2 , mlp_out_hidden),
+                nn.Linear(node_hidden_dim *2 + self.num_global_feats, mlp_out_hidden),
                 nn.ReLU(),
                 nn.Linear(mlp_out_hidden, mlp_out_hidden // 2),
                 nn.ReLU(),
@@ -162,7 +164,7 @@ class MPNN(nn.Module):
 
         else:
             self.mlp_out = []
-            self.mlp_out.append(nn.Linear(node_hidden_dim * 2, mlp_out_hidden[0]))
+            self.mlp_out.append(nn.Linear(node_hidden_dim * 2 + self.num_global_feats, mlp_out_hidden[0]))
             for i in range(len(mlp_out_hidden)):
                 self.mlp_out.append(nn.ReLU())
                 if i == len(mlp_out_hidden) - 1:
@@ -199,6 +201,9 @@ class MPNN(nn.Module):
             return h
 
         h = self.rep_dropout(h)
+
+        if self.num_global_feats > 0:
+            h = torch.concat((h, data.global_feats[:,None]), dim=1)
 
         y = self.mlp_out(h)
 

@@ -212,15 +212,18 @@ class Weave_Model(nn.Module):
          weights are then used in the same order as given. Default: 512.
     rep_dropout: float
         The probability of dropping a node from the embedding representation. Default: 0.0.
+    num_global_feats: int
+        The number of global features that are passed to the model. Default:0
 
     """
     def __init__(self, node_in_dim: int, edge_in_dim: int, node_hidden_dim: int = 64,
                  edge_hidden_dim: int = 64, num_layers: int = 4, pool:Union[str, Callable] = 'mean',
-                 mlp_out_hidden: int = 512, rep_dropout: float = 0.0):
+                 mlp_out_hidden: int = 512, rep_dropout: float = 0.0, num_global_feats:int = 0):
 
         super().__init__()
 
         self.rep_dropout = nn.Dropout(rep_dropout)
+        self.num_global_feats = num_global_feats
 
         self.encoder = Weave_encoder(node_in_dim=node_in_dim,
                                      edge_in_dim=edge_in_dim,
@@ -239,7 +242,7 @@ class Weave_Model(nn.Module):
 
         if isinstance(mlp_out_hidden, int):
             self.mlp_out = nn.Sequential(
-                nn.Linear(node_hidden_dim, mlp_out_hidden),
+                nn.Linear(node_hidden_dim+self.num_global_feats, mlp_out_hidden),
                 nn.ReLU(),
                 nn.Linear(mlp_out_hidden, mlp_out_hidden // 2),
                 nn.ReLU(),
@@ -247,7 +250,7 @@ class Weave_Model(nn.Module):
             )
         else:
             self.mlp_out = []
-            self.mlp_out.append(nn.Linear(node_hidden_dim, mlp_out_hidden[0]))
+            self.mlp_out.append(nn.Linear(node_hidden_dim+self.num_global_feats, mlp_out_hidden[0]))
             for i in range(len(mlp_out_hidden)):
                 self.mlp_out.append(nn.ReLU())
                 if i == len(mlp_out_hidden) - 1:
@@ -280,6 +283,11 @@ class Weave_Model(nn.Module):
         if return_lats:
             return x
         x = self.rep_dropout(x)
+
+        if self.num_global_feats > 0:
+            x = torch.concat((x, data.global_feats[:,None]), dim=1)
+
+
         return self.mlp_out(x).view(-1)
 
 

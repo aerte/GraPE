@@ -146,10 +146,12 @@ class DMPNN(torch.nn.Module):
              weights are then used in the same order as given. Default: 512.
     rep_dropout: float
         The probability of dropping a node from the embedding representation. Default: 0.0.
+    num_global_feats: int
+        The number of global features that are passed to the model. Default:0
 
     """
     def __init__(self, node_in_dim:int, edge_in_dim:int,node_hidden_dim:int=64, depth=3, dropout=0.15,
-                        mlp_out_hidden:Union[int, list]=512, rep_dropout:float=0.0):
+                        mlp_out_hidden:Union[int, list]=512, rep_dropout:float=0.0, num_global_feats:int=0):
         super(DMPNN, self).__init__()
 
         self.hidden_size = node_hidden_dim
@@ -158,6 +160,7 @@ class DMPNN(torch.nn.Module):
         self.depth = depth
 
         self.rep_dropout = nn.Dropout(rep_dropout)
+        self.num_global_feats = num_global_feats
 
         self.encoder = DMPNNEncoder(node_in_dim = node_in_dim,
                                     edge_in_dim=edge_in_dim,
@@ -169,7 +172,7 @@ class DMPNN(torch.nn.Module):
 
         if isinstance(mlp_out_hidden, int):
             self.mlp_out = nn.Sequential(
-                nn.Linear(self.hidden_size, mlp_out_hidden),
+                nn.Linear(self.hidden_siz+self.num_global_feats, mlp_out_hidden),
                 nn.ReLU(),
                 nn.Linear(mlp_out_hidden, mlp_out_hidden // 2),
                 nn.ReLU(),
@@ -177,7 +180,7 @@ class DMPNN(torch.nn.Module):
             )
         else:
             self.mlp_out = []
-            self.mlp_out.append(nn.Linear(self.hidden_size, mlp_out_hidden[0]))
+            self.mlp_out.append(nn.Linear(self.hidden_size+self.num_global_feats, mlp_out_hidden[0]))
             for i in range(len(mlp_out_hidden)):
                 self.mlp_out.append(nn.ReLU())
                 if i == len(mlp_out_hidden) - 1:
@@ -201,6 +204,11 @@ class DMPNN(torch.nn.Module):
             return z
 
         z = self.rep_dropout(z)
+
+        ### Check if global graphs is present for each graph
+        if self.num_global_feats > 0:
+            z = torch.concat((z, data.global_feats[:, None]), dim=1)
+
         out = self.mlp_out(z)
         return out.view(-1)
 
