@@ -6,18 +6,6 @@
   <component name="ChangeListManager">
     <list default="true" id="115446f6-db4f-461b-90f9-f367678daa67" name="Changes" comment="fixed and added a bunch of stuff">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/source/Demonstration.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/Demonstration.ipynb" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/source/api/plots.rst" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/api/plots.rst" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/pallete_script.py" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/pallete_script.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/result_generation.py" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/result_generation.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/results/plots/bradley.png" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/results/plots/bradley.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/results/plots/freesolv.png" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/results/plots/freesolv.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/results/plots/logp.png" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/results/plots/logp.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/results/plots/qm9.png" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/results/plots/qm9.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/tests.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/tests.ipynb" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/python/grape/plots/pca_plot.py" beforeDir="false" afterPath="$PROJECT_DIR$/python/grape/plots/pca_plot.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/python/grape/plots/tSNE.py" beforeDir="false" afterPath="$PROJECT_DIR$/python/grape/plots/tSNE.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/python/grape/splits/butina_splits.py" beforeDir="false" afterPath="$PROJECT_DIR$/python/grape/splits/butina_splits.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/python/grape/utils/data.py" beforeDir="false" afterPath="$PROJECT_DIR$/python/grape/utils/data.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -213,15 +201,8 @@
       <workItem from="1717151480370" duration="9790000" />
       <workItem from="1717163741178" duration="7233000" />
       <workItem from="1717186839015" duration="883000" />
-      <workItem from="1717231725607" duration="10926000" />
-    </task>
-    <task id="LOCAL-00016" summary="optimization">
-      <option name="closed" value="true" />
-      <created>1713381251200</created>
-      <option name="number" value="00016" />
-      <option name="presentableId" value="LOCAL-00016" />
-      <option name="project" value="LOCAL" />
-      <updated>1713381251200</updated>
+      <workItem from="1717231725607" duration="12086000" />
+      <workItem from="1717320282485" duration="1221000" />
     </task>
     <task id="LOCAL-00017" summary="more plots and fixes">
       <option name="closed" value="true" />
@@ -607,7 +588,15 @@
       <option name="project" value="LOCAL" />
       <updated>1717163710752</updated>
     </task>
-    <option name="localTasksCounter" value="65" />
+    <task id="LOCAL-00065" summary="fixed and added a bunch of stuff">
+      <option name="closed" value="true" />
+      <created>1717260579263</created>
+      <option name="number" value="00065" />
+      <option name="presentableId" value="LOCAL-00065" />
+      <option name="project" value="LOCAL" />
+      <updated>1717260579264</updated>
+    </task>
+    <option name="localTasksCounter" value="66" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">

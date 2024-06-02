@@ -683,7 +683,7 @@ class DataSet(DataLoad):
 
 
     def predict_smiles(self, smiles:Union[str, list[str]], model, mean:float = None,
-                       std:float = None) -> Union[float, list[float]]:
+                       std:float = None) -> dict:
         """A dataset-dependent prediction function. When a SMILE or a list of SMILES is passed together
         with a model that used the **same dataset or property** for training, that specific property is
         predicted from the passed SMILES.
@@ -711,13 +711,13 @@ class DataSet(DataLoad):
 
         Returns
         -------
-        float or list of float
+        dict
             Predictions corresponding to each input SMILE in order.
 
         """
         from torch_geometric.loader import DataLoader
         from grape.utils import RevIndexedData
-        out = []
+        out = dict()
         model.eval()
         for smile, i in zip(smiles, range(len(smiles))):
             try:
@@ -735,7 +735,7 @@ class DataSet(DataLoad):
                     temp = self.rescale(temp, self.mean, self.std)
                 elif mean is not None and std is None:
                     temp = self.rescale(temp, mean, std)
-                out.append(float(temp))
+                out[smile] = float(temp)
             except:
                 print(f'{smiles[i]} is not valid.')
 
