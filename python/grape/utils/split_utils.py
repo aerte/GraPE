@@ -59,7 +59,6 @@ class SubSet:
             self.global_features = dataset.global_features[indices]
         else:
             self.global_features = None
-
         if hasattr(dataset, 'mol_weights'):
             self.mol_weights = dataset.mol_weights[indices]
 

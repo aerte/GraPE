@@ -311,6 +311,8 @@ class DataSet(DataLoad):
 
     @staticmethod
     def standardize(target):
+        if isinstance(target, Tensor):
+            target = target.cpu().detach().numpy()
         target_ = (target - np.mean(target)) / np.std(target)
         return target_, np.mean(target), np.std(target)
 
@@ -660,10 +662,12 @@ class DataSet(DataLoad):
             train, val, test = split_data(data = self, split_type = split_type,
                                 split_frac = split_frac, custom_split = custom_split, **kwargs)
 
+            # We use the training set for scaling
             train_y, self.mean, self.std = self.standardize(train.y)
             self.target = self.scale_array(self.target, self.mean, self.std)
 
             if train.global_features is not None:
+                # Again, we use the training set for scaling the global features
                 train_glob, self.mean_gobal_feats, self.std_gobal_feats = self.standardize(train.global_features)
                 self.gobal_features = self.scale_array(self.global_features, self.mean_gobal_feats,
                                                        self.std_gobal_feats)
