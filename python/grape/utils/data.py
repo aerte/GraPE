@@ -320,17 +320,6 @@ class DataSet(DataLoad):
     def rescale(target, mean, std):
         return (target *std) + mean
 
-    #def reconstruct_graphs(self):
-    #    self.graphs = construct_dataset(smiles=self.smiles,
-    #                                  target=self.target,
-    #                                  global_features=self.global_features,
-    #                                  allowed_atoms=allowed_atoms,
-    #                                  atom_feature_list=atom_feature_list,
-    #                                  bond_feature_list=bond_feature_list)
-
-    # def scale_data(self):
-    #     self.target, self.mean_target, self.std_target = self.standardize(np.array(self.raw_target))
-    #
     def rescale_data(self, target):
         if self.mean is None or self.std is None:
             mean, std = np.mean(self.target), np.std(self.target)
@@ -577,11 +566,11 @@ class DataSet(DataLoad):
         ----------
         split_type: str
             Indicates what split should be used. It will either take a new argument or default
-             to the initialized split fractions. The default initialization is 'random'. The options are:
-             ['consecutive', 'random', 'molecular weight', 'scaffold', 'stratified', 'custom']
+            to the initialized split fractions. The default initialization is 'random'. The options are:
+            ['consecutive', 'random', 'molecular weight', 'scaffold', 'stratified', 'custom']
         split_frac: array
             Indicates what the split fractions should be. It will either take a new argument or default
-             to the initialized split fractions. The default initialization is [0.8,0.1,0.1].
+            to the initialized split fractions. The default initialization is [0.8,0.1,0.1].
         custom_split: array
             The custom split that should be applied. Has to be an array matching the length of the filtered smiles,
             where 0 indicates a training sample, 1 a testing sample and 2 a validation sample. It will either take
@@ -631,12 +620,12 @@ class DataSet(DataLoad):
             Decides if the rescaling parameters (mean, std) should be returned. Default: False.
         split_type: str
             Indicates what split should be used. It will either take a new argument or default
-             to the initialized split fractions. The default initialization is 'random'. The options are:
-             ['consecutive', 'random', 'molecular weight', 'scaffold', 'stratified', 'butina_realistic', 'butina',
-             'custom']
+            to the initialized split fractions. The default initialization is 'random'. The options are:
+            ['consecutive', 'random', 'molecular weight', 'scaffold', 'stratified', 'butina_realistic', 'butina',
+            'custom']
         split_frac: array
             Indicates what the split fractions should be. It will either take a new argument or default
-             to the initialized split fractions. The default initialization is [0.8,0.1,0.1].
+            to the initialized split fractions. The default initialization is [0.8,0.1,0.1].
         custom_split: array
             The custom split that should be applied. Has to be an array matching the length of the filtered smiles,
             where 0 indicates a training sample, 1 a testing sample and 2 a validation sample. It will either take

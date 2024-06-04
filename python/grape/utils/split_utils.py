@@ -249,7 +249,6 @@ def split_data(data, split_type: str = None, split_frac: list[float] = None, cus
     See Also
     ---------
     https://lifesci.dgl.ai/api/utils.splitters.html
-    # Here I should be inserting links to some documentation or my own documentation.
 
     Parameters
     ------------

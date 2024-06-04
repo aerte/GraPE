@@ -5,12 +5,18 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="115446f6-db4f-461b-90f9-f367678daa67" name="Changes" comment="added global feats to every model">
-      <change afterPath="$PROJECT_DIR$/docs/source/Advanced GraPE Demonstration.ipynb" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/source/Demonstration-Advanced.ipynb" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/source/Demonstration.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/GraPE Demonstration.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/LICENSE" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/freesolv/processed/data.pt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/freesolv/processed/pre_filter.pt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/freesolv/processed/pre_transform.pt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/freesolv/raw/SAMPL.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/source/Advanced GraPE Demonstration.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/Advanced GraPE Demonstration.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/source/GraPE Demonstration.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/GraPE Demonstration.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/source/index.rst" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/index.rst" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/python/grape/utils/data.py" beforeDir="false" afterPath="$PROJECT_DIR$/python/grape/utils/data.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/python/grape/utils/split_utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/python/grape/utils/split_utils.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/readthedocs.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/readthedocs.yaml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -63,6 +69,7 @@
   <component name="PropertiesComponent"><![CDATA[{
   "keyToString": {
     "ASKED_MARK_IGNORED_FILES_AS_EXCLUDED": "true",
+    "JavaScript Debug.Advanced GraPE Demonstration.html.executor": "Run",
     "JavaScript Debug.Demonstration.html.executor": "Run",
     "JavaScript Debug.analysis.html.executor": "Run",
     "JavaScript Debug.split_util.html.executor": "Run",
@@ -210,15 +217,8 @@
       <workItem from="1717231725607" duration="12086000" />
       <workItem from="1717320282485" duration="1847000" />
       <workItem from="1717322148425" duration="1603000" />
-      <workItem from="1717324166292" duration="16594000" />
-    </task>
-    <task id="LOCAL-00020" summary="added documentation and n-alkanes">
-      <option name="closed" value="true" />
-      <created>1713808204910</created>
-      <option name="number" value="00020" />
-      <option name="presentableId" value="LOCAL-00020" />
-      <option name="project" value="LOCAL" />
-      <updated>1713808204910</updated>
+      <workItem from="1717324166292" duration="17106000" />
+      <workItem from="1717505402006" duration="1369000" />
     </task>
     <task id="LOCAL-00021" summary="Megnet implementation">
       <option name="closed" value="true" />
@@ -604,7 +604,15 @@
       <option name="project" value="LOCAL" />
       <updated>1717327538894</updated>
     </task>
-    <option name="localTasksCounter" value="69" />
+    <task id="LOCAL-00069" summary="added global feats to every model">
+      <option name="closed" value="true" />
+      <created>1717342478313</created>
+      <option name="number" value="00069" />
+      <option name="presentableId" value="LOCAL-00069" />
+      <option name="project" value="LOCAL" />
+      <updated>1717342478313</updated>
+    </task>
+    <option name="localTasksCounter" value="70" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">

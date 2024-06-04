@@ -12,13 +12,13 @@ in every step.
    This project is a work in progress!
 
 .. toctree::
-    :maxdepth: 1
+    :maxdepth: 2
     :caption: Demonstrations
     :hidden:
     :glob:
 
-    Demonstration
-    Demonstration-Advanced
+    GraPE Demonstration
+    Advanced GraPE Demonstration
 
 .. toctree::
     :maxdepth: 2
