@@ -1,6 +1,10 @@
 import os
 from setuptools import setup, find_packages
 
+from pathlib import Path
+this_directory = Path(__file__).parent
+long_description = (this_directory / "README.md").read_text()
+
 setup(
     name='grape_chem',
     version='1.0',
@@ -26,5 +30,7 @@ setup(
         'CIRpy~=1.0.2',
         'tqdm~=4.66.1',
         'scikit-learn'
-    ]
+    ],
+    long_description=long_description,
+    long_description_content_type='text/markdown',
 )

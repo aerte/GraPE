@@ -8,6 +8,7 @@
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/docs/source/index.rst" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/index.rst" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/setup.py" beforeDir="false" afterPath="$PROJECT_DIR$/python/setup.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -91,7 +92,7 @@
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "WebServerToolWindowFactoryState": "false",
     "git-widget-placeholder": "main",
-    "last_opened_file_path": "/Users/faerte/Desktop/grape/grape/datasets",
+    "last_opened_file_path": "/Users/faerte/Desktop/grape/python",
     "node.js.detected.package.eslint": "true",
     "node.js.detected.package.tslint": "true",
     "node.js.selected.package.eslint": "(autodetect)",
@@ -103,6 +104,8 @@
 }]]></component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/python" />
+      <recent name="$PROJECT_DIR$" />
       <recent name="$PROJECT_DIR$/grape/datasets" />
       <recent name="$PROJECT_DIR$/notebooks" />
     </key>
@@ -211,15 +214,7 @@
       <workItem from="1717322148425" duration="1603000" />
       <workItem from="1717324166292" duration="17106000" />
       <workItem from="1717505402006" duration="3063000" />
-      <workItem from="1717508689302" duration="3405000" />
-    </task>
-    <task id="LOCAL-00026" summary="QM9 added">
-      <option name="closed" value="true" />
-      <created>1715861763702</created>
-      <option name="number" value="00026" />
-      <option name="presentableId" value="LOCAL-00026" />
-      <option name="project" value="LOCAL" />
-      <updated>1715861763702</updated>
+      <workItem from="1717508689302" duration="4233000" />
     </task>
     <task id="LOCAL-00027" summary="Added MLP input">
       <option name="closed" value="true" />
@@ -605,7 +600,15 @@
       <option name="project" value="LOCAL" />
       <updated>1717511965565</updated>
     </task>
-    <option name="localTasksCounter" value="75" />
+    <task id="LOCAL-00075" summary="doc fixed">
+      <option name="closed" value="true" />
+      <created>1717512114594</created>
+      <option name="number" value="00075" />
+      <option name="presentableId" value="LOCAL-00075" />
+      <option name="project" value="LOCAL" />
+      <updated>1717512114594</updated>
+    </task>
+    <option name="localTasksCounter" value="76" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
