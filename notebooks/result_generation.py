@@ -84,7 +84,7 @@ if __name__ == "__main__":
 
     import argparse
     set_seed(42)
-    root = '/Users/faerte/Desktop/grape/notebooks/data_splits.xlsx'
+    root = '/Users/faerte/Desktop/grape_chem/notebooks/data_splits.xlsx'
 
     parser = argparse.ArgumentParser()
     parser.add_argument('data', type=str, default='free', choices=['mp', 'logp', 'qm', 'free'],

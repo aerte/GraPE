@@ -68,7 +68,7 @@ class SimpleRayTuner:
                  train_iterations: int = 15):
 
         # 'objective' should take a train_loader, val_loader and model as input or be configured as such
-        if objective.__module__ == 'grape.optim.objectives':
+        if objective.__module__ == 'grape_chem.optim.objectives':
             objective = partial(objective, train_loader=train_loader, val_loader=val_loader, model=model)
 
         if search_algo.__module__ == 'ray.tune.search.bayesopt.bayesopt_search':

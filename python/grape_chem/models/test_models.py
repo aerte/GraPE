@@ -1,5 +1,4 @@
 from typing import Callable, Union
-import torch
 from torch import nn, Tensor
 from torch.nn import Linear, ReLU
 from torch_geometric.nn import global_mean_pool

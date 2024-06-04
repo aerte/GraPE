@@ -12,7 +12,7 @@ as backbones.
 Weave
 -------
 
-.. automodule:: grape.models.Weave_gnn
+.. automodule:: grape_chem.models.Weave_gnn
    :members:
    :undoc-members:
    :show-inheritance:
@@ -20,7 +20,7 @@ Weave
 MPNN
 -------
 
-.. automodule:: grape.models.MPNN_gnn
+.. automodule:: grape_chem.models.MPNN_gnn
    :members:
    :undoc-members:
    :show-inheritance:
@@ -28,7 +28,7 @@ MPNN
 D-MPNN
 -------
 
-.. automodule:: grape.models.DMPNN_gnn
+.. automodule:: grape_chem.models.DMPNN_gnn
    :members:
    :undoc-members:
    :show-inheritance:
@@ -37,7 +37,7 @@ D-MPNN
 MEGNet
 -------
 
-.. automodule:: grape.models.MEGNet_gnn
+.. automodule:: grape_chem.models.MEGNet_gnn
    :members:
    :undoc-members:
    :show-inheritance:
@@ -45,7 +45,7 @@ MEGNet
 AFP
 -----
 
-.. automodule:: grape.models.AFP_gnn
+.. automodule:: grape_chem.models.AFP_gnn
    :members:
    :undoc-members:
    :show-inheritance:
@@ -55,7 +55,7 @@ AFP
 Output Model
 ---------------
 
-.. automodule:: grape.models.test_models
+.. automodule:: grape_chem.models.test_models
    :members:
    :undoc-members:
    :show-inheritance:

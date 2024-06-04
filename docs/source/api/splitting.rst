@@ -18,7 +18,7 @@ but also:
 * Butina Clustering
 
 
-.. automodule:: grape.splits.butina_splits
+.. automodule:: grape_chem.splits.butina_splits
    :members:
    :undoc-members:
    :show-inheritance:

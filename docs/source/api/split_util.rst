@@ -6,7 +6,7 @@ important ones are ``SubSet``, allowing for easy data-splitting by
 defining a sub-set of a dataset purely based on indices, and ``split_data``, which can
 perform any of the splitting functions implemented in the toolbox.
 
-.. automodule:: grape.utils.split_utils
+.. automodule:: grape_chem.utils.split_utils
     :members:
     :undoc-members:
     :show-inheritance:

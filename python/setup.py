@@ -2,14 +2,14 @@ import os
 from setuptools import setup, find_packages
 
 setup(
-    name='grape',
-    version='0.0.5',
+    name='grape_chem',
+    version='1.0',
     author='Felix Ærtebjerg',
     description='Tools for computational chemistry and deep learning.',
-    packages=['grape'],  # List of packages to be included
+    packages=['grape_chem'],  # List of packages to be included
     url='https://github.com/aerte/GraPE',
     #packages = [package for packages in find_packages()
-    #          if package.startswith('grape')],
+    #          if package.startswith('grape_chem')],
     install_requires=[
         'torch == 2.1.0',
         'torch_geometric >= 2.1',

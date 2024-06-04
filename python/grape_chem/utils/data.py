@@ -22,10 +22,10 @@ import seaborn as sns
 from torch_geometric.data import Data
 from torch_geometric.utils import dense_to_sparse
 
-from grape.utils.featurizer import AtomFeaturizer, BondFeaturizer
-#from grape.analysis import smiles_analysis
-from grape.utils.split_utils import split_data
-from grape.utils.feature_func import mol_weight
+from grape_chem.utils.featurizer import AtomFeaturizer, BondFeaturizer
+#from grape_chem.analysis import smiles_analysis
+from grape_chem.utils.split_utils import split_data
+from grape_chem.utils.feature_func import mol_weight
 
 RDLogger.DisableLog('rdApp.*')
 
@@ -405,7 +405,7 @@ class DataSet(DataLoad):
 
         Example
         -------
-        >>> from grape.datasets import BradleyDoublePlus
+        >>> from grape_chem.datasets import BradleyDoublePlus
         >>> dataset = BradleyDoublePlus()
         >>> # Return the first 5 mol objects:
         >>> dataset.get_mol()[:5]
@@ -552,7 +552,7 @@ class DataSet(DataLoad):
             Bar plots of the specified results.
 
         """
-        from grape.analysis import smiles_analysis
+        from grape_chem.analysis import smiles_analysis
 
         return smiles_analysis(self.smiles, path_to_export, download, plots, save_plots, fig_size, filter_output_txt)
 
@@ -709,7 +709,7 @@ class DataSet(DataLoad):
 
         """
         from torch_geometric.loader import DataLoader
-        from grape.utils import RevIndexedData
+        from grape_chem.utils import RevIndexedData
         out = dict({})
         model.eval()
         for smile, i in zip(smiles, range(len(smiles))):
@@ -848,7 +848,7 @@ def load_dataset_from_excel(file_path: str, dataset:str, is_dmpnn=False, return_
 
 
     """
-    from grape.utils.split_utils import RevIndexedSubSet
+    from grape_chem.utils.split_utils import RevIndexedSubSet
 
     df = pd.read_excel(file_path, sheet_name=dataset)
 

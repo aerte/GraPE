@@ -9,7 +9,7 @@ from torch_geometric.loader import DataLoader
 from torch_geometric.data import Data
 from tqdm import tqdm
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
-from grape.utils import DataSet
+from grape_chem.utils import DataSet
 import os
 import dgl
 
@@ -26,7 +26,7 @@ __all__ = [
     'rescale_arrays'
 ]
 
-# import grape.models
+# import grape_chem.models
 
 
 ##########################################################################

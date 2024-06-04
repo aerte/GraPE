@@ -6,7 +6,6 @@ import numpy as np
 import dgl
 
 from dgllife.utils import splitters
-import grape
 
 import torch
 import torch.utils.data
@@ -91,7 +90,7 @@ def torch_subset_to_SubSet(subset: Union[dgl.data.Subset,torch.utils.data.Subset
     -------
     SubSet
     """
-    #assert isinstance(subset.dataset, grape.utils.DataSet) or isinstance(subset.dataset, grape.utils.GraphDataSet),(
+    #assert isinstance(subset.dataset, grape_chem.utils.DataSet) or isinstance(subset.dataset, grape_chem.utils.GraphDataSet),(
     #    'The subsets underlying dataset has to be either DataSet or GraphDataSet.')
     return SubSet(subset.dataset, subset.indices)
 
@@ -274,6 +273,9 @@ def split_data(data, split_type: str = None, split_frac: list[float] = None, cus
         The train, val and test splits respectively.
 
     """
+
+    from grape_chem.splits import butina_train_val_test_splits, butina_realistic_splits
+
     if seed is not None:
         np.random.seed(seed)
 
@@ -291,8 +293,8 @@ def split_data(data, split_type: str = None, split_frac: list[float] = None, cus
         'molecular_weight': splitters.MolecularWeightSplitter,
         'scaffold': splitters.ScaffoldSplitter,
         'stratified': splitters.SingleTaskStratifiedSplitter,
-        'butina_realistic': grape.splits.butina_realistic_splits,
-        'butina': grape.splits.butina_train_val_test_splits
+        'butina_realistic': butina_realistic_splits,
+        'butina': butina_train_val_test_splits
     }
 
     if split_type == 'custom' or custom_split is not None:

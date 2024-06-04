@@ -14,7 +14,7 @@ import rdkit.Chem
 import torch
 from rdkit import Chem
 
-from grape.utils import feature_func as ff
+from grape_chem.utils import feature_func as ff
 
 
 __all__ = [
@@ -115,7 +115,7 @@ class AtomFeaturizer(object):
     Example
     ---------
     >>> from rdkit.Chem import MolFromSmiles
-    >>> from grape.utils import AtomFeaturizer
+    >>> from grape_chem.utils import AtomFeaturizer
 
     >>> mol = MolFromSmiles('CO')
     >>> atom_featurizer = AtomFeaturizer(['atom_type_one_hot', 'atom_total_degree_one_hot'])
@@ -216,7 +216,7 @@ class AtomFeaturizer(object):
 
         Example
         ---------
-        >>> from grape.utils import AtomFeaturizer
+        >>> from grape_chem.utils import AtomFeaturizer
         >>> from rdkit.Chem import MolFromSmiles
 
         >>> # Add a function that returns True if the molecular weight of an atom is above 15[u]
@@ -305,7 +305,7 @@ class BondFeaturizer(object):
     Example
     ---------
     >>> from rdkit.Chem import MolFromSmiles
-    >>> from grape.utils import BondFeaturizer
+    >>> from grape_chem.utils import BondFeaturizer
 
     >>> mol = MolFromSmiles('Clc1cccs1')
     >>> bond_featurizer = BondFeaturizer(['bond_type_one_hot','bond_is_in_ring'])

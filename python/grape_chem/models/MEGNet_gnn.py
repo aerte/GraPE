@@ -83,7 +83,7 @@ class MEGNet_block(nn.Module):
         )
 
     # def reset_parameters(self) -> None:
-    #     from grape.utils import reset_weights
+    #     from grape_chem.utils import reset_weights
     #     reset_weights(self.update_net_edge)
     #     reset_weights(self.update_net_node)
     #     reset_weights(self.update_net_global)
@@ -276,7 +276,7 @@ class MEGNet(nn.Module):
         ])
 
     def reset_parameters(self) -> None:
-        from grape.utils import reset_weights
+        from grape_chem.utils import reset_weights
         reset_weights(self.read_out_nodes)
         reset_weights(self.read_out_edges)
         reset_weights(self.mlp_out)

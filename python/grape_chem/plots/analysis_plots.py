@@ -8,10 +8,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
 
-from grape.utils.feature_func import mol_weight
-from grape.analysis import classify_compounds
-from grape.utils.data import DataSet
-from grape.analysis import num_heavy_atoms
+from grape_chem.utils.feature_func import mol_weight
+from grape_chem.analysis import classify_compounds
+from grape_chem.utils.data import DataSet
+from grape_chem.analysis import num_heavy_atoms
 
 __all__ = ['mol_weight_vs_target',
            'num_chart',

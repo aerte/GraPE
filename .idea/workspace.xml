@@ -5,9 +5,58 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="115446f6-db4f-461b-90f9-f367678daa67" name="Changes" comment="doc fixed">
+      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/readthedocs.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/readthedocs.yaml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/requirements_dev.txt" beforeDir="false" afterPath="$PROJECT_DIR$/docs/requirements_dev.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/source/Advanced GraPE Demonstration.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/Advanced GraPE Demonstration.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/source/GraPE Demonstration.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/GraPE Demonstration.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/source/api.html" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/api.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/source/api/analysis.rst" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/api/analysis.rst" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/source/api/dataset.rst" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/api/dataset.rst" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/source/api/dglchem.utils.featurizer.rst" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/api/dglchem.utils.featurizer.rst" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/source/api/feats.rst" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/api/feats.rst" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/source/api/gnndata.rst" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/api/gnndata.rst" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/source/api/model_utils.rst" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/api/model_utils.rst" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/source/api/models.rst" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/api/models.rst" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/source/api/plots.rst" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/api/plots.rst" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/source/api/split_util.rst" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/api/split_util.rst" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/source/api/splitting.rst" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/api/splitting.rst" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/source/conf.py" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/conf.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/source/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/index.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/source/index.rst" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/index.rst" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/notebooks/result_generation.py" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/result_generation.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/grape/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/python/grape_chem/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/grape/analysis/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/python/grape_chem/analysis/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/grape/analysis/_classyfire.py" beforeDir="false" afterPath="$PROJECT_DIR$/python/grape_chem/analysis/_classyfire.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/grape/analysis/summarize.py" beforeDir="false" afterPath="$PROJECT_DIR$/python/grape_chem/analysis/summarize.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/grape/datasets/FreeSolv_dataset.py" beforeDir="false" afterPath="$PROJECT_DIR$/python/grape_chem/datasets/FreeSolv_dataset.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/grape/datasets/QM9_dataset.py" beforeDir="false" afterPath="$PROJECT_DIR$/python/grape_chem/datasets/QM9_dataset.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/grape/datasets/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/python/grape_chem/datasets/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/grape/datasets/jean_claude_bradley_double_plus.py" beforeDir="false" afterPath="$PROJECT_DIR$/python/grape_chem/datasets/jean_claude_bradley_double_plus.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/grape/datasets/logP_dataset.py" beforeDir="false" afterPath="$PROJECT_DIR$/python/grape_chem/datasets/logP_dataset.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/grape/models/AFP_gnn.py" beforeDir="false" afterPath="$PROJECT_DIR$/python/grape_chem/models/AFP_gnn.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/grape/models/DMPNN_gnn.py" beforeDir="false" afterPath="$PROJECT_DIR$/python/grape_chem/models/DMPNN_gnn.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/grape/models/MEGNet_gnn.py" beforeDir="false" afterPath="$PROJECT_DIR$/python/grape_chem/models/MEGNet_gnn.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/grape/models/MPNN_gnn.py" beforeDir="false" afterPath="$PROJECT_DIR$/python/grape_chem/models/MPNN_gnn.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/grape/models/Weave_gnn.py" beforeDir="false" afterPath="$PROJECT_DIR$/python/grape_chem/models/Weave_gnn.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/grape/models/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/python/grape_chem/models/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/grape/models/test_models.py" beforeDir="false" afterPath="$PROJECT_DIR$/python/grape_chem/models/test_models.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/grape/plots/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/python/grape_chem/plots/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/grape/plots/analysis_plots.py" beforeDir="false" afterPath="$PROJECT_DIR$/python/grape_chem/plots/analysis_plots.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/grape/plots/pca_plot.py" beforeDir="false" afterPath="$PROJECT_DIR$/python/grape_chem/plots/pca_plot.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/grape/plots/post_plots.py" beforeDir="false" afterPath="$PROJECT_DIR$/python/grape_chem/plots/post_plots.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/grape/plots/tSNE.py" beforeDir="false" afterPath="$PROJECT_DIR$/python/grape_chem/plots/tSNE.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/grape/plots/williamsplot.py" beforeDir="false" afterPath="$PROJECT_DIR$/python/grape_chem/plots/williamsplot.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/grape/splits/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/python/grape_chem/splits/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/grape/splits/butina_splits.py" beforeDir="false" afterPath="$PROJECT_DIR$/python/grape_chem/splits/butina_splits.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/grape/utils/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/python/grape_chem/utils/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/grape/utils/data.py" beforeDir="false" afterPath="$PROJECT_DIR$/python/grape_chem/utils/data.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/grape/utils/feature_func.py" beforeDir="false" afterPath="$PROJECT_DIR$/python/grape_chem/utils/feature_func.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/grape/utils/featurizer.py" beforeDir="false" afterPath="$PROJECT_DIR$/python/grape_chem/utils/featurizer.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/grape/utils/model_utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/python/grape_chem/utils/model_utils.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/grape/utils/opt_utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/python/grape_chem/utils/opt_utils.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/grape/utils/plot_utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/python/grape_chem/utils/plot_utils.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/grape/utils/split_utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/python/grape_chem/utils/split_utils.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/setup.py" beforeDir="false" afterPath="$PROJECT_DIR$/python/setup.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -63,6 +112,7 @@
     "JavaScript Debug.Advanced GraPE Demonstration.html.executor": "Run",
     "JavaScript Debug.Demonstration.html.executor": "Run",
     "JavaScript Debug.analysis.html.executor": "Run",
+    "JavaScript Debug.index.html.executor": "Run",
     "JavaScript Debug.split_util.html.executor": "Run",
     "Python tests.Doctests in data.executor": "Run",
     "Python tests.Doctests in optimization_test.executor": "Run",
@@ -209,15 +259,8 @@
       <workItem from="1717320282485" duration="1847000" />
       <workItem from="1717322148425" duration="1603000" />
       <workItem from="1717324166292" duration="17106000" />
-      <workItem from="1717505402006" duration="2334000" />
-    </task>
-    <task id="LOCAL-00024" summary="Megnet implementation">
-      <option name="closed" value="true" />
-      <created>1715372015783</created>
-      <option name="number" value="00024" />
-      <option name="presentableId" value="LOCAL-00024" />
-      <option name="project" value="LOCAL" />
-      <updated>1715372015783</updated>
+      <workItem from="1717505402006" duration="3063000" />
+      <workItem from="1717508689302" duration="3036000" />
     </task>
     <task id="LOCAL-00025" summary="QM9 added">
       <option name="closed" value="true" />
@@ -603,7 +646,15 @@
       <option name="project" value="LOCAL" />
       <updated>1717507548070</updated>
     </task>
-    <option name="localTasksCounter" value="73" />
+    <task id="LOCAL-00073" summary="doc fixed">
+      <option name="closed" value="true" />
+      <created>1717507752421</created>
+      <option name="number" value="00073" />
+      <option name="presentableId" value="LOCAL-00073" />
+      <option name="project" value="LOCAL" />
+      <updated>1717507752421</updated>
+    </task>
+    <option name="localTasksCounter" value="74" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">

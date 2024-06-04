@@ -1,22 +1,22 @@
 Plots
 =======
 
-.. automodule:: grape.plots.analysis_plots
+.. automodule:: grape_chem.plots.analysis_plots
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: grape.plots.post_plots
+.. automodule:: grape_chem.plots.post_plots
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: grape.plots.pca_plot
+.. automodule:: grape_chem.plots.pca_plot
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: grape.plots.tSNE
+.. automodule:: grape_chem.plots.tSNE
    :members:
    :undoc-members:
    :show-inheritance:

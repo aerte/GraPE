@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
-from grape.utils.data import DataSet
+from grape_chem.utils.data import DataSet
 
 
 __all__ = [
