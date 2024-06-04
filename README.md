@@ -14,7 +14,7 @@ Installing the toolbox
 
 To use the package, please run the following inside of a terminal:
 
-``pip install grape_chem``
+``pip install grape-chem``
 
 
 Demonstrations and Use
