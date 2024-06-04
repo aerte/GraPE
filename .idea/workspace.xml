@@ -7,6 +7,7 @@
     <list default="true" id="115446f6-db4f-461b-90f9-f367678daa67" name="Changes" comment="doc fixed">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/readthedocs.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/readthedocs.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/requirements_dev.txt" beforeDir="false" afterPath="$PROJECT_DIR$/docs/requirements_dev.txt" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -105,11 +106,11 @@
       <recent name="$PROJECT_DIR$/notebooks" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/docs" />
       <recent name="$PROJECT_DIR$/notebooks" />
       <recent name="$PROJECT_DIR$" />
       <recent name="$PROJECT_DIR$/docs/source/api" />
       <recent name="$PROJECT_DIR$/grape" />
-      <recent name="$PROJECT_DIR$/scripts" />
     </key>
   </component>
   <component name="SharedIndexes">
@@ -208,15 +209,7 @@
       <workItem from="1717320282485" duration="1847000" />
       <workItem from="1717322148425" duration="1603000" />
       <workItem from="1717324166292" duration="17106000" />
-      <workItem from="1717505402006" duration="2135000" />
-    </task>
-    <task id="LOCAL-00023" summary="Megnet implementation">
-      <option name="closed" value="true" />
-      <created>1715013546062</created>
-      <option name="number" value="00023" />
-      <option name="presentableId" value="LOCAL-00023" />
-      <option name="project" value="LOCAL" />
-      <updated>1715013546062</updated>
+      <workItem from="1717505402006" duration="2334000" />
     </task>
     <task id="LOCAL-00024" summary="Megnet implementation">
       <option name="closed" value="true" />
@@ -602,7 +595,15 @@
       <option name="project" value="LOCAL" />
       <updated>1717507259222</updated>
     </task>
-    <option name="localTasksCounter" value="72" />
+    <task id="LOCAL-00072" summary="doc fixed">
+      <option name="closed" value="true" />
+      <created>1717507548070</created>
+      <option name="number" value="00072" />
+      <option name="presentableId" value="LOCAL-00072" />
+      <option name="project" value="LOCAL" />
+      <updated>1717507548070</updated>
+    </task>
+    <option name="localTasksCounter" value="73" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">

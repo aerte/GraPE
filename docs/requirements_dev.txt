@@ -16,3 +16,4 @@ mkdocs-gen-files
 mkdocs-literate-nav
 sphinx-gallery
 sphinx_rtd_theme
+nbsphinx
