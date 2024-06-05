@@ -1,20 +1,20 @@
 GraPE-Chem - Graph-based Property Estimation for Chemistry
 ===========================================================
 
-This is a python package to support Chemical property prediction using `PyTorch <https://pytorch.org/docs/stable/index.
-html>`_ and `PyTorch Geometric <https://pytorch-geometric.readthedocs.io/en/latest/>`_.
+This is a python package to support Chemical property prediction using [PyTorch](https://pytorch.org/docs/stable/index)
+and [PyTorch Geometric](https://pytorch-geometric.readthedocs.io/en/latest/).
 The ambition of this project is to build a flexible pipeline that lets users go from molecule
 descriptors (SMILES) to a fully functioning Graph Neural Network and allow for useful customization
 at every step.
 
-For more information, please check out: 
+For more information, please check out the [docs](https://grape-chem.readthedocs.io/en/latest/).
 
 
 
 Installing the toolbox
 ----------------------
 
-To use the package, please run the following inside of a terminal:
+To use the package, please run the following inside a terminal:
 
 ``pip install grape-chem``
 
@@ -22,7 +22,8 @@ To use the package, please run the following inside of a terminal:
 Demonstrations and Use
 -----------------------
 After installing, the package will work like any other. See ``Demo``
-and ``Advanced Demo`` inside of docs for an introduction of how the toolbox can be used.
+and ``Advanced Demo`` inside of [docs](https://grape-chem.readthedocs.io/en/latest/) 
+for an introduction of how the toolbox can be used.
 
 
 

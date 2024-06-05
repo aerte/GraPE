@@ -7,7 +7,7 @@ long_description = (this_directory / "README.md").read_text()
 
 setup(
     name='grape_chem',
-    version='1.0',
+    version='1.0.1',
     author='Felix Ærtebjerg',
     description='Tools for computational chemistry and deep learning.',
     packages=['grape_chem'],  # List of packages to be included
