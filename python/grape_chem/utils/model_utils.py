@@ -375,7 +375,7 @@ def rescale_arrays(arrays: Union[Tensor, tuple[Tensor,Tensor], list], data:objec
         if isinstance(array, Tensor):
             array = array.cpu().detach().numpy()
         if data is not None:
-            out.append(data.rescale(array))
+            out.append(data.rescale(array, data.mean, data.std))
         elif mean is not None and std is not None:
             out.append((array * std)+mean)
 
@@ -438,6 +438,8 @@ def pred_metric(prediction: Union[Tensor, ndarray], target: Union[Tensor, ndarra
 
     results = dict()
     prints = []
+    delta = 1e-12
+    target = target+delta
 
     for metric_ in metrics:
         if metric_ == 'mse':
@@ -456,14 +458,14 @@ def pred_metric(prediction: Union[Tensor, ndarray], target: Union[Tensor, ndarra
             results['r2'] = r2_score(target, prediction)
             prints.append(f'R2: {r2_score(target, prediction):.3f}')
         elif metric_ ==  'mre':
-            results['mre'] = np.mean(np.abs((target-prediction))/target)*100
-            prints.append(f'MRE: {np.mean(np.abs(target - prediction) / target) * 100:.3f}%')
+            results['mre'] = np.mean(np.abs((target-prediction)/target))*100
+            prints.append(f'MRE: {np.mean(np.abs((target - prediction) / target)) * 100:.3f}%')
             if results['mre'] > 100:
                 prints.append(f'Mean relative error is large, here is the median relative error'
-                                f':{np.median(np.abs(target-prediction)/target)*100:.3f}%')
+                                f':{np.median(np.abs((target-prediction)/target))*100:.3f}%')
         elif metric_ == 'mdape':
-            results['mdape'] = np.median(np.abs(target-prediction)/target)*100
-            prints.append(f'MDAPE: {np.median(np.abs(target-prediction)/target)*100:.3f}%')
+            results['mdape'] = np.median(np.abs((target-prediction)/target))*100
+            prints.append(f'MDAPE: {np.median(np.abs((target-prediction)/target))*100:.3f}%')
 
 
     if print_out:

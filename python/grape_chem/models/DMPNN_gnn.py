@@ -172,7 +172,7 @@ class DMPNN(torch.nn.Module):
 
         if isinstance(mlp_out_hidden, int):
             self.mlp_out = nn.Sequential(
-                nn.Linear(self.hidden_siz+self.num_global_feats, mlp_out_hidden),
+                nn.Linear(self.hidden_size+self.num_global_feats, mlp_out_hidden),
                 nn.ReLU(),
                 nn.Linear(mlp_out_hidden, mlp_out_hidden // 2),
                 nn.ReLU(),

@@ -1,7 +1,7 @@
 import json
-from grape.models import *
-from grape.utils import return_hidden_layers, set_seed, EarlyStopping, rescale_arrays, DataSet, RevIndexedSubSet
-from grape.utils import train_model, test_model, pred_metric
+from grape_chem.models import *
+from grape_chem.utils import return_hidden_layers, set_seed, EarlyStopping, rescale_arrays, DataSet, RevIndexedSubSet
+from grape_chem.utils import train_model, test_model, pred_metric
 import torch
 from torch.optim import lr_scheduler
 import pandas as pd
@@ -9,6 +9,14 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib import rcParams
 import seaborn as sns
+import matplotlib
+import time
+
+plt.rcParams.update(
+    {
+        "text.usetex": True
+    }
+)
 
 
 def load_dataset_from_excel(file_path, dataset, is_dmpnn=False, is_megnet=False, return_dataset=False):
@@ -84,7 +92,7 @@ if __name__ == "__main__":
 
     import argparse
     set_seed(42)
-    root = '/Users/faerte/Desktop/grape_chem/notebooks/data_splits.xlsx'
+    root = '/Users/faerte/Desktop/grape/notebooks/data_splits.xlsx'
 
     parser = argparse.ArgumentParser()
     parser.add_argument('data', type=str, default='free', choices=['mp', 'logp', 'qm', 'free'],
@@ -110,8 +118,8 @@ if __name__ == "__main__":
     elif data_name == 'qm':
         train_set, val_set, test_set, data = load_dataset_from_excel(file_path=root, dataset="Heat capacity", is_dmpnn=True,
                                                                      return_dataset=True, is_megnet=True)
-        data_name = "QM9"
-        data_name_ = data_name
+        data_name = "Heat capacity"
+        data_name_ = "QM9"
 
     else:
         train_set, val_set, test_set, data = load_dataset_from_excel(file_path=root, dataset="LogP", is_dmpnn=True,
@@ -121,34 +129,41 @@ if __name__ == "__main__":
 
 
 
+    model_names = ["AFP", "MPNN", "DMPNN", "MEGNet"]
+    #model_names = ["MPNN"]
     #model_names = ["AFP", "MPNN", "DMPNN", "MEGNet"]
-    #model_names = ["MEGNet"]
-    model_names = ["AFP", "MPNN", "DMPNN"]
     
     df = pd.DataFrame()
 
     if mode == 'pred':
         for name in model_names:
             # Load config from best set
-            with open('results/best_hyperparameters_' + name +'_'+ data_name_ + '.json', 'r') as f:
+            with open('results/opt/best_hyperparameters_' + name +'_'+ data_name_ + '.json', 'r') as f:
                 config = json.load(f)["best_config"]
 
-            relative_model_name = 'results/'+name+'_'+data_name_
+            relative_model_name = 'results/models/'+name+'_'+data_name_
 
             # Load model and
             model = load_model(name, config, device = "cpu")
             optimizer = torch.optim.Adam(model.parameters(), lr=config['initial_lr'], weight_decay=config['weight_decay'])
             early_Stopper = EarlyStopping(patience=30, model_name=relative_model_name, skip_save=False)
-            scheduler = lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=config['lr_reduction_factor'],
-                                                       min_lr=0.0000000000001, patience=30)
+            scheduler = lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.999,
+                                                       min_lr=0.0000000000001, patience=10)
             loss_fn = torch.nn.functional.l1_loss
 
+            total_params = sum(p.numel() for p in model.parameters())
+            print(f"Model {name}: Number of parameters: {total_params}")
+
             # Train and test
-            train_loss, test_loss = train_model(model=model, loss_func=loss_fn,
-                                                optimizer=optimizer, scheduler=scheduler,
-                                                train_data_loader=train_set, val_data_loader=val_set,
-                                                batch_size=300, epochs=300,
-                                                early_stopper=early_Stopper, model_name=relative_model_name)
+            start = time.time()
+            if name != "AFP":
+                train_loss, test_loss = train_model(model=model, loss_func=loss_fn,
+                                                    optimizer=optimizer, scheduler=scheduler,
+                                                    train_data_loader=train_set, val_data_loader=val_set,
+                                                    batch_size=300, epochs=300,
+                                                    early_stopper=early_Stopper, model_name=relative_model_name)
+            end = time.time()
+            print(f"Training time: {end - start:.2f}")
 
             model.load_state_dict(torch.load(relative_model_name+'.pt'))
 
@@ -244,11 +259,16 @@ if __name__ == "__main__":
         #data_names = ['Melting Point', 'LogP', 'QM9', 'FreeSolv']
         plot_names = ['mp']
         data_names = ['Melting Point']
+        model_names = ["AFP", "MPNN", "DMPNN", "MEGNet"]
+
+        best_models = ['MPNN']
+        best_model_names = [r"\textbf{MPNN}", r"\textbf{MPNN}", r"\textbf{MPNN}", r"\textbf{AFP}"]
 
         #################### Parity Plots ###################
         fig, ax = plt.subplots(nrows=2, ncols= 2, figsize = (20,20))
 
-        for plot_name, data_name in zip(plot_names, data_names):
+        for plot_name, data_name, best, best_name in zip(plot_names, data_names, best_models, best_model_names):
+            print(plot_name)
 
             i,j = axis_dict[plot_name]['row'], axis_dict[plot_name]['col']
 
@@ -261,14 +281,19 @@ if __name__ == "__main__":
 
             styles = ['x', 's', 'o', '*']
             colors = ['b','g','r','orange']
-            widths = np.array([2, 0.7, 0.7, 0.7])*2
+            widths = np.array([2, 0.7, 0.7, 0.7])*0.5
+
+            print(model_names)
 
             for name, style, color, width in zip(model_names, styles, colors, widths):
+                print(name)
                 test_pred = df_data[name + " Prediction"][df_data.Split == "test"].to_numpy()
 
                 min_val = min(np.min(test_pred), min_val)
                 max_val = max(np.max(test_pred), np.max(max_val))
-
+                if name == best:
+                    name = best_name
+                    width *= 10
                 ax[i,j].scatter(test_target, test_pred, linewidth=width, marker=style, color=color, label=name)
 
             ax[i,j].axline((0, 0), slope=1, color='black')
