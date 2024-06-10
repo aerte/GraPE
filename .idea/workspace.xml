@@ -6,14 +6,7 @@
   <component name="ChangeListManager">
     <list default="true" id="115446f6-db4f-461b-90f9-f367678daa67" name="Changes" comment="doc fixed">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/source/Advanced GraPE Demonstration.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/Advanced GraPE-Chem Demonstration.ipynb" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/source/GraPE Demonstration.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/GraPE-Chem Demonstration.ipynb" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/create_data_files.py" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/create_data_files.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/notebooks/data_splits.xlsx" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/data_splits.xlsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/result_generation.py" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/result_generation.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/results/best_hyperparameters_AFP_FreeSolv.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/python/grape_chem/models/DMPNN_gnn.py" beforeDir="false" afterPath="$PROJECT_DIR$/python/grape_chem/models/DMPNN_gnn.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/python/grape_chem/utils/model_utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/python/grape_chem/utils/model_utils.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -231,15 +224,7 @@
       <workItem from="1717774733932" duration="4634000" />
       <workItem from="1717830803007" duration="7391000" />
       <workItem from="1717918078006" duration="14252000" />
-      <workItem from="1718013843564" duration="12823000" />
-    </task>
-    <task id="LOCAL-00031" summary="added dropout and more test">
-      <option name="closed" value="true" />
-      <created>1716124741391</created>
-      <option name="number" value="00031" />
-      <option name="presentableId" value="LOCAL-00031" />
-      <option name="project" value="LOCAL" />
-      <updated>1716124741391</updated>
+      <workItem from="1718013843564" duration="15026000" />
     </task>
     <task id="LOCAL-00032" summary="added dropout and more test">
       <option name="closed" value="true" />
@@ -625,7 +610,15 @@
       <option name="project" value="LOCAL" />
       <updated>1717589938525</updated>
     </task>
-    <option name="localTasksCounter" value="80" />
+    <task id="LOCAL-00080" summary="doc fixed">
+      <option name="closed" value="true" />
+      <created>1718038042666</created>
+      <option name="number" value="00080" />
+      <option name="presentableId" value="LOCAL-00080" />
+      <option name="project" value="LOCAL" />
+      <updated>1718038042666</updated>
+    </task>
+    <option name="localTasksCounter" value="81" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
