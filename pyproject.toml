@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "grape-chem"
+version = "1.0.3"
+authors = [
+  { name="Felix Aertebjerg", email="aertebjerg.felix@gmail.com" },
+]
+description = "Tools for computational chemistry and deep learning."
+readme = "README.md"
+requires-python = ">=3.9"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    'torch == 2.1.0',
+    'torch_geometric >= 2.1',
+    'torch-scatter == 2.1.2',
+    'rdkit~=2023.9.5',
+    'dgl~=2.0.0',
+    'pandas~=2.2.0',
+    'numpy~=1.26.3',
+    'pyarrow',
+    'openpyxl',
+    'dgllife~=0.3.2',
+    'matplotlib~=3.8.3',
+    'seaborn~=0.13.2',
+    'CIRpy~=1.0.2',
+    'tqdm~=4.66.1',
+    'scikit-learn'
+]
+
+[project.urls]
+Homepage = "https://github.com/aerte/GraPE"
