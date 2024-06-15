@@ -8,7 +8,7 @@ import numpy as np
 from torch_geometric.loader import DataLoader
 from torch_geometric.data import Data
 from tqdm import tqdm
-from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
+from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score, root_mean_squared_error
 from grape_chem.utils import DataSet
 import os
 import dgl
@@ -446,8 +446,8 @@ def pred_metric(prediction: Union[Tensor, ndarray], target: Union[Tensor, ndarra
             results['mse'] = mean_squared_error(target, prediction)
             prints.append(f'MSE: {mean_squared_error(target, prediction):.3f}')
         elif metric_ == 'rmse':
-            results['rmse'] = np.sqrt(mean_squared_error(target, prediction))
-            prints.append(f'RMSE: {np.sqrt(mean_squared_error(target, prediction)):.3f}')
+            results['rmse'] = root_mean_squared_error(target, prediction)
+            prints.append(f'RMSE: {root_mean_squared_error(target, prediction):.3f}')
         elif metric_ ==  'sse':
             results['sse'] = np.sum((target-prediction)**2)
             prints.append(f'SSE: {np.sum((target-prediction)**2):.3f}')

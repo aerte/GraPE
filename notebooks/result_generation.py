@@ -12,11 +12,11 @@ import seaborn as sns
 import matplotlib
 import time
 
-plt.rcParams.update(
-    {
-        "text.usetex": True
-    }
-)
+# plt.rcParams.update(
+#     {
+#         "text.usetex": True
+#     }
+# )
 
 
 def load_dataset_from_excel(file_path, dataset, is_dmpnn=False, is_megnet=False, return_dataset=False):
@@ -84,6 +84,10 @@ def load_model(model_name, config, device = None):
                          edge_hidden_dim=config["edge_hidden_dim"], depth=config["depth"],
                          mlp_out_hidden=mlp_out, rep_dropout=config["dropout"],
                          device=device)
+    # elif model_name == "Weave":
+    #     return Weave_Model(node_in_dim=44, edge_in_dim=12, num_layers=config["depth"],
+    #                         mlp_out_hidden=mlp_out, rep_dropout=config["dropout"],
+    #                         node_hidden_dim=config["gnn_hidden_dim"])
 
 
 
@@ -116,8 +120,10 @@ if __name__ == "__main__":
         data_name = "Melting Point"
 
     elif data_name == 'qm':
-        train_set, val_set, test_set, data = load_dataset_from_excel(file_path=root, dataset="Heat capacity", is_dmpnn=True,
-                                                                     return_dataset=True, is_megnet=True)
+        if mode == 'preds':
+            train_set, val_set, test_set, data = load_dataset_from_excel(file_path=root, dataset="Heat capacity", is_dmpnn=True,
+                                                                    return_dataset=True, is_megnet=True)
+            
         data_name = "Heat capacity"
         data_name_ = "QM9"
 
@@ -129,9 +135,9 @@ if __name__ == "__main__":
 
 
 
-    model_names = ["AFP", "MPNN", "DMPNN", "MEGNet"]
+    #model_names = ["DMPNN", "MEGNet"]
     #model_names = ["MPNN"]
-    #model_names = ["AFP", "MPNN", "DMPNN", "MEGNet"]
+    model_names = ["AFP", "MPNN", "DMPNN", "MEGNet"]
     
     df = pd.DataFrame()
 
@@ -156,7 +162,8 @@ if __name__ == "__main__":
 
             # Train and test
             start = time.time()
-            if name != "AFP":
+            if data_name != 'Heat capacity':
+                print('training')
                 train_loss, test_loss = train_model(model=model, loss_func=loss_fn,
                                                     optimizer=optimizer, scheduler=scheduler,
                                                     train_data_loader=train_set, val_data_loader=val_set,
@@ -165,11 +172,11 @@ if __name__ == "__main__":
             end = time.time()
             print(f"Training time: {end - start:.2f}")
 
-            model.load_state_dict(torch.load(relative_model_name+'.pt'))
+            model.load_state_dict(torch.load(relative_model_name+'.pt',map_location=torch.device('cpu')))
 
-            train_preds = test_model(model=model, test_data_loader=train_set)
-            val_preds = test_model(model=model, test_data_loader=val_set)
-            test_preds = test_model(model=model, test_data_loader=test_set)
+            train_preds = test_model(model=model, test_data_loader=train_set, batch_size=1)
+            val_preds = test_model(model=model, test_data_loader=val_set, batch_size=1)
+            test_preds = test_model(model=model, test_data_loader=test_set, batch_size=1)
 
             trp, vap, tep =  rescale_arrays((train_preds, val_preds, test_preds), data=data)
 
@@ -185,10 +192,13 @@ if __name__ == "__main__":
             with pd.ExcelWriter(root, engine='openpyxl', if_sheet_exists='replace', mode='a') as writer:
                 df.to_excel(writer, sheet_name=data_name, index=False)
 
+            del model
 
 
 
+    
     elif mode == 'metric':
+        model_names = ["AFP", "MPNN", "DMPNN", "MEGNet"]
         with (pd.ExcelWriter('/Users/faerte/Desktop/grape/notebooks/results/result_sheet.xlsx', engine='openpyxl')
               as writer):
 
@@ -198,6 +208,12 @@ if __name__ == "__main__":
             val_target = df_data["Target"][df_data.Split == "val"].to_numpy()
             test_target = df_data["Target"][df_data.Split == "test"].to_numpy()
 
+            mean, std = np.mean(train_target), np.std(train_target)
+
+            train_target = (train_target - mean)/std
+            val_target = (val_target - mean)/std
+            test_target = (test_target - mean)/std
+
             first = True
 
             for name in model_names:
@@ -206,6 +222,12 @@ if __name__ == "__main__":
                 train_pred = df_data[name + " Prediction"][df_data.Split=="train"].to_numpy()
                 val_pred = df_data[name + " Prediction"][df_data.Split=="val"].to_numpy()
                 test_pred = df_data[name + " Prediction"][df_data.Split=="test"].to_numpy()
+
+                mean, std = train_pred.mean(), train_pred.std()
+
+                train_pred = (train_pred-mean)/std
+                val_pred = (val_pred-mean)/std
+                test_pred = (test_pred-mean)/std
 
                 type_names = ['MAE', 'RMSE', 'MDAPE', 'R2']
                 prediction_types = ['mae', 'rmse', 'mdape', 'r2']
@@ -218,6 +240,10 @@ if __name__ == "__main__":
 
                     df_temp['Test '+ type_] = test_metric
                     df_temp['Overall '+ type_] = (train_metric + val_metric + test_metric) / 3
+                    if pred_type == 'rmse':
+                        df_temp['Test ' + type_ + ' normalized'] = (test_metric-mean)/std
+                        df_temp['Overall ' + type_ + ' normalized'] = (((train_metric + val_metric + test_metric) / 3)-mean)/std
+
 
                 if first:
                     first = False
@@ -239,10 +265,10 @@ if __name__ == "__main__":
                             'logp':'Logp - Parity Plot'})
 
 
-        true_labels = dict({'mp': '$T_{m}$(exp) in $[Celcius]$ \n (a)',
-                            'logp': '$\log K_{ow}$(exp), ratio \n (b)',
-                            'free': '$H_{hyd}$(exp) $[\\frac{kJ}{mol}]$ \n (d)',
-                            'qm': '$c_v$(exp) $[\\frac{\\text{cal}}{\\text{mol} K}]$ \n (c)'})
+        true_labels = dict({'mp': '$T_{m}$(exp) in $[Celcius]$ \n $\\bf{(a)}$',
+                            'logp': '$\log K_{ow}$(exp), ratio \n $\\bf{(b)}$',
+                            'free': '$H_{hyd}$(exp) $[\\frac{kJ}{mol}]$ \n $\\bf{(d)}$',
+                            'qm': '$c_v$(exp) $[\\frac{\\text{cal}}{\\text{mol} K}]$ \n $\\bf{(c)}$'})
 
         pred_labels = dict({'mp': '$T_{m}$(pred) in $[Celcius]$',
                             'logp': '$\log K_{ow}$(pred), ratio',
@@ -257,12 +283,13 @@ if __name__ == "__main__":
 
         #plot_names = ['mp', 'logp', 'qm', 'free']
         #data_names = ['Melting Point', 'LogP', 'QM9', 'FreeSolv']
-        plot_names = ['mp']
-        data_names = ['Melting Point']
-        model_names = ["AFP", "MPNN", "DMPNN", "MEGNet"]
+        plot_names = ['mp', 'logp', 'qm', 'free']
+        #data_names = ['Melting Point', 'LogP', 'Heat capacity', 'FreeSolv']
+        data_names = ['Melting Point', 'LogP', 'Heat capacity', 'FreeSolv']
+        model_names = ["MPNN", "DMPNN", "MEGNet", "AFP"]
 
-        best_models = ['MPNN']
-        best_model_names = [r"\textbf{MPNN}", r"\textbf{MPNN}", r"\textbf{MPNN}", r"\textbf{AFP}"]
+        best_models = ['MPNN', 'AFP', 'MEGNet', 'AFP']
+        best_model_names = ["$\\bf{MPNN}$", "$\\bf{AFP}$", "$\\bf{MEGNet}$", "$\\bf{AFP}$"]
 
         #################### Parity Plots ###################
         fig, ax = plt.subplots(nrows=2, ncols= 2, figsize = (20,20))
@@ -289,7 +316,7 @@ if __name__ == "__main__":
                 print(name)
                 test_pred = df_data[name + " Prediction"][df_data.Split == "test"].to_numpy()
 
-                min_val = min(np.min(test_pred), min_val)
+                min_val = min(np.min(test_pred), np.min(min_val))
                 max_val = max(np.max(test_pred), np.max(max_val))
                 if name == best:
                     name = best_name
@@ -299,8 +326,12 @@ if __name__ == "__main__":
             ax[i,j].axline((0, 0), slope=1, color='black')
             ax[i,j].set_xlabel(true_label)
             ax[i,j].set_ylabel(pred_label)
-            ax[i,j].set_xlim(min_val-50, max_val+50)
-            ax[i,j].set_ylim(min_val-50, max_val+50)
+            if plot_name == 'qm':
+                ax[i,j].set_xlim(min_val-200, max_val+300)
+                ax[i,j].set_ylim(min_val-200, max_val+300)
+            else:
+                ax[i,j].set_xlim(min_val+0.25*min_val, max_val+0.25*max_val)
+                ax[i,j].set_ylim(min_val+0.25*min_val, max_val+0.25*max_val)
             ax[i,j].legend()
             #ax[i,j].set_title(title_name)
         #ax.set_aspect('equal', adjustable='box')
@@ -310,6 +341,7 @@ if __name__ == "__main__":
             axs.tick_params(axis='both', which='major', labelsize=20)
 
         fig.savefig(fname=f'results/parity_plots.svg', format='svg')
+        plt.close()
 
 
 
@@ -329,37 +361,29 @@ if __name__ == "__main__":
         #### Plots are split in two
 
         for i in range(2):
-            print(i)
 
             if i == 0:
-                #plot_names = ['mp', 'logp']
-                #data_names = ['Melting Point', 'LogP']
+                plot_names = ['mp', 'logp']
+                data_names = ['Melting Point', 'LogP']
 
-                plot_names = ['mp']
-                data_names = ['Melting Point']
-
-                best_models = ["AFP", "MPNN"]
+                best_models = ["MPNN", "AFP"]
                 title_names = dict({'mp': 'Melting Point - ' + best_models[0],
                                     'logp': 'Logp  - ' + best_models[1]})
-                bottom_labels = dict({'mp': '$T_{m}$(error) in $[Celcius]$ \n (a)',
-                                      'logp': '$\log K_{ow}$(error) (scaled), ratio \n (b)'})
+                bottom_labels = dict({'mp': '$T_{m}$(error) in $[Celcius]$ \n $\\bf{(a)}$',
+                                      'logp': '$\log K_{ow}$(error), ratio \n $\\bf{(b)}$'})
             else:
-                #plot_names = ['qm','free']
-                #data_names = ['QM9', 'FreeSolv']
 
+                plot_names = ['qm','free']
+                data_names = ['Heat capacity', 'FreeSolv']
 
-                plot_names = ['mp']
-                data_names = ['Melting Point']
-
-                best_models = ["AFP", "MEGNet"]
+                best_models = ["MEGNet", "AFP"]
                 title_names = dict({'qm': 'Heat Capacity - ' + best_models[0],
                                     'free': 'FreeSolv - ' + best_models[1]})
-                bottom_labels = dict({'free': '$H_{hyd}$(error) $[\\frac{kJ}{mol}]$ \n (d)',
-                                  'qm': '$c_v$(error) $[\\frac{\\text{cal}}{\\text{mol} K}]$ \n (c)'})
+                bottom_labels = dict({'free': '$H_{hyd}$(error) $[\\frac{kJ}{mol}]$ \n $\\bf{(d)}$',
+                                  'qm': '$c_v$(error) $[\\frac{\\text{cal}}{\\text{mol} K}]$ \n $\\bf{(c)}$'})
 
             fig, ax = plt.subplots(nrows=2, figsize=(15, 10))
-
-            for plot_name, data_name, best_model, i in zip(plot_names, data_names, best_models, range(2)):
+            for plot_name, data_name, best_model, j in zip(plot_names, data_names, best_models, range(2)):
 
                 #i, j = axis_dict[plot_name]['row'], axis_dict[plot_name]['col']
 
@@ -381,26 +405,27 @@ if __name__ == "__main__":
                 lim = max(np.abs(residual_train).max(), np.abs(residual_val).max(), np.abs(residual_test).max())
                 lim += 0.5 * lim
 
-                sns.histplot(ax=ax[i],data=residual_train, bins=70, kde=True, color='cyan', edgecolor="black",
-                             label='train', alpha=0.3, line_kws={"lw":5})
-                sns.histplot(ax=ax[i],data=residual_val, bins=70, kde=True, color='orange', edgecolor="black",
-                             label='val', alpha=0.5, line_kws={"lw":5})
-                sns.histplot(ax=ax[i],data=residual_test, bins=70, kde=True, color='blue', edgecolor="black", label='test',
-                             alpha=0.3, line_kws={"lw":2})
+                sns.histplot(ax=ax[j],data=residual_train, bins=70, kde=True, color='red', edgecolor="red",
+                             label='train', alpha=0.3, line_kws={"lw":5}, stat='probability')
+                sns.histplot(ax=ax[j],data=residual_val, bins=70, kde=True, color='green', edgecolor="green",
+                             label='val', alpha=0.5, line_kws={"lw":5}, stat='probability')
+                sns.histplot(ax=ax[j],data=residual_test, bins=70, kde=True, color='blue', edgecolor="blue", label='test',
+                             alpha=0.3, line_kws={"lw":2}, stat='probability')
 
-                ax[i].set_xlabel(bottom_label)
-                ax[i].set_ylabel('Count')
-                ax[i].set_xlim(-lim, lim)
-                ax[i].legend()
-                ax[i].set_title(title_name)
+                ax[j].set_xlabel(bottom_label)
+                ax[j].set_ylabel('Probability')
+                ax[j].set_xlim(-lim, lim)
+                ax[j].legend()
+                ax[j].set_title(title_name)
 
-            fig.tight_layout()
-            fig.show()
+                fig.tight_layout()
+                fig.show()
 
             for axs in ax.flat:
                 axs.tick_params(axis='both', which='major', labelsize=20)
 
             fig.savefig(fname=f'results/residual_density_plots'+str(i)+'.svg', format='svg')
+            plt.close()
 
 
 

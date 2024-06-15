@@ -1,13 +1,13 @@
 import os
 from setuptools import setup, find_packages
 
-from pathlib import Path
-this_directory = Path(__file__).parent
-long_description = (this_directory / "README.md").read_text()
+# from pathlib import Path
+# this_directory = Path(__file__).parent
+# long_description = (this_directory / "README.md").read_text()
 
 setup(
     name='grape_chem',
-    version='1.0.1',
+    version='1.0.3',
     author='Felix Ærtebjerg',
     description='Tools for computational chemistry and deep learning.',
     packages=['grape_chem'],  # List of packages to be included
@@ -31,6 +31,6 @@ setup(
         'tqdm~=4.66.1',
         'scikit-learn'
     ],
-    long_description=long_description,
-    long_description_content_type='text/markdown',
+    #long_description=long_description,
+    #long_description_content_type='text/markdown',
 )

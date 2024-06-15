@@ -5,8 +5,14 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="115446f6-db4f-461b-90f9-f367678daa67" name="Changes" comment="doc fixed">
+      <change beforePath="$PROJECT_DIR$/.idea/GraPE.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/GraPE.iml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/notebooks/data_splits.xlsx" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/data_splits.xlsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/notebooks/result_generation.py" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/result_generation.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/notebooks/tests.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/tests.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/README.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/grape_chem/utils/model_utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/grape_chem/utils/model_utils.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/setup.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/setup.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -82,6 +88,7 @@
     "Python.opt_utils.executor": "Run",
     "Python.optimization_test.executor": "Run",
     "Python.pallete_script.executor": "Run",
+    "Python.plot_test.executor": "Run",
     "Python.presentation_dmpnn.executor": "Run",
     "Python.presentation_model.executor": "Run",
     "Python.presentation_mpnn.executor": "Run",
@@ -93,7 +100,7 @@
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "WebServerToolWindowFactoryState": "false",
     "git-widget-placeholder": "main",
-    "last_opened_file_path": "/Users/faerte/Desktop/grape/notebooks/results",
+    "last_opened_file_path": "/Users/faerte/Desktop/grape/notebooks",
     "node.js.detected.package.eslint": "true",
     "node.js.detected.package.tslint": "true",
     "node.js.selected.package.eslint": "(autodetect)",
@@ -105,11 +112,11 @@
 }]]></component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/notebooks" />
       <recent name="$PROJECT_DIR$/notebooks/results" />
       <recent name="$PROJECT_DIR$/python" />
       <recent name="$PROJECT_DIR$" />
       <recent name="$PROJECT_DIR$/grape/datasets" />
-      <recent name="$PROJECT_DIR$/notebooks" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
       <recent name="$PROJECT_DIR$/notebooks" />
@@ -224,23 +231,13 @@
       <workItem from="1717774733932" duration="4634000" />
       <workItem from="1717830803007" duration="7391000" />
       <workItem from="1717918078006" duration="14252000" />
-      <workItem from="1718013843564" duration="15026000" />
-    </task>
-    <task id="LOCAL-00032" summary="added dropout and more test">
-      <option name="closed" value="true" />
-      <created>1716124944072</created>
-      <option name="number" value="00032" />
-      <option name="presentableId" value="LOCAL-00032" />
-      <option name="project" value="LOCAL" />
-      <updated>1716124944072</updated>
-    </task>
-    <task id="LOCAL-00033" summary="added dropout and more test">
-      <option name="closed" value="true" />
-      <created>1716124955736</created>
-      <option name="number" value="00033" />
-      <option name="presentableId" value="LOCAL-00033" />
-      <option name="project" value="LOCAL" />
-      <updated>1716124955736</updated>
+      <workItem from="1718013843564" duration="17109000" />
+      <workItem from="1718087890822" duration="3689000" />
+      <workItem from="1718092146112" duration="10081000" />
+      <workItem from="1718174950651" duration="1071000" />
+      <workItem from="1718176096753" duration="460000" />
+      <workItem from="1718189235284" duration="4067000" />
+      <workItem from="1718472005873" duration="4840000" />
     </task>
     <task id="LOCAL-00034" summary="added dropout and more test">
       <option name="closed" value="true" />
@@ -618,7 +615,23 @@
       <option name="project" value="LOCAL" />
       <updated>1718038042666</updated>
     </task>
-    <option name="localTasksCounter" value="81" />
+    <task id="LOCAL-00081" summary="doc fixed">
+      <option name="closed" value="true" />
+      <created>1718044789872</created>
+      <option name="number" value="00081" />
+      <option name="presentableId" value="LOCAL-00081" />
+      <option name="project" value="LOCAL" />
+      <updated>1718044789872</updated>
+    </task>
+    <task id="LOCAL-00082" summary="doc fixed">
+      <option name="closed" value="true" />
+      <created>1718046019207</created>
+      <option name="number" value="00082" />
+      <option name="presentableId" value="LOCAL-00082" />
+      <option name="project" value="LOCAL" />
+      <updated>1718046019207</updated>
+    </task>
+    <option name="localTasksCounter" value="83" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -654,7 +667,7 @@
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/grape$presentation_model.coverage" NAME="presentation_model Coverage Results" MODIFIED="1713531949866" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/notebooks" />
-    <SUITE FILE_PATH="coverage/grape$latent_afp.coverage" NAME="latent_afp Coverage Results" MODIFIED="1718029114207" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/notebooks" />
+    <SUITE FILE_PATH="coverage/grape$latent_afp.coverage" NAME="latent_afp Coverage Results" MODIFIED="1718088762994" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/notebooks" />
     <SUITE FILE_PATH="coverage/grape$_classyfire.coverage" NAME="_classyfire Coverage Results" MODIFIED="1716319717916" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/grape/analysis" />
     <SUITE FILE_PATH="coverage/grape$afp_with_global_feats.coverage" NAME="afp_with_global_feats Coverage Results" MODIFIED="1716996745745" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/notebooks" />
     <SUITE FILE_PATH="coverage/grape$presentation_dmpnn.coverage" NAME="presentation_dmpnn Coverage Results" MODIFIED="1713709771726" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/notebooks" />
@@ -677,6 +690,7 @@
     <SUITE FILE_PATH="coverage/grape$optimization_test.coverage" NAME="optimization_test Coverage Results" MODIFIED="1716038275761" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/notebooks" />
     <SUITE FILE_PATH="coverage/grape$MPNN_gnn.coverage" NAME="MPNN_gnn Coverage Results" MODIFIED="1713369855594" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/grape/models" />
     <SUITE FILE_PATH="coverage/grape$MEGNet_gnn.coverage" NAME="MEGNet_gnn Coverage Results" MODIFIED="1714326296542" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/grape/models" />
+    <SUITE FILE_PATH="coverage/grape$plot_test.coverage" NAME="plot_test Coverage Results" MODIFIED="1718473480968" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/notebooks" />
     <SUITE FILE_PATH="coverage/grape$classyfire_plots.coverage" NAME="classyfire_plots Coverage Results" MODIFIED="1716324217628" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/notebooks" />
   </component>
 </project>

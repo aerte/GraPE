@@ -1,0 +1,39 @@
+{
+    "best_config": {
+        "afp_mol_layers": 1,
+        "depth": 1,
+        "dropout": 0.14754787042214232,
+        "gnn_hidden_dim": 36,
+        "initial_lr": 0.0012226779298793943,
+        "lr_reduction_factor": 0.7249512183479355,
+        "mlp_layers": 1,
+        "weight_decay": 0.005836346752658479
+    },
+    "best_metrics": {
+        "mae_loss": 0.3046834170818329,
+        "timestamp": 1716660980,
+        "checkpoint_dir_name": null,
+        "done": true,
+        "training_iteration": 20,
+        "trial_id": "11302840",
+        "date": "2024-05-25_20-16-20",
+        "time_this_iter_s": 3.1081154346466064,
+        "time_total_s": 64.75965332984924,
+        "pid": 25441,
+        "hostname": "n-62-18-9",
+        "node_ip": "10.66.18.9",
+        "config": {
+            "afp_mol_layers": 1,
+            "depth": 1,
+            "dropout": 0.14754787042214232,
+            "gnn_hidden_dim": 36,
+            "initial_lr": 0.0012226779298793943,
+            "lr_reduction_factor": 0.7249512183479355,
+            "mlp_layers": 1,
+            "weight_decay": 0.005836346752658479
+        },
+        "time_since_restore": 64.75965332984924,
+        "iterations_since_restore": 20,
+        "experiment_tag": "180_afp_mol_layers=1,depth=1,dropout=0.1475,gnn_hidden_dim=36,initial_lr=0.0012,lr_reduction_factor=0.7250,mlp_layers=1,weight_decay=0.0058"
+    }
+}
