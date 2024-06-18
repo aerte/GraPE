@@ -4,8 +4,6 @@ import os
 from typing import Optional, Union
 from torch import Tensor
 from numpy import ndarray
-import numpy as np
-import pandas as pd
 import matplotlib.pyplot as plt
 
 __all__ = [

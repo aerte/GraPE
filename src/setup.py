@@ -17,7 +17,7 @@ setup(
     install_requires=[
         'torch == 2.1.0',
         'torch_geometric >= 2.1',
-        'torch-scatter == 2.1.2',
+        'torch-scatter',
         'rdkit~=2023.9.5',
         'dgl~=2.0.0',
         'pandas~=2.2.0',

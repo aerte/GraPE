@@ -1,6 +1,6 @@
 # Butina clustering implementation
 from collections import defaultdict
-from typing import Union, Dict, List, Tuple
+from typing import Union
 import numpy as np
 from numpy import ndarray
 
