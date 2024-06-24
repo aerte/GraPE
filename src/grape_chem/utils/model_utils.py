@@ -304,7 +304,7 @@ def test_model(model: torch.nn.Module, test_data_loader: Union[list, Data, DataL
     ---------
     float
         Mean test loss over the test set batches.
-
+    TODO: add loss func, inherit device from where function gets called
     """
 
 
