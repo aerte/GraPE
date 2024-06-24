@@ -1,5 +1,5 @@
-from grape.models import AFP
-from grape.utils import DataSet, train_model, EarlyStopping, split_data, test_model, pred_metric, return_hidden_layers, set_seed
+from grape_chem.models import AFP
+from grape_chem.utils import DataSet, train_model, EarlyStopping, split_data, test_model, pred_metric, return_hidden_layers, set_seed
 from torch.optim import lr_scheduler
 import numpy as np
 import torch
