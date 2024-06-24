@@ -9,52 +9,53 @@ as backbones.
 .. contents:: Contents
     :local:
 
-Message Passing Models
------------------------
+Weave
+-------
 
-**Weave**
-
-.. automodule:: grape.models.Weave_gnn
+.. automodule:: grape_chem.models.Weave_gnn
    :members:
    :undoc-members:
    :show-inheritance:
 
-**MPNN**
+MPNN
+-------
 
-.. automodule:: grape.models.MPNN_gnn
+.. automodule:: grape_chem.models.MPNN_gnn
    :members:
    :undoc-members:
    :show-inheritance:
 
+D-MPNN
+-------
 
-**D-MPNN**
-
-.. automodule:: grape.models.DMPNN_gnn
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-
-**MEGNet**
-
-.. automodule:: grape.models.MEGNet_gnn
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-**AFP**
-
-.. automodule:: grape.models.AFP_gnn
+.. automodule:: grape_chem.models.DMPNN_gnn
    :members:
    :undoc-members:
    :show-inheritance:
 
 
+MEGNet
+-------
 
-Output Models
+.. automodule:: grape_chem.models.MEGNet_gnn
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+AFP
+-----
+
+.. automodule:: grape_chem.models.AFP_gnn
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+
+
+Output Model
 ---------------
 
-.. automodule:: grape.models.test_models
+.. automodule:: grape_chem.models.test_models
    :members:
    :undoc-members:
    :show-inheritance:

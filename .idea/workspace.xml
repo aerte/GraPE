@@ -4,11 +4,12 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="115446f6-db4f-461b-90f9-f367678daa67" name="Changes" comment="Megnet implementation">
+    <list default="true" id="115446f6-db4f-461b-90f9-f367678daa67" name="Changes" comment="doc fixed">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/source/api/models.rst" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/api/models.rst" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/source/index.rst" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/index.rst" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pyproject.toml" beforeDir="false" afterPath="$PROJECT_DIR$/pyproject.toml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/grape_chem/utils/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/grape_chem/utils/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/grape_chem/utils/opt_utils.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/setup.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/setup.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -26,7 +27,7 @@
   <component name="Git.Settings">
     <option name="RECENT_BRANCH_BY_REPOSITORY">
       <map>
-        <entry key="$PROJECT_DIR$" value="main" />
+        <entry key="$PROJECT_DIR$" value="felix" />
       </map>
     </option>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
@@ -61,22 +62,41 @@
   <component name="PropertiesComponent">{
   &quot;keyToString&quot;: {
     &quot;ASKED_MARK_IGNORED_FILES_AS_EXCLUDED&quot;: &quot;true&quot;,
+    &quot;JavaScript Debug.Advanced GraPE Demonstration.html.executor&quot;: &quot;Run&quot;,
     &quot;JavaScript Debug.Demonstration.html.executor&quot;: &quot;Run&quot;,
     &quot;JavaScript Debug.analysis.html.executor&quot;: &quot;Run&quot;,
+    &quot;JavaScript Debug.index.html.executor&quot;: &quot;Run&quot;,
+    &quot;JavaScript Debug.split_util.html.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.Doctests in data.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.Doctests in optimization_test.executor&quot;: &quot;Run&quot;,
+    &quot;Python.AFP_train_test.executor&quot;: &quot;Run&quot;,
+    &quot;Python.FreeSolvTraining.executor&quot;: &quot;Run&quot;,
     &quot;Python.MEGNet_gnn.executor&quot;: &quot;Run&quot;,
     &quot;Python.MPNN_gnn.executor&quot;: &quot;Run&quot;,
+    &quot;Python._classyfire.executor&quot;: &quot;Run&quot;,
+    &quot;Python.afp_with_global_feats.executor&quot;: &quot;Run&quot;,
     &quot;Python.alkanes_test.executor&quot;: &quot;Run&quot;,
+    &quot;Python.analysis_plots.executor&quot;: &quot;Run&quot;,
+    &quot;Python.classyfire_plots.executor&quot;: &quot;Run&quot;,
+    &quot;Python.create_data_files.executor&quot;: &quot;Run&quot;,
+    &quot;Python.dmpnn_glob.executor&quot;: &quot;Run&quot;,
+    &quot;Python.latent_afp.executor&quot;: &quot;Run&quot;,
+    &quot;Python.mp_extra.executor&quot;: &quot;Run&quot;,
     &quot;Python.opt_utils.executor&quot;: &quot;Run&quot;,
+    &quot;Python.optimization_test.executor&quot;: &quot;Run&quot;,
+    &quot;Python.pallete_script.executor&quot;: &quot;Run&quot;,
+    &quot;Python.plot_test.executor&quot;: &quot;Run&quot;,
     &quot;Python.presentation_dmpnn.executor&quot;: &quot;Run&quot;,
     &quot;Python.presentation_model.executor&quot;: &quot;Run&quot;,
     &quot;Python.presentation_mpnn.executor&quot;: &quot;Run&quot;,
     &quot;Python.test2.executor&quot;: &quot;Run&quot;,
+    &quot;Python.test_ad.executor&quot;: &quot;Run&quot;,
     &quot;Python.test_models.executor&quot;: &quot;Run&quot;,
     &quot;Python.testbayes.executor&quot;: &quot;Run&quot;,
     &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
     &quot;WebServerToolWindowFactoryState&quot;: &quot;false&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;felix&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
     &quot;last_opened_file_path&quot;: &quot;/Users/faerte/Desktop/grape/notebooks&quot;,
     &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
     &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
@@ -90,18 +110,24 @@
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="$PROJECT_DIR$/notebooks" />
+      <recent name="$PROJECT_DIR$/notebooks/results" />
+      <recent name="$PROJECT_DIR$/python" />
+      <recent name="$PROJECT_DIR$" />
+      <recent name="$PROJECT_DIR$/grape/datasets" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
-      <recent name="$PROJECT_DIR$/docs/source/api" />
-      <recent name="$PROJECT_DIR$/grape" />
-      <recent name="$PROJECT_DIR$/scripts" />
+      <recent name="$PROJECT_DIR$/notebooks" />
+      <recent name="$PROJECT_DIR$/notebooks/results" />
+      <recent name="$PROJECT_DIR$/notebooks/results/models" />
+      <recent name="$PROJECT_DIR$/notebooks/results/classyfire/opt" />
+      <recent name="$PROJECT_DIR$/docs" />
     </key>
   </component>
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
-        <option value="bundled-js-predefined-1d06a55b98c1-74d2a5396914-JavaScript-PY-241.14494.241" />
-        <option value="bundled-python-sdk-0509580d9d50-28c9f5db9ffe-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-241.14494.241" />
+        <option value="bundled-js-predefined-1d06a55b98c1-0b3e54e931b4-JavaScript-PY-241.17011.127" />
+        <option value="bundled-python-sdk-48aec45f0201-7e9c3bbb6e34-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-241.17011.127" />
       </set>
     </attachedChunks>
   </component>
@@ -156,198 +182,464 @@
       <workItem from="1714633543523" duration="5592000" />
       <workItem from="1714736068114" duration="17000" />
       <workItem from="1714895394411" duration="930000" />
-      <workItem from="1715013136795" duration="403000" />
+      <workItem from="1715013136795" duration="1810000" />
+      <workItem from="1715064050756" duration="389000" />
+      <workItem from="1715362046503" duration="1555000" />
+      <workItem from="1715370198678" duration="1854000" />
+      <workItem from="1715860067826" duration="11485000" />
+      <workItem from="1715932268341" duration="3612000" />
+      <workItem from="1715949213218" duration="10954000" />
+      <workItem from="1716019480740" duration="14518000" />
+      <workItem from="1716119134362" duration="1505000" />
+      <workItem from="1716123104210" duration="4121000" />
+      <workItem from="1716138119521" duration="583000" />
+      <workItem from="1716220531012" duration="5266000" />
+      <workItem from="1716273029046" duration="29569000" />
+      <workItem from="1716366201060" duration="2880000" />
+      <workItem from="1716379817206" duration="10828000" />
+      <workItem from="1716447789883" duration="118000" />
+      <workItem from="1716448361347" duration="361000" />
+      <workItem from="1716449107694" duration="2804000" />
+      <workItem from="1716452153329" duration="2228000" />
+      <workItem from="1716461594547" duration="5294000" />
+      <workItem from="1716539276340" duration="580000" />
+      <workItem from="1716732068204" duration="2389000" />
+      <workItem from="1716915555146" duration="7741000" />
+      <workItem from="1716963379495" duration="12598000" />
+      <workItem from="1717052043155" duration="1999000" />
+      <workItem from="1717054963186" duration="10323000" />
+      <workItem from="1717066406858" duration="56000" />
+      <workItem from="1717066499706" duration="729000" />
+      <workItem from="1717067243223" duration="20326000" />
+      <workItem from="1717141469156" duration="31000" />
+      <workItem from="1717151480370" duration="9790000" />
+      <workItem from="1717163741178" duration="7233000" />
+      <workItem from="1717186839015" duration="883000" />
+      <workItem from="1717231725607" duration="12086000" />
+      <workItem from="1717320282485" duration="1847000" />
+      <workItem from="1717322148425" duration="1603000" />
+      <workItem from="1717324166292" duration="17106000" />
+      <workItem from="1717505402006" duration="3063000" />
+      <workItem from="1717508689302" duration="4685000" />
+      <workItem from="1717589694944" duration="449000" />
+      <workItem from="1717591902254" duration="709000" />
+      <workItem from="1717658254938" duration="3709000" />
+      <workItem from="1717753080530" duration="1007000" />
+      <workItem from="1717774733932" duration="4634000" />
+      <workItem from="1717830803007" duration="7391000" />
+      <workItem from="1717918078006" duration="14252000" />
+      <workItem from="1718013843564" duration="17109000" />
+      <workItem from="1718087890822" duration="3689000" />
+      <workItem from="1718092146112" duration="10081000" />
+      <workItem from="1718174950651" duration="1071000" />
+      <workItem from="1718176096753" duration="460000" />
+      <workItem from="1718189235284" duration="4067000" />
+      <workItem from="1718472005873" duration="5309000" />
+      <workItem from="1718550926212" duration="61000" />
+      <workItem from="1718611625477" duration="182000" />
+      <workItem from="1718696148666" duration="203000" />
     </task>
-    <task id="LOCAL-00001" summary="bug fixes, SubSet, pca tests, expansion of classyfire">
+    <task id="LOCAL-00035" summary="added dropout and more test">
       <option name="closed" value="true" />
-      <created>1712174741437</created>
-      <option name="number" value="00001" />
-      <option name="presentableId" value="LOCAL-00001" />
+      <created>1716379844728</created>
+      <option name="number" value="00035" />
+      <option name="presentableId" value="LOCAL-00035" />
       <option name="project" value="LOCAL" />
-      <updated>1712174741437</updated>
+      <updated>1716379844728</updated>
     </task>
-    <task id="LOCAL-00002" summary="fixed butina clustering">
+    <task id="LOCAL-00036" summary="added dropout and more test">
       <option name="closed" value="true" />
-      <created>1712214804459</created>
-      <option name="number" value="00002" />
-      <option name="presentableId" value="LOCAL-00002" />
+      <created>1716380948396</created>
+      <option name="number" value="00036" />
+      <option name="presentableId" value="LOCAL-00036" />
       <option name="project" value="LOCAL" />
-      <updated>1712214804459</updated>
+      <updated>1716380948396</updated>
     </task>
-    <task id="LOCAL-00003" summary="code re-organization, bug fixes">
+    <task id="LOCAL-00037" summary="added dropout and more test">
       <option name="closed" value="true" />
-      <created>1712262496291</created>
-      <option name="number" value="00003" />
-      <option name="presentableId" value="LOCAL-00003" />
+      <created>1716398621140</created>
+      <option name="number" value="00037" />
+      <option name="presentableId" value="LOCAL-00037" />
       <option name="project" value="LOCAL" />
-      <updated>1712262496291</updated>
+      <updated>1716398621140</updated>
     </task>
-    <task id="LOCAL-00004" summary="code re-organization, bug fixes">
+    <task id="LOCAL-00038" summary="made scaling optional">
       <option name="closed" value="true" />
-      <created>1712262512624</created>
-      <option name="number" value="00004" />
-      <option name="presentableId" value="LOCAL-00004" />
+      <created>1716404189136</created>
+      <option name="number" value="00038" />
+      <option name="presentableId" value="LOCAL-00038" />
       <option name="project" value="LOCAL" />
-      <updated>1712262512624</updated>
+      <updated>1716404189136</updated>
     </task>
-    <task id="LOCAL-00005" summary="bug, fixese, plots and more">
+    <task id="LOCAL-00039" summary="made scaling optional">
       <option name="closed" value="true" />
-      <created>1712501523338</created>
-      <option name="number" value="00005" />
-      <option name="presentableId" value="LOCAL-00005" />
+      <created>1716408274772</created>
+      <option name="number" value="00039" />
+      <option name="presentableId" value="LOCAL-00039" />
       <option name="project" value="LOCAL" />
-      <updated>1712501523338</updated>
+      <updated>1716408274772</updated>
     </task>
-    <task id="LOCAL-00006" summary="bug, fixese, plots and more">
+    <task id="LOCAL-00040" summary="made scaling optional">
       <option name="closed" value="true" />
-      <created>1712501534798</created>
-      <option name="number" value="00006" />
-      <option name="presentableId" value="LOCAL-00006" />
+      <created>1716408289163</created>
+      <option name="number" value="00040" />
+      <option name="presentableId" value="LOCAL-00040" />
       <option name="project" value="LOCAL" />
-      <updated>1712501534798</updated>
+      <updated>1716408289163</updated>
     </task>
-    <task id="LOCAL-00007" summary="documentation">
+    <task id="LOCAL-00041" summary="made scaling optional">
       <option name="closed" value="true" />
-      <created>1712511173123</created>
-      <option name="number" value="00007" />
-      <option name="presentableId" value="LOCAL-00007" />
+      <created>1716448762048</created>
+      <option name="number" value="00041" />
+      <option name="presentableId" value="LOCAL-00041" />
       <option name="project" value="LOCAL" />
-      <updated>1712511173123</updated>
+      <updated>1716448762048</updated>
     </task>
-    <task id="LOCAL-00008" summary="small fixes">
+    <task id="LOCAL-00042" summary="made scaling optional">
       <option name="closed" value="true" />
-      <created>1712519369857</created>
-      <option name="number" value="00008" />
-      <option name="presentableId" value="LOCAL-00008" />
+      <created>1716454300913</created>
+      <option name="number" value="00042" />
+      <option name="presentableId" value="LOCAL-00042" />
       <option name="project" value="LOCAL" />
-      <updated>1712519369857</updated>
+      <updated>1716454300913</updated>
     </task>
-    <task id="LOCAL-00009" summary="new butina split and bug fixes">
+    <task id="LOCAL-00043" summary="made scaling optional">
       <option name="closed" value="true" />
-      <created>1712740225609</created>
-      <option name="number" value="00009" />
-      <option name="presentableId" value="LOCAL-00009" />
+      <created>1716461667964</created>
+      <option name="number" value="00043" />
+      <option name="presentableId" value="LOCAL-00043" />
       <option name="project" value="LOCAL" />
-      <updated>1712740225609</updated>
+      <updated>1716461667964</updated>
     </task>
-    <task id="LOCAL-00010" summary="new butina split and bug fixes">
+    <task id="LOCAL-00044" summary="made scaling optional">
       <option name="closed" value="true" />
-      <created>1712757400546</created>
-      <option name="number" value="00010" />
-      <option name="presentableId" value="LOCAL-00010" />
+      <created>1716539303632</created>
+      <option name="number" value="00044" />
+      <option name="presentableId" value="LOCAL-00044" />
       <option name="project" value="LOCAL" />
-      <updated>1712757400546</updated>
+      <updated>1716539303632</updated>
     </task>
-    <task id="LOCAL-00011" summary="new butina split and bug fixes">
+    <task id="LOCAL-00045" summary="small change to spltting">
       <option name="closed" value="true" />
-      <created>1712759146127</created>
-      <option name="number" value="00011" />
-      <option name="presentableId" value="LOCAL-00011" />
+      <created>1716733733890</created>
+      <option name="number" value="00045" />
+      <option name="presentableId" value="LOCAL-00045" />
       <option name="project" value="LOCAL" />
-      <updated>1712759146127</updated>
+      <updated>1716733733890</updated>
     </task>
-    <task id="LOCAL-00012" summary="new butina split and bug fixes">
+    <task id="LOCAL-00046" summary="fixed a small circular import">
       <option name="closed" value="true" />
-      <created>1712759485616</created>
-      <option name="number" value="00012" />
-      <option name="presentableId" value="LOCAL-00012" />
+      <created>1716734054821</created>
+      <option name="number" value="00046" />
+      <option name="presentableId" value="LOCAL-00046" />
       <option name="project" value="LOCAL" />
-      <updated>1712759485616</updated>
+      <updated>1716734054821</updated>
     </task>
-    <task id="LOCAL-00013" summary="fixed MPNN and added an Early stopping class">
+    <task id="LOCAL-00047" summary="small fixes">
       <option name="closed" value="true" />
-      <created>1712862774211</created>
-      <option name="number" value="00013" />
-      <option name="presentableId" value="LOCAL-00013" />
+      <created>1716734359016</created>
+      <option name="number" value="00047" />
+      <option name="presentableId" value="LOCAL-00047" />
       <option name="project" value="LOCAL" />
-      <updated>1712862774211</updated>
+      <updated>1716734359016</updated>
     </task>
-    <task id="LOCAL-00014" summary="optimization">
+    <task id="LOCAL-00048" summary="added global feature compatibility and AFP with global features">
       <option name="closed" value="true" />
-      <created>1713268683829</created>
-      <option name="number" value="00014" />
-      <option name="presentableId" value="LOCAL-00014" />
+      <created>1716921559327</created>
+      <option name="number" value="00048" />
+      <option name="presentableId" value="LOCAL-00048" />
       <option name="project" value="LOCAL" />
-      <updated>1713268683829</updated>
+      <updated>1716921559327</updated>
     </task>
-    <task id="LOCAL-00015" summary="optimization">
+    <task id="LOCAL-00049" summary="added global feature compatibility and AFP with global features">
       <option name="closed" value="true" />
-      <created>1713381239677</created>
-      <option name="number" value="00015" />
-      <option name="presentableId" value="LOCAL-00015" />
+      <created>1716922402102</created>
+      <option name="number" value="00049" />
+      <option name="presentableId" value="LOCAL-00049" />
       <option name="project" value="LOCAL" />
-      <updated>1713381239677</updated>
+      <updated>1716922402102</updated>
     </task>
-    <task id="LOCAL-00016" summary="optimization">
+    <task id="LOCAL-00050" summary="fixed stuff">
       <option name="closed" value="true" />
-      <created>1713381251200</created>
-      <option name="number" value="00016" />
-      <option name="presentableId" value="LOCAL-00016" />
+      <created>1716996844762</created>
+      <option name="number" value="00050" />
+      <option name="presentableId" value="LOCAL-00050" />
       <option name="project" value="LOCAL" />
-      <updated>1713381251200</updated>
+      <updated>1716996844762</updated>
     </task>
-    <task id="LOCAL-00017" summary="more plots and fixes">
+    <task id="LOCAL-00051" summary="fixed stuff">
       <option name="closed" value="true" />
-      <created>1713693828609</created>
-      <option name="number" value="00017" />
-      <option name="presentableId" value="LOCAL-00017" />
+      <created>1716997013848</created>
+      <option name="number" value="00051" />
+      <option name="presentableId" value="LOCAL-00051" />
       <option name="project" value="LOCAL" />
-      <updated>1713693828609</updated>
+      <updated>1716997013848</updated>
     </task>
-    <task id="LOCAL-00018" summary="some reformatting and presentation files">
+    <task id="LOCAL-00052" summary="fixed stuff">
       <option name="closed" value="true" />
-      <created>1713693860752</created>
-      <option name="number" value="00018" />
-      <option name="presentableId" value="LOCAL-00018" />
+      <created>1717053230275</created>
+      <option name="number" value="00052" />
+      <option name="presentableId" value="LOCAL-00052" />
       <option name="project" value="LOCAL" />
-      <updated>1713693860752</updated>
+      <updated>1717053230276</updated>
     </task>
-    <task id="LOCAL-00019" summary="dmpnn added and update of documentation">
+    <task id="LOCAL-00053" summary="fixed stuff">
       <option name="closed" value="true" />
-      <created>1713712810343</created>
-      <option name="number" value="00019" />
-      <option name="presentableId" value="LOCAL-00019" />
+      <created>1717053797603</created>
+      <option name="number" value="00053" />
+      <option name="presentableId" value="LOCAL-00053" />
       <option name="project" value="LOCAL" />
-      <updated>1713712810343</updated>
+      <updated>1717053797603</updated>
     </task>
-    <task id="LOCAL-00020" summary="added documentation and n-alkanes">
+    <task id="LOCAL-00054" summary="fixed stuff">
       <option name="closed" value="true" />
-      <created>1713808204910</created>
-      <option name="number" value="00020" />
-      <option name="presentableId" value="LOCAL-00020" />
+      <created>1717055014274</created>
+      <option name="number" value="00054" />
+      <option name="presentableId" value="LOCAL-00054" />
       <option name="project" value="LOCAL" />
-      <updated>1713808204910</updated>
+      <updated>1717055014274</updated>
     </task>
-    <task id="LOCAL-00021" summary="Megnet implementation">
+    <task id="LOCAL-00055" summary="fixed stuff">
       <option name="closed" value="true" />
-      <created>1714328027656</created>
-      <option name="number" value="00021" />
-      <option name="presentableId" value="LOCAL-00021" />
+      <created>1717055583997</created>
+      <option name="number" value="00055" />
+      <option name="presentableId" value="LOCAL-00055" />
       <option name="project" value="LOCAL" />
-      <updated>1714328027656</updated>
+      <updated>1717055583997</updated>
     </task>
-    <task id="LOCAL-00022" summary="Megnet implementation">
+    <task id="LOCAL-00056" summary="fixed stuff">
       <option name="closed" value="true" />
-      <created>1714645153761</created>
-      <option name="number" value="00022" />
-      <option name="presentableId" value="LOCAL-00022" />
+      <created>1717055655371</created>
+      <option name="number" value="00056" />
+      <option name="presentableId" value="LOCAL-00056" />
       <option name="project" value="LOCAL" />
-      <updated>1714645153761</updated>
+      <updated>1717055655371</updated>
     </task>
-    <option name="localTasksCounter" value="23" />
+    <task id="LOCAL-00057" summary="fixed stuff">
+      <option name="closed" value="true" />
+      <created>1717055732642</created>
+      <option name="number" value="00057" />
+      <option name="presentableId" value="LOCAL-00057" />
+      <option name="project" value="LOCAL" />
+      <updated>1717055732642</updated>
+    </task>
+    <task id="LOCAL-00058" summary="fixed stuff">
+      <option name="closed" value="true" />
+      <created>1717055783565</created>
+      <option name="number" value="00058" />
+      <option name="presentableId" value="LOCAL-00058" />
+      <option name="project" value="LOCAL" />
+      <updated>1717055783566</updated>
+    </task>
+    <task id="LOCAL-00059" summary="fixed stuff">
+      <option name="closed" value="true" />
+      <created>1717058603256</created>
+      <option name="number" value="00059" />
+      <option name="presentableId" value="LOCAL-00059" />
+      <option name="project" value="LOCAL" />
+      <updated>1717058603257</updated>
+    </task>
+    <task id="LOCAL-00060" summary="fixed stuff">
+      <option name="closed" value="true" />
+      <created>1717058665823</created>
+      <option name="number" value="00060" />
+      <option name="presentableId" value="LOCAL-00060" />
+      <option name="project" value="LOCAL" />
+      <updated>1717058665823</updated>
+    </task>
+    <task id="LOCAL-00061" summary="fixed and added a bunch of stuff">
+      <option name="closed" value="true" />
+      <created>1717094499005</created>
+      <option name="number" value="00061" />
+      <option name="presentableId" value="LOCAL-00061" />
+      <option name="project" value="LOCAL" />
+      <updated>1717094499006</updated>
+    </task>
+    <task id="LOCAL-00062" summary="optuna optimization">
+      <option name="closed" value="true" />
+      <created>1717099144460</created>
+      <option name="number" value="00062" />
+      <option name="presentableId" value="LOCAL-00062" />
+      <option name="project" value="LOCAL" />
+      <updated>1717099144460</updated>
+    </task>
+    <task id="LOCAL-00063" summary="more stuff">
+      <option name="closed" value="true" />
+      <created>1717102366084</created>
+      <option name="number" value="00063" />
+      <option name="presentableId" value="LOCAL-00063" />
+      <option name="project" value="LOCAL" />
+      <updated>1717102366084</updated>
+    </task>
+    <task id="LOCAL-00064" summary="fixed and added a bunch of stuff">
+      <option name="closed" value="true" />
+      <created>1717163710752</created>
+      <option name="number" value="00064" />
+      <option name="presentableId" value="LOCAL-00064" />
+      <option name="project" value="LOCAL" />
+      <updated>1717163710752</updated>
+    </task>
+    <task id="LOCAL-00065" summary="fixed and added a bunch of stuff">
+      <option name="closed" value="true" />
+      <created>1717260579263</created>
+      <option name="number" value="00065" />
+      <option name="presentableId" value="LOCAL-00065" />
+      <option name="project" value="LOCAL" />
+      <updated>1717260579264</updated>
+    </task>
+    <task id="LOCAL-00066" summary="fixed and added a bunch of stuff">
+      <option name="closed" value="true" />
+      <created>1717321527818</created>
+      <option name="number" value="00066" />
+      <option name="presentableId" value="LOCAL-00066" />
+      <option name="project" value="LOCAL" />
+      <updated>1717321527818</updated>
+    </task>
+    <task id="LOCAL-00067" summary="fixed and added a bunch of stuff">
+      <option name="closed" value="true" />
+      <created>1717324243648</created>
+      <option name="number" value="00067" />
+      <option name="presentableId" value="LOCAL-00067" />
+      <option name="project" value="LOCAL" />
+      <updated>1717324243648</updated>
+    </task>
+    <task id="LOCAL-00068" summary="added global feats to every model">
+      <option name="closed" value="true" />
+      <created>1717327538894</created>
+      <option name="number" value="00068" />
+      <option name="presentableId" value="LOCAL-00068" />
+      <option name="project" value="LOCAL" />
+      <updated>1717327538894</updated>
+    </task>
+    <task id="LOCAL-00069" summary="added global feats to every model">
+      <option name="closed" value="true" />
+      <created>1717342478313</created>
+      <option name="number" value="00069" />
+      <option name="presentableId" value="LOCAL-00069" />
+      <option name="project" value="LOCAL" />
+      <updated>1717342478313</updated>
+    </task>
+    <task id="LOCAL-00070" summary="doc fixed">
+      <option name="closed" value="true" />
+      <created>1717506818734</created>
+      <option name="number" value="00070" />
+      <option name="presentableId" value="LOCAL-00070" />
+      <option name="project" value="LOCAL" />
+      <updated>1717506818734</updated>
+    </task>
+    <task id="LOCAL-00071" summary="doc fixed">
+      <option name="closed" value="true" />
+      <created>1717507259222</created>
+      <option name="number" value="00071" />
+      <option name="presentableId" value="LOCAL-00071" />
+      <option name="project" value="LOCAL" />
+      <updated>1717507259222</updated>
+    </task>
+    <task id="LOCAL-00072" summary="doc fixed">
+      <option name="closed" value="true" />
+      <created>1717507548070</created>
+      <option name="number" value="00072" />
+      <option name="presentableId" value="LOCAL-00072" />
+      <option name="project" value="LOCAL" />
+      <updated>1717507548070</updated>
+    </task>
+    <task id="LOCAL-00073" summary="doc fixed">
+      <option name="closed" value="true" />
+      <created>1717507752421</created>
+      <option name="number" value="00073" />
+      <option name="presentableId" value="LOCAL-00073" />
+      <option name="project" value="LOCAL" />
+      <updated>1717507752421</updated>
+    </task>
+    <task id="LOCAL-00074" summary="doc fixed">
+      <option name="closed" value="true" />
+      <created>1717511965564</created>
+      <option name="number" value="00074" />
+      <option name="presentableId" value="LOCAL-00074" />
+      <option name="project" value="LOCAL" />
+      <updated>1717511965565</updated>
+    </task>
+    <task id="LOCAL-00075" summary="doc fixed">
+      <option name="closed" value="true" />
+      <created>1717512114594</created>
+      <option name="number" value="00075" />
+      <option name="presentableId" value="LOCAL-00075" />
+      <option name="project" value="LOCAL" />
+      <updated>1717512114594</updated>
+    </task>
+    <task id="LOCAL-00076" summary="doc fixed">
+      <option name="closed" value="true" />
+      <created>1717512942544</created>
+      <option name="number" value="00076" />
+      <option name="presentableId" value="LOCAL-00076" />
+      <option name="project" value="LOCAL" />
+      <updated>1717512942544</updated>
+    </task>
+    <task id="LOCAL-00077" summary="doc fixed">
+      <option name="closed" value="true" />
+      <created>1717513033184</created>
+      <option name="number" value="00077" />
+      <option name="presentableId" value="LOCAL-00077" />
+      <option name="project" value="LOCAL" />
+      <updated>1717513033184</updated>
+    </task>
+    <task id="LOCAL-00078" summary="doc fixed">
+      <option name="closed" value="true" />
+      <created>1717589894312</created>
+      <option name="number" value="00078" />
+      <option name="presentableId" value="LOCAL-00078" />
+      <option name="project" value="LOCAL" />
+      <updated>1717589894313</updated>
+    </task>
+    <task id="LOCAL-00079" summary="doc fixed">
+      <option name="closed" value="true" />
+      <created>1717589938525</created>
+      <option name="number" value="00079" />
+      <option name="presentableId" value="LOCAL-00079" />
+      <option name="project" value="LOCAL" />
+      <updated>1717589938525</updated>
+    </task>
+    <task id="LOCAL-00080" summary="doc fixed">
+      <option name="closed" value="true" />
+      <created>1718038042666</created>
+      <option name="number" value="00080" />
+      <option name="presentableId" value="LOCAL-00080" />
+      <option name="project" value="LOCAL" />
+      <updated>1718038042666</updated>
+    </task>
+    <task id="LOCAL-00081" summary="doc fixed">
+      <option name="closed" value="true" />
+      <created>1718044789872</created>
+      <option name="number" value="00081" />
+      <option name="presentableId" value="LOCAL-00081" />
+      <option name="project" value="LOCAL" />
+      <updated>1718044789872</updated>
+    </task>
+    <task id="LOCAL-00082" summary="doc fixed">
+      <option name="closed" value="true" />
+      <created>1718046019207</created>
+      <option name="number" value="00082" />
+      <option name="presentableId" value="LOCAL-00082" />
+      <option name="project" value="LOCAL" />
+      <updated>1718046019207</updated>
+    </task>
+    <task id="LOCAL-00083" summary="doc fixed">
+      <option name="closed" value="true" />
+      <created>1718485061004</created>
+      <option name="number" value="00083" />
+      <option name="presentableId" value="LOCAL-00083" />
+      <option name="project" value="LOCAL" />
+      <updated>1718485061004</updated>
+    </task>
+    <option name="localTasksCounter" value="84" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="documentation, metric function and name-change&#10;&#10;Signed-off-by: aerte &lt;62424399+aerte@users.noreply.github.com&gt;" />
-    <MESSAGE value="bug fixes, SubSet, pca tests, expansion of classyfire" />
-    <MESSAGE value="fixed butina clustering" />
-    <MESSAGE value="code re-organization, bug fixes" />
     <MESSAGE value="bug, fixese, plots and more" />
     <MESSAGE value="documentation" />
-    <MESSAGE value="small fixes" />
     <MESSAGE value="new butina split and bug fixes" />
     <MESSAGE value="fixed MPNN and added an Early stopping class" />
     <MESSAGE value="optimization" />
@@ -356,18 +648,49 @@
     <MESSAGE value="dmpnn added and update of documentation" />
     <MESSAGE value="added documentation and n-alkanes" />
     <MESSAGE value="Megnet implementation" />
-    <option name="LAST_COMMIT_MESSAGE" value="Megnet implementation" />
+    <MESSAGE value="QM9 added" />
+    <MESSAGE value="Added MLP input" />
+    <MESSAGE value="Fixed MEGNet and added documentation" />
+    <MESSAGE value="added dropout and more test" />
+    <MESSAGE value="made scaling optional" />
+    <MESSAGE value="small change to spltting" />
+    <MESSAGE value="fixed a small circular import" />
+    <MESSAGE value="small fixes" />
+    <MESSAGE value="added global feature compatibility and AFP with global features" />
+    <MESSAGE value="fixed stuff" />
+    <MESSAGE value="optuna optimization" />
+    <MESSAGE value="more stuff" />
+    <MESSAGE value="fixed and added a bunch of stuff" />
+    <MESSAGE value="added global feats to every model" />
+    <MESSAGE value="doc fixed" />
+    <option name="LAST_COMMIT_MESSAGE" value="doc fixed" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/grape$presentation_model.coverage" NAME="presentation_model Coverage Results" MODIFIED="1713531949866" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/notebooks" />
+    <SUITE FILE_PATH="coverage/grape$latent_afp.coverage" NAME="latent_afp Coverage Results" MODIFIED="1718088762994" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/notebooks" />
+    <SUITE FILE_PATH="coverage/grape$_classyfire.coverage" NAME="_classyfire Coverage Results" MODIFIED="1716319717916" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/grape/analysis" />
+    <SUITE FILE_PATH="coverage/grape$afp_with_global_feats.coverage" NAME="afp_with_global_feats Coverage Results" MODIFIED="1716996745745" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/notebooks" />
+    <SUITE FILE_PATH="coverage/grape$presentation_dmpnn.coverage" NAME="presentation_dmpnn Coverage Results" MODIFIED="1713709771726" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/notebooks" />
+    <SUITE FILE_PATH="coverage/grape$AFP_train_test.coverage" NAME="AFP_train_test Coverage Results" MODIFIED="1715864210627" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/notebooks" />
+    <SUITE FILE_PATH="coverage/grape$FreeSolvTraining.coverage" NAME="FreeSolvTraining Coverage Results" MODIFIED="1715933199315" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/notebooks" />
+    <SUITE FILE_PATH="coverage/grape$Doctests_in_data.coverage" NAME="Doctests in data Coverage Results" MODIFIED="1717331108450" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/python/grape/utils" />
+    <SUITE FILE_PATH="coverage/grape$create_data_files.coverage" NAME="create_data_files Coverage Results" MODIFIED="1717839735780" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/notebooks" />
+    <SUITE FILE_PATH="coverage/grape$test_ad.coverage" NAME="test_ad Coverage Results" MODIFIED="1717332659450" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/notebooks" />
+    <SUITE FILE_PATH="coverage/grape$presentation_mpnn.coverage" NAME="presentation_mpnn Coverage Results" MODIFIED="1714327319150" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/notebooks" />
+    <SUITE FILE_PATH="coverage/grape$pallete_script.coverage" NAME="pallete_script Coverage Results" MODIFIED="1717243009531" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/notebooks" />
+    <SUITE FILE_PATH="coverage/grape$test2.coverage" NAME="test2 Coverage Results" MODIFIED="1713520057829" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/notebooks" />
+    <SUITE FILE_PATH="coverage/grape$mp_extra.coverage" NAME="mp_extra Coverage Results" MODIFIED="1718009948840" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/notebooks" />
+    <SUITE FILE_PATH="coverage/grape$opt_utils.coverage" NAME="opt_utils Coverage Results" MODIFIED="1713264989457" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/grape/utils" />
     <SUITE FILE_PATH="coverage/grape$alkanes_test.coverage" NAME="alkanes_test Coverage Results" MODIFIED="1713775345542" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/notebooks" />
+    <SUITE FILE_PATH="coverage/grape$Doctests_in_optimization_test.coverage" NAME="Doctests in optimization_test Coverage Results" MODIFIED="1716126476910" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/notebooks" />
+    <SUITE FILE_PATH="coverage/grape$test_models.coverage" NAME="test_models Coverage Results" MODIFIED="1713368941036" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/grape/models" />
+    <SUITE FILE_PATH="coverage/grape$analysis_plots.coverage" NAME="analysis_plots Coverage Results" MODIFIED="1716298576348" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/grape/plots" />
+    <SUITE FILE_PATH="coverage/grape$testbayes.coverage" NAME="testbayes Coverage Results" MODIFIED="1713267308595" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/notebooks" />
+    <SUITE FILE_PATH="coverage/grape$dmpnn_glob.coverage" NAME="dmpnn_glob Coverage Results" MODIFIED="1718001624649" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/notebooks" />
+    <SUITE FILE_PATH="coverage/grape$optimization_test.coverage" NAME="optimization_test Coverage Results" MODIFIED="1716038275761" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/notebooks" />
     <SUITE FILE_PATH="coverage/grape$MPNN_gnn.coverage" NAME="MPNN_gnn Coverage Results" MODIFIED="1713369855594" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/grape/models" />
     <SUITE FILE_PATH="coverage/grape$MEGNet_gnn.coverage" NAME="MEGNet_gnn Coverage Results" MODIFIED="1714326296542" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/grape/models" />
-    <SUITE FILE_PATH="coverage/grape$presentation_dmpnn.coverage" NAME="presentation_dmpnn Coverage Results" MODIFIED="1713709771726" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/notebooks" />
-    <SUITE FILE_PATH="coverage/grape$test_models.coverage" NAME="test_models Coverage Results" MODIFIED="1713368941036" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/grape/models" />
-    <SUITE FILE_PATH="coverage/grape$presentation_mpnn.coverage" NAME="presentation_mpnn Coverage Results" MODIFIED="1714327319150" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/notebooks" />
-    <SUITE FILE_PATH="coverage/grape$test2.coverage" NAME="test2 Coverage Results" MODIFIED="1713520057829" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/notebooks" />
-    <SUITE FILE_PATH="coverage/grape$opt_utils.coverage" NAME="opt_utils Coverage Results" MODIFIED="1713264989457" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/grape/utils" />
-    <SUITE FILE_PATH="coverage/grape$testbayes.coverage" NAME="testbayes Coverage Results" MODIFIED="1713267308595" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/notebooks" />
+    <SUITE FILE_PATH="coverage/grape$plot_test.coverage" NAME="plot_test Coverage Results" MODIFIED="1718473480968" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/notebooks" />
+    <SUITE FILE_PATH="coverage/grape$classyfire_plots.coverage" NAME="classyfire_plots Coverage Results" MODIFIED="1716324217628" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/notebooks" />
   </component>
 </project>

@@ -1,0 +1,37 @@
+{
+    "best_config": {
+        "depth": 2,
+        "dropout": 0.35156755537189155,
+        "gnn_hidden_dim": 100,
+        "initial_lr": 0.004816963944970247,
+        "lr_reduction_factor": 0.9215038525130558,
+        "mlp_layers": 1,
+        "weight_decay": 0.0016721331394394657
+    },
+    "best_metrics": {
+        "mae_loss": 0.21473681926727295,
+        "timestamp": 1716964814,
+        "checkpoint_dir_name": null,
+        "done": true,
+        "training_iteration": 20,
+        "trial_id": "b9487ff4",
+        "date": "2024-05-29_08-40-14",
+        "time_this_iter_s": 0.5606565475463867,
+        "time_total_s": 12.407974004745483,
+        "pid": 23998,
+        "hostname": "n-62-12-20",
+        "node_ip": "10.66.12.20",
+        "config": {
+            "depth": 2,
+            "dropout": 0.35156755537189155,
+            "gnn_hidden_dim": 100,
+            "initial_lr": 0.004816963944970247,
+            "lr_reduction_factor": 0.9215038525130558,
+            "mlp_layers": 1,
+            "weight_decay": 0.0016721331394394657
+        },
+        "time_since_restore": 12.407974004745483,
+        "iterations_since_restore": 20,
+        "experiment_tag": "380_depth=2,dropout=0.3516,gnn_hidden_dim=100,initial_lr=0.0048,lr_reduction_factor=0.9215,mlp_layers=1,weight_decay=0.0017"
+    }
+}

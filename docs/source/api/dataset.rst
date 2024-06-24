@@ -12,7 +12,7 @@ is generated.
 Bradley Double Plus
 ------------------------------------------------------------
 
-.. automodule:: grape.datasets.jean_claude_bradley_double_plus
+.. automodule:: grape_chem.datasets.jean_claude_bradley_double_plus
    :members:
    :undoc-members:
    :show-inheritance:
@@ -20,7 +20,23 @@ Bradley Double Plus
 LogP
 ---------------------------------------
 
-.. automodule:: grape.datasets.logP_dataset
+.. automodule:: grape_chem.datasets.logP_dataset
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+
+QM9
+----------
+.. automodule:: grape_chem.datasets.QM9_dataset
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+
+FreeSolv
+--------------
+.. automodule:: grape_chem.datasets.FreeSolv_dataset
    :members:
    :undoc-members:
    :show-inheritance:

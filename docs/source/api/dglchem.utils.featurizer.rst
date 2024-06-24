@@ -1,7 +1,7 @@
 ﻿dglchem.utils.featurizer
 ========================
 
-.. automodule:: grape.utils.featurizer
+.. automodule:: grape_chem.utils.featurizer
 
    
    
