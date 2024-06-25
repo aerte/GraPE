@@ -25,6 +25,11 @@ logging.basicConfig(level=logging.ERROR)
 # wrapper for the fragmentation
 # TODO: make sure it imports properly
 
+__all__ =[
+    "graph_2_frag",
+    "JT_SubGraph"
+]
+
 def graph_2_frag(smiles, origin_graph, JT_subgraph):
     mol = Chem.MolFromSmiles(smiles)
     frag_graph_list, motif_graph, atom_mask, frag_flag = JT_subgraph.fragmentation(origin_graph, mol)
@@ -120,7 +125,11 @@ def dgl_to_pyg(dgl_graph):
 
 #use "MG_plus_reference" as scheme
 
-class JT_SubGraph(object):
+###############################################################################
+###############                 Junction tree                  ################
+###############################################################################
+
+class JT_SubGraph():
     def __init__(self, scheme):
         path = os.path.join('./env', scheme + '.csv') #change to your needs TODO: load from yaml or larger config of script where called
         data_from = os.path.realpath(path)
