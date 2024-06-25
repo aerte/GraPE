@@ -425,15 +425,16 @@ class DataSet(DataLoad):
         passed-in when initializing the datatset
         TODO: complete
         """
-        if False:
-            frag_graphs = []
-            motif_graphs = []
-            for i, s in enumerate(self.smiles):
-                frag_graph, motif_graph, _, _ = graph_2_frag(s, self.graphs[i], self.fragmentation) #TODO: add graph_2_frag method to take fragmentation
-                if frag_graph is not None:
-                    frag_graphs.append(frag_graph)
-                    motif_graphs.append(motif_graph)
-            return frag_graphs, motif_graphs
+        assert self.fragmentation is not None, 'fragmentation scheme and method must not be none to prepare frag data'
+
+        frag_graphs = []
+        motif_graphs = []
+        for i, s in enumerate(self.smiles):
+            frag_graph, motif_graph, _, _ = graph_2_frag(s, self.graphs[i], self.fragmentation) #TODO: add graph_2_frag method to take fragmentation
+            if frag_graph is not None:
+                frag_graphs.append(frag_graph)
+                motif_graphs.append(motif_graph)
+        return frag_graphs, motif_graphs
 
     def indices(self):
         return range(len(self.graphs)) if self._indices is None else self._indices

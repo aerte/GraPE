@@ -22,13 +22,20 @@ import logging
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.ERROR)
 
+# wrapper for the fragmentation
+# TODO: make sure it imports properly
+
+def graph_2_frag(smiles, origin_graph, JT_subgraph):
+    mol = Chem.MolFromSmiles(smiles)
+    frag_graph_list, motif_graph, atom_mask, frag_flag = JT_subgraph.fragmentation(origin_graph, mol)
+    return frag_graph_list, motif_graph, atom_mask, frag_flag
+
 def find_edge_ids(edge_index, src_nodes, dst_nodes):
-    # This assumes edge_index is 2 x num_edges
+    # This assumes edge_index is 2 * num_edges
     edge_ids = []
     for src, dst in zip(src_nodes, dst_nodes):
         # Find indices where the source and destination match the provided nodes
         mask = (edge_index[0] == src) & (edge_index[1] == dst)
-        # Append the indices to the list
         edge_ids.extend(mask.nonzero(as_tuple=False).squeeze(1).tolist())
     return edge_ids
 
@@ -41,15 +48,13 @@ def add_edge(data, edge):
     Returns:
         torch_geometric.data.Data: The updated graph data object with the new edge added.
     """
-    # Unpack the tuple to get the source and target nodes
+    # get the source and target nodes
     idx1, idx2 = edge
     new_edge = torch.tensor([[idx1], [idx2]], dtype=torch.long)
     
-    # Check if the edge_index is already on the correct device
     if data.edge_index.device != new_edge.device:
         new_edge = new_edge.to(data.edge_index.device)
     
-    # Add the new edge to the edge_index
     data.edge_index = torch.cat([data.edge_index, new_edge], dim=1)
     return data
 
@@ -86,6 +91,7 @@ def dgl_to_pyg(dgl_graph):
         dgl_graph (dgl.DGLGraph): the DGL graph to convert
     Returns:
         torch_geometric.data.Data: the graph encoded in PyG format
+    made by chatGPT so don't trust it
     """
     # Get node features from DGL graph
     if dgl_graph.ndata:
@@ -108,7 +114,6 @@ def dgl_to_pyg(dgl_graph):
         first_key = next(iter(x))
         edge_index = edge_index.to(x[first_key].device).type(x[first_key].dtype)
 
-    # Create PyTorch Geometric Data object
     pyg_graph = Data(x=x, edge_index=edge_index, edge_attr=edge_attr)
     
     return pyg_graph
@@ -117,7 +122,7 @@ def dgl_to_pyg(dgl_graph):
 
 class JT_SubGraph(object):
     def __init__(self, scheme):
-        path = os.path.join('./gc_gnn_main/datasets', scheme + '.csv')
+        path = os.path.join('./env', scheme + '.csv') #change to your needs TODO: load from yaml or larger config of script where called
         data_from = os.path.realpath(path)
         df = pd.read_csv(data_from)
         pattern = df[['First-Order Group', 'SMARTs', 'Priority']].values.tolist()
