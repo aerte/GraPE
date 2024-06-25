@@ -29,7 +29,7 @@ mol_layers = 1
 
 
 # Change to your own specifications
-root = './env/data_splits.xlsx'
+root = 'data_splits.xlsx'
 sheet_name = 'Melting Point'
 
 df = pd.read_excel(root, sheet_name=sheet_name)
@@ -52,7 +52,7 @@ global_feats = standardize(global_feats, mean_global_feats, std_global_feats)
 
 
 # Load into DataSet
-data = DataSet(smiles=smiles, target=target, global_features=global_feats, filter=True)
+data = DataSet(smiles=smiles, target=target, global_features=global_feats, scale=False, filter=True)
 train, val, test = split_data(data, split_type='random', split_frac=[0.8, 0.1, 0.1])
 
 ############################################################################################
@@ -65,12 +65,12 @@ mlp = return_hidden_layers(mlp_layers)
 model = AFP(node_in_dim=44, edge_in_dim=12, num_global_feats=1, hidden_dim=hidden_dim,
             mlp_out_hidden=mlp, num_layers_atom=atom_layers, num_layers_mol=mol_layers)
 
-# if torch.cuda.is_available():
-#     device = torch.device('cuda')
-# else:
-#     device = torch.device('cpu')
+if torch.cuda.is_available():
+    device = torch.device('cuda')
+else:
+    device = torch.device('cpu')
 
-device = torch.device('cuda')
+
 
 optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
 early_Stopper = EarlyStopping(patience=patience, model_name='random', skip_save=True)
@@ -86,7 +86,7 @@ train_model(model=model, loss_func=loss_func, optimizer=optimizer, train_data_lo
 
 ####### Generating prediction tensor for the TEST set (Not rescaled) #########
 
-pred = test_model(model=model, test_data_loader=test, device=device, batch_size=batch_size) #TODO: make it able to  take a loss func
+pred = test_model(model=model, loss_func=None, test_data_loader=test, device=device, batch_size=batch_size)
 pred_metric(prediction=pred, target=test.y, metrics='all', print_out=True)
 
 # ---------------------------------------------------------------------------------------
@@ -104,8 +104,8 @@ print(f'Rescaled MAE for the test set {test_mae_rescaled:.3f}')
 
 ####### Example for overall evaluation of the MAE #########
 
-train_preds = test_model(model=model, test_data_loader=train) #TODO
-val_preds = test_model(model=model, test_data_loader=val)
+train_preds = test_model(model=model, loss_func=None, test_data_loader=train)
+val_preds = test_model(model=model, loss_func=None, test_data_loader=val)
 
 train_mae = pred_metric(prediction=train_preds, target=train.y, metrics='mae', print_out=False)['mae']
 val_mae = pred_metric(prediction=val_preds, target=val.y, metrics='mae', print_out=False)['mae']
