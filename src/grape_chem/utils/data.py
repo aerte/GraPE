@@ -26,6 +26,7 @@ from grape_chem.utils.featurizer import AtomFeaturizer, BondFeaturizer
 #from grape_chem.analysis import smiles_analysis
 from grape_chem.utils.split_utils import split_data
 from grape_chem.utils.feature_func import mol_weight
+from grape_chem.utils.junction_tree_utils import JT_SubGraph, graph_2_frag
 
 RDLogger.DisableLog('rdApp.*')
 
@@ -248,13 +249,14 @@ class DataSet(DataLoad):
         List of features that will be applied. Default: All implemented features.
     log: bool
         Decides if the filtering output and other outputs will be shown.
+    fragmentation: for now, a function that performs fragmentation
 
 
     """
     def __init__(self, file_path: str = None, smiles: list[str] = None, target: Union[list[int], list[float],
     ndarray] = None, global_features:Union[list[float], ndarray] = None, filter: bool=True,allowed_atoms:list[str] = None,
     only_organic: bool = True, atom_feature_list: list[str] = None, bond_feature_list: list[str] = None,
-    log: bool = False, root: str = None, indices:list[int] = None):
+    log: bool = False, root: str = None, indices:list[int] = None, fragmentation=None):
 
         assert (file_path is not None) or (smiles is not None and target is not None),'path or (smiles and target) must given.'
 
@@ -294,7 +296,7 @@ class DataSet(DataLoad):
                                             bond_feature_list = bond_feature_list)
 
             self.global_features = global_features
-
+        
         self.allowed_atoms = allowed_atoms
         self.atom_feature_list = atom_feature_list
         self.bond_feature_list = bond_feature_list
@@ -305,9 +307,11 @@ class DataSet(DataLoad):
         self.mean, self.std = None, None
 
         self.mol_weights = np.zeros(len(self.smiles))
-
         for i in range(len(self.smiles)):
             self.mol_weights[i] = mol_weight(Chem.MolFromSmiles(self.smiles[i]))
+
+        if fragmentation is not None:
+            self.fag_graphs, self.motif_graphs = self._prepare_frag_data()
 
     @staticmethod
     def standardize(target):
@@ -406,7 +410,7 @@ class DataSet(DataLoad):
         Example
         -------
         >>> from grape_chem.datasets import BradleyDoublePlus
-        >>> dataset = BradleyDoublePlus()
+        >>> dataset = BradleyDoublePlus()   
         >>> # Return the first 5 mol objects:
         >>> dataset.get_mol()[:5]
         [<rdkit.Chem.rdchem.Mol at 0x31cee26c0>,
@@ -423,7 +427,7 @@ class DataSet(DataLoad):
         """
         return a list of frag_graphs and motif_graphs based on the fragmentation
         passed-in when initializing the datatset
-        TODO: complete
+        TODO: complete, could be static
         """
         assert self.fragmentation is not None, 'fragmentation scheme and method must not be none to prepare frag data'
 
