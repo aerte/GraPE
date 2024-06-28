@@ -1,5 +1,5 @@
 from grape_chem.models import AFP
-from grape_chem.utils import DataSet, train_model, EarlyStopping, split_data, test_model, pred_metric, return_hidden_layers, set_seed
+from grape_chem.utils import DataSet, train_model, EarlyStopping, split_data, test_model, pred_metric, return_hidden_layers, set_seed, JT_SubGraph
 from torch.optim import lr_scheduler
 import numpy as np
 import torch
@@ -49,11 +49,12 @@ target = standardize(target, mean_target, std_target)
 mean_global_feats, std_global_feats = np.mean(global_feats), np.std(global_feats)
 global_feats = standardize(global_feats, mean_global_feats, std_global_feats)
 
-
+fragmentation_scheme = "MG_plus_reference"
+fragmentation = JT_SubGraph(scheme=fragmentation_scheme)
 
 # Load into DataSet
-data = DataSet(smiles=smiles, target=target, global_features=global_feats, filter=True)
-train, val, test = split_data(data, split_type='random', split_frac=[0.8, 0.1, 0.1])
+data = DataSet(smiles=smiles, target=target, global_features=global_feats, filter=True, fragmentation=None)
+train, val, test = split_data(data, split_type='random', split_frac=[0.8, 0.1, 0.1],)
 
 ############################################################################################
 ############################################################################################
