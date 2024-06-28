@@ -215,7 +215,7 @@ def train_model(model: torch.nn.Module, loss_func: Union[Callable,str], optimize
                         break
 
             pbar.update(1)
-        if early_stopper.stop is False and model_name is not None:
+        if early_stopper and not early_stopper.stop and model_name:
             torch.save(model.state_dict(), model_name)
             print(f'Model saved at: {model_name}')
 
