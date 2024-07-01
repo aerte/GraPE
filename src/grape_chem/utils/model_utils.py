@@ -163,11 +163,17 @@ def train_model(model: torch.nn.Module, loss_func: Union[Callable,str], optimize
 
     device = torch.device('cpu') if device is None else device
 
+    exclude_keys = None
+    #this dataloader shouldn't batch the graphs that result from fragmentations with the rest
+    if hasattr(train_data_loader, "fragmentation"):
+        if train_data_loader.fragmentation is not None:
+            exclude_keys = ["frag_graphs", "motif_graphs"]
+    
     if not isinstance(train_data_loader, DataLoader):
-        train_data_loader = DataLoader(train_data_loader, batch_size = batch_size)
+        train_data_loader = DataLoader(train_data_loader, batch_size = batch_size, exclude_keys=exclude_keys)
 
     if not isinstance(val_data_loader, DataLoader):
-        val_data_loader = DataLoader(val_data_loader, batch_size = batch_size)
+        val_data_loader = DataLoader(val_data_loader, batch_size = batch_size, exclude_keys=exclude_keys)
 
     model.train()
     train_loss = []
