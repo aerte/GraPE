@@ -39,12 +39,7 @@ and ``Advanced Demo`` for an introduction of how the toolbox can be used.
     :hidden:
     :glob:
 
-    api/models
-    api/dataset
-    api/analysis
-    api/splitting
-    api/plots
-    api/utils
+    api_docs/api
 
 
 
