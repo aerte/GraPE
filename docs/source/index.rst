@@ -39,7 +39,7 @@ and ``Advanced Demo`` for an introduction of how the toolbox can be used.
     Advanced GraPE Demonstration
 
 .. toctree::
-    :maxdepth: 2
+    :maxdepth: 3
     :caption: API Reference
     :hidden:
     :glob:
