@@ -24,22 +24,17 @@ and ``Advanced Demo`` for an introduction of how the toolbox can be used.
 
 
 
-.. important::
-
-   This project is a work in progress!
-
-
 .. toctree::
     :maxdepth: 2
     :caption: Demonstrations
     :hidden:
     :glob:
 
-    GraPE Demonstration
-    Advanced GraPE Demonstration
+    GraPE-Chem Demonstration
+    Advanced GraPE-Chem Demonstration
 
 .. toctree::
-    :maxdepth: 3
+    :maxdepth: 2
     :caption: API Reference
     :hidden:
     :glob:
