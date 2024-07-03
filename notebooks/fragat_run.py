@@ -1,4 +1,5 @@
 from grape_chem.models import AFP
+from grape_chem.models import GroupGAT
 from grape_chem.utils import DataSet, train_model, EarlyStopping, split_data, test_model, pred_metric, return_hidden_layers, set_seed, JT_SubGraph
 from torch.optim import lr_scheduler
 import numpy as np
@@ -32,7 +33,7 @@ mol_layers = 1
 root = './env/data_splits.xlsx'
 sheet_name = 'Melting Point'
 
-df = pd.read_excel(root, sheet_name=sheet_name)
+df = pd.read_excel(root, sheet_name=sheet_name).iloc[:200] #REMOVE the slice, just because fragmentation is so slow
 smiles = df['SMILES'].to_numpy()
 target = df['Target'].to_numpy()
 ### Global feature from sheet, uncomment
@@ -65,15 +66,13 @@ train, val, test = split_data(data, split_type='random', split_frac=[0.8, 0.1, 0
 
 # num_global_feats is the dimension of global features per observation
 mlp = return_hidden_layers(mlp_layers)
-model = AFP(node_in_dim=44, edge_in_dim=12, num_global_feats=1, hidden_dim=hidden_dim,
+model = GroupGAT(node_in_dim=44, edge_in_dim=12, num_global_feats=1, hidden_dim=hidden_dim,
             mlp_out_hidden=mlp, num_layers_atom=atom_layers, num_layers_mol=mol_layers)
 
 if torch.cuda.is_available():
     device = torch.device('cuda')
 else:
     device = torch.device('cpu')
-
-#device = torch.device('cuda')
 
 optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
 early_Stopper = EarlyStopping(patience=patience, model_name='random', skip_save=True)

@@ -22,9 +22,6 @@ import logging
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.ERROR)
 
-# wrapper for the fragmentation
-# TODO: make sure it imports properly
-
 __all__ =[
     "graph_2_frag",
     "JT_SubGraph"
@@ -180,6 +177,7 @@ class JT_SubGraph():
             motif_edge_features = edge_features[add_edge_feats_ids_list, :] #da same
             motif_graph.feat = motif_edge_features
             frag_graph_list = self.rebuild_frag_graph(frag_graph, motif_graph, mol)
+            #maybe a try/except is needed here, TODO: investigate
             return frag_graph_list, motif_graph, atom_mask, frag_flag
         else:
             frag_graph_list = self.rebuild_frag_graph(frag_graph, motif_graph, mol)

@@ -424,7 +424,7 @@ class DataSet(DataLoad):
 
         return list(map(lambda x: MolFromSmiles(x), self.smiles))
 
-    def _prepare_frag_data(self, log_all_progress=False, log_every=100):
+    def _prepare_frag_data(self, log_progress=True, log_every=100):
         """
         return a list of frag_graphs and motif_graphs based on the fragmentation
         passed-in when initializing the datatset
@@ -434,9 +434,9 @@ class DataSet(DataLoad):
         #^not optimal way to pass fragmentation but w/e
         frag_graphs = []
         motif_graphs = []
-        
+        print("beginning fragmentation...")
         for i, s in enumerate(self.smiles):
-            if log_all_progress:
+            if log_progress:
                 if (i + 1) % log_every == 0:
                     print('Currently performing fragmentation on molecule {:d}/{:d}'.format(i + 1, len(self.smiles)))
             frag_graph, motif_graph, _, _ = graph_2_frag(s, self.graphs[i], self.fragmentation) #TODO: add graph_2_frag method to take fragmentation
