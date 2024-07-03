@@ -4,13 +4,12 @@ import torch.nn.functional as F
 from torch_geometric.nn import global_add_pool, global_mean_pool
 from torch_geometric.data import Batch
 
-from torch_geometric.nn import AttentiveFP
+from grape_chem.models import AFP
 
 class SingleHeadOriginLayer(nn.Module):
     def __init__(self, net_params):
         super().__init__()
-        # Adjust net_params as necessary for the PyG model
-        self.AttentiveEmbedding = AttentiveFP(net_params['in_channels'],
+        self.AttentiveEmbedding = AFP(net_params['in_channels'],
                                               net_params['hidden_channels'],
                                               net_params['out_channels'],
                                               net_params['edge_dim'],
@@ -19,7 +18,7 @@ class SingleHeadOriginLayer(nn.Module):
                                               net_params['dropout'])
 
     def forward(self, data):
-        # Assume data contains .x, .edge_index, .edge_attr
+        # TODO: add check that data contains .x, .edge_index, .edge_attr, and make sure upstream that they match
         node_features = self.AttentiveEmbedding(data.x, data.edge_index, data.edge_attr)
         graph_features = global_add_pool(node_features, data.batch)  # or global_mean_pool
         return graph_features
@@ -69,13 +68,14 @@ class OriginChannel(nn.Module):
 class SingleHeadFragmentLayer(nn.Module):
     def __init__(self, net_params):
         super().__init__()
-        self.AttentiveEmbedding = AttentiveFP(net_params['in_channels'],
-                                              net_params['hidden_channels'],
-                                              net_params['out_channels'],
-                                              net_params['edge_dim'],
-                                              net_params['num_layers'],
-                                              net_params['num_timesteps'],
-                                              net_params['dropout'])
+        self.AttentiveEmbedding = AFP(in_channels=net_params['node_in_dim'],
+                                      edge_dim=net_params['edge_in_dim'],
+                                      hidden_channels=net_params['hidden_channels'],
+                                      out_channels=net_params['out_channels'],
+                                      num_layers=net_params['num_layers'],
+                                      num_timesteps=net_params['num_layers_mol'],
+                                      dropout=net_params['dropout'],
+                                    )
 
     def forward(self, data):
         node_features = self.AttentiveEmbedding(data.x, data.edge_index, data.edge_attr)
@@ -113,13 +113,13 @@ class SingleHeadJunctionLayer(nn.Module):
     def __init__(self, net_params):
         super().__init__()
         self.project_motif = nn.Linear(net_params['L2_hidden_dim'] + net_params['L3_hidden_dim'], net_params['L3_hidden_dim'], bias=True)
-        self.AttentiveEmbedding = AttentiveFP(net_params['L3_hidden_dim'],
+        self.AttentiveEmbedding = AFP(net_params['L3_hidden_dim'],
                                               net_params['L3_hidden_channels'],
                                               net_params['L3_out_channels'],
                                               net_params['edge_dim'],
                                               net_params['L3_layers'],
                                               net_params['L3_timesteps'],
-                                              net_params['L3_dropout'])
+                                              net_params['L3_dropout']) #I hope these actually match
 
     def forward(self, data):
         data.x = self.project_motif(data.x)
@@ -173,18 +173,38 @@ class GCGAT_v4pro(nn.Module):
         self.linear_predict2.append(nn.Linear(mid_dim, 1, bias=True))
         self.linear_predict2.append(nn.LeakyReLU(negative_slope=1e-7))
 
-    def forward(self, origin_data, frag_data, junction_data):
+    def forward(self, origin_data, frag_data, junction_data, get_attention=False, get_descriptors=False):
         # Approach:
         # 1. extract graph-level features from different channels
         graph_origin = self.origin_module(origin_data)
         graph_frag = self.frag_module(frag_data)
         super_new_graph, super_attention_weight = self.junction_module(junction_data)
 
+
+        # if descriptors: sum node features for motif graph (akin to dgl.sum_nodes)
+        motifs_series = global_add_pool(graph_frag.x, graph_frag.batch) if get_attention else torch.zeros((graph_frag.x.size(0), 0), device=graph_frag.x.device)
+
         # 2. concat the output from different channels
-        concat_features = torch.cat([graph_origin, graph_frag, super_new_graph], dim=-1)
+        concat_features = torch.cat([graph_origin, graph_frag, super_new_graph, motifs_series], dim=-1)
         descriptors = self.linear_predict1(concat_features)
         output = self.linear_predict2(descriptors)
-        return output
+        
+        results = [output]
+        if get_attention:
+            # TODO: depending on how attention weights are returned (per-node? per fragment?) 
+            # we can either directly use them or we'll need to aggregate or de-aggregate them
+            # attention_list_array = []
+            # unique_graph_ids = torch.unique(data.batch, sorted=True)
+            # for graph_id in unique_graph_ids:
+            #     mask = (data.batch == graph_id)
+            #     graph_attention = super_attention_weight[mask]
+            #     attention_list_array.append(graph_attention.detach().cpu().numpy())
+            # results.append(attention_list_array)
+            results.append(super_attention_weight)
+        if get_descriptors:
+            results.append(descriptors)
+
+        return tuple(results) if len(results) > 1 else results[0]
 
     def reset_parameters(self):
         self.origin_module.reset_parameters()
