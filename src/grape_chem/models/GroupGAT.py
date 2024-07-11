@@ -6,16 +6,17 @@ from torch_geometric.data import Batch
 
 from grape_chem.models import AFP
 
+__all__ = ['GCGAT_v4pro']
 class SingleHeadOriginLayer(nn.Module):
     def __init__(self, net_params):
         super().__init__()
-        self.AttentiveEmbedding = AFP(net_params['in_channels'],
-                                              net_params['hidden_channels'],
-                                              net_params['out_channels'],
-                                              net_params['edge_dim'],
-                                              net_params['num_layers'],
-                                              net_params['num_timesteps'],
-                                              net_params['dropout'])
+        self.AttentiveEmbedding = AFP(node_in_dim=net_params["node_in_dim"],
+                                      edge_in_dim=net_params["edge_in_dim"],
+                                        hidden_dim=net_params['hidden_dim'],
+                                        num_layers_atom=net_params['num_layers_atom'],
+                                        num_layers_mol=net_params['num_layers_mol'], #why is it called timesteps (old codebase)?
+                                        dropout=net_params['dropout']
+                                    )
 
     def forward(self, data):
         # TODO: add check that data contains .x, .edge_index, .edge_attr, and make sure upstream that they match
@@ -28,19 +29,19 @@ class OriginChannel(nn.Module):
     def __init__(self, net_params):
         super().__init__()
         self.embedding_node_lin = nn.Sequential(
-            nn.Linear(net_params['num_atom_type'], net_params['in_channels'], bias=True),
-            nn.BatchNorm1d(net_params['in_channels']),
+            nn.Linear(net_params["num_atom_type"], net_params["node_in_dim"], bias=True),
+            nn.BatchNorm1d(net_params["node_in_dim"]), #node in dim or L2_hidden_dim?
             nn.LeakyReLU()
         )
         self.embedding_edge_lin = nn.Sequential(
-            nn.Linear(net_params['num_bond_type'], net_params['edge_dim'], bias=True),
-            nn.BatchNorm1d(net_params['edge_dim']),
+            nn.Linear(net_params['num_bond_type'], net_params["edge_in_dim"], bias=True),
+            nn.BatchNorm1d(net_params["edge_in_dim"]),
             nn.LeakyReLU()
         )
         self.origin_heads = nn.ModuleList([SingleHeadOriginLayer(net_params) for _ in range(net_params['num_heads'])])
         self.origin_attend = nn.Sequential(
-            nn.Linear(net_params['num_heads'] * net_params['out_channels'], net_params['out_channels'], bias=True),
-            nn.BatchNorm1d(net_params['out_channels']),
+            nn.Linear(net_params['num_heads'] * net_params['L1_hidden_dim'], net_params['L1_hidden_dim'], bias=True),
+            nn.BatchNorm1d(net_params['L1_hidden_dim']),
             nn.ReLU()
         )
 
@@ -68,13 +69,12 @@ class OriginChannel(nn.Module):
 class SingleHeadFragmentLayer(nn.Module):
     def __init__(self, net_params):
         super().__init__()
-        self.AttentiveEmbedding = AFP(in_channels=net_params['node_in_dim'],
-                                      edge_dim=net_params['edge_in_dim'],
-                                      hidden_channels=net_params['hidden_channels'],
-                                      out_channels=net_params['out_channels'],
-                                      num_layers=net_params['num_layers'],
-                                      num_timesteps=net_params['num_layers_mol'],
-                                      dropout=net_params['dropout'],
+        self.AttentiveEmbedding = AFP(node_in_dim=net_params["node_in_dim"],
+                                      edge_in_dim=net_params["edge_in_dim"],
+                                        hidden_dim=net_params['hidden_dim'],
+                                        num_layers_atom=net_params['num_layers_atom'],
+                                        num_layers_mol=net_params['num_layers_mol'], #used to be called num_timesteps in old codebase
+                                         dropout=net_params['dropout']
                                     )
 
     def forward(self, data):
@@ -86,19 +86,19 @@ class FragmentChannel(nn.Module):
     def __init__(self, net_params):
         super().__init__()
         self.embedding_node_lin = nn.Sequential(
-            nn.Linear(net_params['num_atom_type'], net_params['in_channels'], bias=True),
-            nn.BatchNorm1d(net_params['in_channels']),
+            nn.Linear(net_params["num_atom_type"], net_params["node_in_dim"], bias=True),
+            nn.BatchNorm1d(net_params["node_in_dim"]),
             nn.LeakyReLU()
         )
         self.embedding_edge_lin = nn.Sequential(
-            nn.Linear(net_params['num_bond_type'], net_params['edge_dim'], bias=True),
-            nn.BatchNorm1d(net_params['edge_dim']),
+            nn.Linear(net_params['num_bond_type'], net_params["edge_in_dim"], bias=True),
+            nn.BatchNorm1d(net_params["edge_in_dim"]),
             nn.LeakyReLU()
         )
         self.fragment_heads = nn.ModuleList([SingleHeadFragmentLayer(net_params) for _ in range(net_params['num_heads'])])
         self.frag_attend = nn.Sequential(
-            nn.Linear(net_params['num_heads'] * net_params['out_channels'], net_params['out_channels'], bias=True),
-            nn.BatchNorm1d(net_params['out_channels']),
+            nn.Linear(net_params['num_heads'] * net_params['L2_hidden_dim'], net_params['L2_hidden_dim'], bias=True),
+            nn.BatchNorm1d(net_params['L2_hidden_dim']),
             nn.ReLU()
         )
 
@@ -113,13 +113,13 @@ class SingleHeadJunctionLayer(nn.Module):
     def __init__(self, net_params):
         super().__init__()
         self.project_motif = nn.Linear(net_params['L2_hidden_dim'] + net_params['L3_hidden_dim'], net_params['L3_hidden_dim'], bias=True)
-        self.AttentiveEmbedding = AFP(net_params['L3_hidden_dim'],
-                                              net_params['L3_hidden_channels'],
-                                              net_params['L3_out_channels'],
-                                              net_params['edge_dim'],
-                                              net_params['L3_layers'],
-                                              net_params['L3_timesteps'],
-                                              net_params['L3_dropout']) #I hope these actually match
+        self.AttentiveEmbedding = AFP(node_in_dim=net_params["node_in_dim"],
+                                edge_in_dim=net_params["edge_in_dim"],
+                                hidden_dim=net_params['hidden_dim'],
+                                num_layers_atom=net_params['num_layers_atom'],
+                                num_layers_mol=net_params['num_layers_mol'], #used to be called num_timesteps in old codebase
+                                    dropout=net_params['dropout']
+                            ) #I hope these actually match
 
     def forward(self, data):
         data.x = self.project_motif(data.x)
@@ -135,10 +135,19 @@ class JT_Channel(nn.Module):
             nn.BatchNorm1d(net_params['L3_hidden_dim']),
             nn.LeakyReLU()
         )
+        self.embedding_edge_lin = nn.Sequential(
+            nn.Linear(net_params['num_bond_type'], net_params['L3_hidden_dim'], bias=True),
+            nn.BatchNorm1d(net_params['L3_hidden_dim']),
+            nn.LeakyReLU()
+        )
         self.junction_heads = nn.ModuleList([SingleHeadJunctionLayer(net_params) for _ in range(net_params['num_heads'])])
 
     def forward(self, batch):
+        """
+        TODO: still doesn't match exactly with dgl version
+        """
         batch.x = self.embedding_frag_lin(batch.x)
+        batch.edge_attr = self.embedding_edge_lin(batch.edge_attr)
         junction_graph_heads_out = []
         junction_attention_heads_out = []
         for single_head in self.junction_heads:
