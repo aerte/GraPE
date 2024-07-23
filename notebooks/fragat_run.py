@@ -1,6 +1,6 @@
 from grape_chem.models import AFP
 from grape_chem.models import GroupGAT
-from grape_chem.utils import DataSet, train_model, EarlyStopping, split_data, test_model, pred_metric, return_hidden_layers, set_seed, JT_SubGraph
+from grape_chem.utils import DataSet, train_model, EarlyStopping, split_data, test_model, pred_metric, return_hidden_layers, set_seed, JT_SubGraph, FragmentGraphDataSet
 from torch.optim import lr_scheduler
 import numpy as np
 import torch
@@ -25,15 +25,15 @@ hidden_dim = 256
 learning_rate = 0.001
 weight_decay = 1e-4
 mlp_layers = 1
-atom_layers = 1
-mol_layers = 1
+atom_layers = 3
+mol_layers = 3
 
 
 # Change to your own specifications
 root = './env/data_splits.xlsx'
 sheet_name = 'Melting Point'
 
-df = pd.read_excel(root, sheet_name=sheet_name).iloc[:200] #REMOVE the slice, just because fragmentation is so slow
+df = pd.read_excel(root, sheet_name=sheet_name).iloc[:20] #REMOVE the slice, just because fragmentation is so slow
 smiles = df['SMILES'].to_numpy()
 target = df['Target'].to_numpy()
 ### Global feature from sheet, uncomment
@@ -53,12 +53,13 @@ target = standardize(target, mean_target, std_target)
 fragmentation_scheme = "MG_plus_reference"
 print("initializing frag...")
 fragmentation = JT_SubGraph(scheme=fragmentation_scheme)
+frag_dim = fragmentation.frag_dim
 print("done.")
 
 # Load into DataSet
-data = DataSet(smiles=smiles, target=target, global_features=None, filter=True, fragmentation=fragmentation)
-train, val, test = split_data(data, split_type='random', split_frac=[0.8, 0.1, 0.1],)
-
+data = FragmentGraphDataSet(smiles=smiles, target=target, global_features=None, filter=True, fragmentation=fragmentation)
+train, val, test = split_data(data, split_type='consecutive', split_frac=[0.8, 0.1, 0.1],)
+breakpoint()
 ############################################################################################
 ############################################################################################
 ############################################################################################
@@ -66,8 +67,41 @@ train, val, test = split_data(data, split_type='random', split_frac=[0.8, 0.1, 0
 
 # num_global_feats is the dimension of global features per observation
 mlp = return_hidden_layers(mlp_layers)
-model = GroupGAT(node_in_dim=44, edge_in_dim=12, num_global_feats=1, hidden_dim=hidden_dim,
-            mlp_out_hidden=mlp, num_layers_atom=atom_layers, num_layers_mol=mol_layers)
+net_params = {
+              "num_atom_type": 39, # == node_in_dim TODO: check matches with featurizer or read from featurizer
+              "num_bond_type": 12, # == edge_in_dim
+              "dropout": 0.0,
+              "MLP_layers":mlp_layers,
+              "frag_dim": frag_dim,
+              "final_dropout": 0.0,
+            # for origin:
+              "num_heads": 1,
+            # for AFP:
+              "node_in_dim": 44, 
+              "edge_in_dim": 12, 
+              "num_global_feats":1, 
+              "hidden_dim": hidden_dim,
+              "mlp_out_hidden": mlp, 
+              "num_layers_atom": atom_layers, 
+              "num_layers_mol": mol_layers,
+            # for channels:
+              "L1_depth": 1,
+              "L1_layers": 1,
+              "L1_dropout": 0.0,
+
+              "L2_depth": 1,
+              "L2_layers": 1,
+              "L2_dropout": 0.0,
+
+              "L3_depth": 1,
+              "L3_layers": 1,
+              "L3_dropout": 0.0,
+
+              "L1_hidden_dim": 132, #3*node in_dim
+              "L2_hidden_dim": 133,
+              "L3_hidden_dim": 36,
+              }
+model = GroupGAT.GCGAT_v4pro(net_params)
 
 if torch.cuda.is_available():
     device = torch.device('cuda')
@@ -82,7 +116,6 @@ scheduler = lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.9999,
 loss_func = torch.nn.functional.l1_loss
 
 model.to(device)
-
 train_model(model=model, loss_func=loss_func, optimizer=optimizer, train_data_loader=train,
             val_data_loader=val, epochs=epochs, device=device, batch_size=batch_size)
 
