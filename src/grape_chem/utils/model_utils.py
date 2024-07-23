@@ -1,12 +1,14 @@
 from typing import Callable, Union
 import torch
 from torch import Tensor
+from torch.utils.data import DataLoader as TorchDataloader
 from torch.nn import Module, Sequential
 from torch.optim import lr_scheduler
 from numpy import ndarray
 import numpy as np
 from torch_geometric.loader import DataLoader
 from torch_geometric.data import Data
+from torch_geometric.data import Batch
 from tqdm import tqdm
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score, root_mean_squared_error
 from grape_chem.utils import DataSet
@@ -105,6 +107,28 @@ def reset_weights(model: Module):
                 reset_weights(child)
 
 
+def batch_with_frag(data_list):
+    print("batch with frag collate called")
+    batch = Batch.from_data_list(data_list)
+    return batch
+
+def batch_implicit_with_frag(data_list):
+    """
+    implicit because we're not actually naming the attributes of the batch
+    only works when there IS fragmentation for now, else fails
+    """
+    # Handle the graphs, fragments, and motifs separately if necessary
+    graphs = [item[0] for item in data_list]
+    frag_graphs = [item[1] for item in data_list]
+    motif_graphs = [item[2] for item in data_list]
+
+    # Use PyTorch Geometric's batching function for each part
+    batched_graph = Batch.from_data_list(graphs)
+    batched_frag = Batch.from_data_list(frag_graphs) if frag_graphs else None
+    batched_motif = Batch.from_data_list(motif_graphs) if motif_graphs else None
+
+    return batched_graph, batched_frag, batched_motif
+
 ##########################################################################
 ########### Training and Testing functions ###############################
 ##########################################################################
@@ -114,7 +138,7 @@ def train_model(model: torch.nn.Module, loss_func: Union[Callable,str], optimize
                 train_data_loader: Union[list, Data, DataLoader], val_data_loader: Union[list, Data, DataLoader],
                 device: str = None, epochs: int = 50, batch_size: int = 32,
                 early_stopper: EarlyStopping = None, scheduler: lr_scheduler = None,
-                tuning: bool = False, model_name:str = None) -> tuple[list,list]:
+                tuning: bool = False, model_name:str = None, model_needs_frag : bool = True, cast_dataloader_to_pyg : bool = True) -> tuple[list,list]:
     """Auxiliary function to train and test a given model and return the (training, test) losses.
     Can initialize DataLoaders if only lists of Data objects are given.
 
@@ -164,27 +188,34 @@ def train_model(model: torch.nn.Module, loss_func: Union[Callable,str], optimize
     device = torch.device('cpu') if device is None else device
 
     exclude_keys = None
-    #this dataloader shouldn't batch the graphs that result from fragmentations with the rest
-    if hasattr(train_data_loader, "fragmentation"):
-        if train_data_loader.fragmentation is not None:
-            exclude_keys = ["frag_graphs", "motif_graphs"]
+    #in some cases this dataloader shouldn't batch the graphs that result from fragmentations with the rest
+    if not model_needs_frag:
+        if hasattr(train_data_loader, "fragmentation"):
+            if train_data_loader.fragmentation is not None:
+                exclude_keys = ["frag_graphs", "motif_graphs"]
     
-    if not isinstance(train_data_loader, DataLoader):
-        train_data_loader = DataLoader(train_data_loader, batch_size = batch_size, exclude_keys=exclude_keys)
 
-    if not isinstance(val_data_loader, DataLoader):
-        val_data_loader = DataLoader(val_data_loader, batch_size = batch_size, exclude_keys=exclude_keys)
+    if not isinstance(train_data_loader, DataLoader) and not model_needs_frag: #datasets with fragmentation need to be batched differently
+        train_data_loader = DataLoader(train_data_loader, batch_size = batch_size, exclude_keys=exclude_keys,)
+
+    if not isinstance(val_data_loader, DataLoader) and not model_needs_frag:
+        val_data_loader = DataLoader(val_data_loader, batch_size = batch_size, exclude_keys=exclude_keys,)
 
     model.train()
     train_loss = []
     val_loss = []
-
+    train_data_loader = DataLoader(train_data_loader, batch_size=batch_size,collate_fn=batch_with_frag)
     with tqdm(total = epochs) as pbar:
         for i in range(epochs):
             temp = np.zeros(len(train_data_loader))
+            
             for idx, batch in enumerate(train_data_loader):
+                #batch = train_data_loader[idx]
+                #TODO: Investigate
+                
                 optimizer.zero_grad()
                 out = model(batch.to(device))
+                breakpoint()
                 loss_train = loss_func(batch.y, out)
 
                 temp[idx] = loss_train.detach().cpu().numpy()
