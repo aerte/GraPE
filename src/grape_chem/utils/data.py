@@ -16,10 +16,8 @@ from torch import tensor, Tensor
 from rdkit import Chem
 from rdkit.Chem import rdmolops, MolFromSmiles, Draw, MolToSmiles
 from rdkit import RDLogger
-import seaborn as sns
 
-
-from torch_geometric.data import Data
+from torch_geometric.data import Data, HeteroData
 from torch_geometric.utils import dense_to_sparse
 
 from grape_chem.utils.featurizer import AtomFeaturizer, BondFeaturizer
@@ -35,6 +33,7 @@ __all__ = ['filter_smiles',
            'DataLoad',
            'DataSet',
            'GraphDataSet',
+           'FragmentGraphDataSet',
            'load_dataset_from_excel']
 
 
@@ -186,7 +185,7 @@ def construct_dataset(smiles: list[str], target: Union[list[int], list[float], n
 
         data.append(data_temp)
 
-    return data #actual pyg graph
+    return data #actual pyg graphs
 
 
 ##########################################################################
@@ -312,7 +311,8 @@ class DataSet(DataLoad):
 
         if fragmentation is not None:
             self.fragmentation = fragmentation
-            self.fag_graphs, self.motif_graphs = self._prepare_frag_data()
+            self.frag_graphs, self.motif_graphs = self._prepare_frag_data()
+            assert len(self.motif_graphs) == len(self.graphs) == len(self.frag_graphs), "motif, frag, origin - graph attributes should be of same length"
 
     @staticmethod
     def standardize(target):
@@ -424,7 +424,7 @@ class DataSet(DataLoad):
 
         return list(map(lambda x: MolFromSmiles(x), self.smiles))
 
-    def _prepare_frag_data(self, log_progress=True, log_every=100):
+    def _prepare_frag_data(self, log_progress=True, log_every=1):
         """
         return a list of frag_graphs and motif_graphs based on the fragmentation
         passed-in when initializing the datatset
@@ -452,14 +452,24 @@ class DataSet(DataLoad):
         return len(self.graphs)
 
     def __getitem__(self, idx):
+        print(f"getitem method called {idx}/{len(self)}")
         if isinstance(idx, (int, np.integer)):
-            return self.graphs[idx]
+            if self.fragmentation is not None:
+                print("crinj")
+                return self.graphs[idx], self.frag_graphs[idx], self.motif_graphs[idx]
+            else:
+                return self.graphs[idx]
         else:
             return self.index_select(idx)
 
     def __iter__(self):
-        for i in range(len(self.graphs)):
-            yield self.graphs[i]
+        print("iter method called")
+        if self.fragmentation is not None:
+            for i in range(len(self.graphs)):
+                yield self.graphs[i], self.frag_graphs[i], self.motif_graphs[i]
+            else:
+                for i in range(len(self.graphs)):
+                    yield self.graphs[i]
 
     def index_select(self, idx:object):
         r"""Creates a subset of the dataset from specified indices :obj:`idx`.
@@ -693,7 +703,7 @@ class DataSet(DataLoad):
                                             allowed_atoms=self.allowed_atoms,
                                             atom_feature_list=self.atom_feature_list,
                                             bond_feature_list=self.bond_feature_list)
-
+            # TODO: also work on fragments 
         train, val, test = split_data(self, split_type=split_type, split_frac=split_frac, custom_split=custom_split,
                    is_dmpnn=is_dmpnn,**kwargs)
         if return_scaling_params is True:
@@ -894,3 +904,132 @@ def load_dataset_from_excel(file_path: str, dataset:str, is_dmpnn=False, return_
         return train_set, val_set, test_set, data
 
     return train_set, val_set, test_set
+
+
+class FragmentGraphDataSet(DataLoad):
+    """
+    A class for handling cases where we want HeteroData instead of Data for 
+    storing the graphs, with the addition of fragment graphs and motif graphs
+    assumes fragmentation is not `None`
+    """
+    def __init__(self, file_path = None, smiles:list[str]=None, target: Union[list[int], list[float],
+    ndarray] = None, global_features:Union[list[float], ndarray] = None,
+    allowed_atoms:list[str] = None, only_organic: bool = True, atom_feature_list:list[str] = None, filter : bool = True,
+    bond_feature_list:list[str] = None, split: bool = True, split_type:str = None, split_frac:list[float, float, float]
+    = None, custom_split: list[int] = None, log: bool = False, seed:int = None, indices:list[int] = None, root:str = None, fragmentation=None):
+
+        assert (file_path is not None) or (smiles is not None and target is not None),'path or (smiles and target) must given.'
+
+        super().__int__(root)
+
+        if file_path is not None:
+            with open(file_path, 'rb') as handle:
+                try:
+                    df = pd.read_pickle(handle)
+                    print('Loaded dataset.')
+                except:
+                    raise ValueError('A dataset is stored as a DataFrame.')
+
+            self.smiles = np.array(df.smiles)
+
+            self.global_features = np.array(df.global_features)
+            self.graphs = list(df.graphs)
+
+        else:
+            if filter:
+                self.smiles, self.raw_target, self.global_features = filter_smiles(smiles, target,
+                                                                                   allowed_atoms= allowed_atoms,
+                                                                                    only_organic=only_organic, log=log,
+                                                                                   global_feats=global_features)
+
+            else:
+                self.smiles, self.raw_target = np.array(smiles), np.array(target)
+                self.global_features = np.array(global_features) if global_features is not None else None
+
+            self.target = self.raw_target
+
+            self.graphs = construct_dataset(smiles=self.smiles,
+                                            target=self.target,
+                                            global_features=self.global_features,
+                                            allowed_atoms = allowed_atoms,
+                                            atom_feature_list = atom_feature_list,
+                                            bond_feature_list = bond_feature_list)
+
+            self.fragmentation = fragmentation
+            self.frag_graphs, self.motif_graphs = self._prepare_frag_data()
+
+            for i,g in enumerate(self.graphs):
+                h = HeteroData(g)
+                h['frag_graph'] = self.frag_graphs[i]
+                h['motif_graph'] = self.motif_graphs[i]
+                self.graphs[i] = g
+
+
+        #TODO: some of these things we will never use. find out and remove them
+        self.allowed_atoms = allowed_atoms
+        self.atom_feature_list = atom_feature_list
+        self.bond_feature_list = bond_feature_list
+        self._indices = indices
+        self.num_node_features = self.graphs[0].num_node_features
+        self.num_edge_features = self.graphs[0].num_edge_features
+        self.data_name=None
+        self.mean, self.std = None, None
+
+        self.mol_weights = np.zeros(len(self.smiles))
+        for i in range(len(self.smiles)):
+            self.mol_weights[i] = mol_weight(Chem.MolFromSmiles(self.smiles[i]))
+
+        if fragmentation is not None:
+
+            assert len(self.motif_graphs) == len(self.graphs) == len(self.frag_graphs), "motif, frag, origin - graph attributes should be of same length"    
+
+    def _prepare_frag_data(self, log_progress=True, log_every=1):
+        """
+        return a list of frag_graphs and motif_graphs based on the fragmentation
+        passed-in when initializing the datatset
+        TODO: complete, could be static
+        """
+        assert self.fragmentation is not None, 'fragmentation scheme and method must not be none to prepare frag data'
+        #^not optimal way to pass fragmentation but w/e
+        frag_graphs = []
+        motif_graphs = []
+        print("beginning fragmentation...")
+        for i, s in enumerate(self.smiles):
+            if log_progress:
+                if (i + 1) % log_every == 0:
+                    print('Currently performing fragmentation on molecule {:d}/{:d}'.format(i + 1, len(self.smiles)))
+            frag_graph, motif_graph, _, _ = graph_2_frag(s, self.graphs[i], self.fragmentation) #TODO: add graph_2_frag method to take fragmentation
+            if frag_graph is not None:
+                frag_graphs.append(frag_graph)
+                motif_graphs.append(motif_graph)
+        return frag_graphs, motif_graphs
+
+    def __len__(self):
+        """
+        TODO: make correct
+        """
+        return len(self.graphs)
+
+    def __getitem__(self, idx):
+        """
+        TODO: make correct
+        """
+        #print(f"getitem method called {idx}/{len(self)}")
+        if isinstance(idx, (int, np.integer)):
+            if self.fragmentation is not None:
+                return self.graphs[idx], self.frag_graphs[idx], self.motif_graphs[idx]
+            else:
+                return self.graphs[idx]
+        else:
+            return self.index_select(idx)
+
+    def __iter__(self):
+        """
+        TODO: make correct
+        """
+        if self.fragmentation is not None:
+            for i in range(len(self.graphs)):
+                yield self.graphs[i], self.frag_graphs[i], self.motif_graphs[i]
+            else:
+                for i in range(len(self.graphs)):
+                    yield self.graphs[i]
