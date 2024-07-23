@@ -126,7 +126,7 @@ def dgl_to_pyg(dgl_graph):
 ###############                 Junction tree                  ################
 ###############################################################################
 
-class JT_SubGraph():
+class JT_SubGraph(object):
     def __init__(self, scheme):
         path = os.path.join('./env', scheme + '.csv') #change to your needs TODO: load from yaml or larger config of script where called
         data_from = os.path.realpath(path)
@@ -160,7 +160,7 @@ class JT_SubGraph():
         if frag_features.ndim == 1:
             frag_features = frag_features.reshape(-1, 1).transpose()
 
-        motif_graph.nfeat = torch.Tensor(frag_features)
+        motif_graph.x = torch.Tensor(frag_features)
         motif_graph.atom_mask = torch.Tensor(atom_mask)
 
         # if necessary
@@ -175,9 +175,8 @@ class JT_SubGraph():
         if num_atoms != 1:
             # Assuming a procedure to handle the features as necessary
             motif_edge_features = edge_features[add_edge_feats_ids_list, :] #da same
-            motif_graph.feat = motif_edge_features
+            motif_graph.edge_attr = motif_edge_features
             frag_graph_list = self.rebuild_frag_graph(frag_graph, motif_graph, mol)
-            #maybe a try/except is needed here, TODO: investigate
             return frag_graph_list, motif_graph, atom_mask, frag_flag
         else:
             frag_graph_list = self.rebuild_frag_graph(frag_graph, motif_graph, mol)
@@ -358,11 +357,12 @@ class JT_SubGraph():
             for idx_node in coord:
                 idx_list.append(idx_node[1])
             # Create new fragment graph as a subgraph of the original
-            new_frag_graph_conn = subgraph(idx_list, frag_graph.edge_index, relabel_nodes=True,)
+            new_graph_edge_index, new_graph_edge_attr = subgraph(idx_list, frag_graph.edge_index, edge_attr=frag_graph.edge_attr, relabel_nodes=True,)
             #TODO: make into new pyg Data object
             new_frag_graph= Data(
-                edge_index=new_frag_graph_conn,
-
+                edge_index=new_graph_edge_index,
+                edge_attr=new_graph_edge_attr,
+                num_nodes=len(idx_list) 
             )
             frag_graph_list.append(new_frag_graph)
         
@@ -394,5 +394,25 @@ def remove_edges(data, to_remove: list[tuple[int, int]]):
     keep_edges[edges_to_remove] = False
 
     new_edge_index = data.edge_index[:, keep_edges]
-    new_data = Data(x=data.x, edge_index=new_edge_index)
+    new_data = Data(x=data.x, num_nodes=data.num_nodes, edge_index=new_edge_index)
     return new_data
+
+def remove_edges_other(data, to_remove: list[tuple[int, int]]):
+    """
+    other more PyG-esque take on the remove edges fucntion
+    TODO: unit test against top function
+    """
+    edge_indices = []
+    for src, tgt in to_remove:
+        edge_indices.extend((data.edge_index[0] == src) & (data.edge_index[1] == tgt)) #idea from ChatGPT
+        edge_indices.extend((data.edge_index[0] == tgt) & (data.edge_index[1] == src))
+
+    if not edge_indices:
+        return data
+
+    mask = ~torch.tensor(edge_indices)
+    data.edge_index = data.edge_index[:, mask] # fails
+    if data.edge_attr is not None:
+        data.edge_attr = data.edge_attr[mask]
+
+    return data
