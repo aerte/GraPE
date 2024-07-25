@@ -55,7 +55,7 @@ fragmentation = JT_SubGraph(scheme=fragmentation_scheme)
 print("done.")
 
 # Load into DataSet
-data = DataSet(smiles=smiles, target=target, global_features=None, filter=True, fragmentation=fragmentation)
+data = DataSet(smiles=smiles, target=target, global_features=None, filter=True, fragmentation=None)
 train, val, test = split_data(data, split_type='random', split_frac=[0.8, 0.1, 0.1],)
 
 ############################################################################################

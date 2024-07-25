@@ -428,7 +428,7 @@ class DataSet(DataLoad):
         """
         return a list of frag_graphs and motif_graphs based on the fragmentation
         passed-in when initializing the datatset
-        TODO: complete, could be static
+        TODO: complete, remove debug statements, could be made static
         """
         assert self.fragmentation is not None, 'fragmentation scheme and method must not be none to prepare frag data'
         #^not optimal way to pass fragmentation but w/e
@@ -452,10 +452,8 @@ class DataSet(DataLoad):
         return len(self.graphs)
 
     def __getitem__(self, idx):
-        print(f"getitem method called {idx}/{len(self)}")
         if isinstance(idx, (int, np.integer)):
-            if self.fragmentation is not None:
-                print("crinj")
+            if hasattr(self, 'fragmentation') and self.fragmentation is not None:
                 return self.graphs[idx], self.frag_graphs[idx], self.motif_graphs[idx]
             else:
                 return self.graphs[idx]
@@ -463,13 +461,12 @@ class DataSet(DataLoad):
             return self.index_select(idx)
 
     def __iter__(self):
-        print("iter method called")
-        if self.fragmentation is not None:
+        if hasattr(self, 'fragmentation') and self.fragmentation is not None:
             for i in range(len(self.graphs)):
                 yield self.graphs[i], self.frag_graphs[i], self.motif_graphs[i]
-            else:
-                for i in range(len(self.graphs)):
-                    yield self.graphs[i]
+        else:
+            for i in range(len(self.graphs)):
+                yield self.graphs[i]
 
     def index_select(self, idx:object):
         r"""Creates a subset of the dataset from specified indices :obj:`idx`.

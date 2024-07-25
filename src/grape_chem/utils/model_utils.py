@@ -138,7 +138,7 @@ def train_model(model: torch.nn.Module, loss_func: Union[Callable,str], optimize
                 train_data_loader: Union[list, Data, DataLoader], val_data_loader: Union[list, Data, DataLoader],
                 device: str = None, epochs: int = 50, batch_size: int = 32,
                 early_stopper: EarlyStopping = None, scheduler: lr_scheduler = None,
-                tuning: bool = False, model_name:str = None, model_needs_frag : bool = True, cast_dataloader_to_pyg : bool = True) -> tuple[list,list]:
+                tuning: bool = False, model_name:str = None, model_needs_frag : bool = False, cast_dataloader_to_pyg : bool = True) -> tuple[list,list]:
     """Auxiliary function to train and test a given model and return the (training, test) losses.
     Can initialize DataLoaders if only lists of Data objects are given.
 
@@ -204,15 +204,12 @@ def train_model(model: torch.nn.Module, loss_func: Union[Callable,str], optimize
     model.train()
     train_loss = []
     val_loss = []
-    train_data_loader = DataLoader(train_data_loader, batch_size=batch_size,collate_fn=batch_with_frag)
+    
     with tqdm(total = epochs) as pbar:
         for i in range(epochs):
             temp = np.zeros(len(train_data_loader))
-            
+            breakpoint()
             for idx, batch in enumerate(train_data_loader):
-                #batch = train_data_loader[idx]
-                #TODO: Investigate
-                
                 optimizer.zero_grad()
                 out = model(batch.to(device))
                 breakpoint()
@@ -348,7 +345,7 @@ def test_model(model: torch.nn.Module, test_data_loader: Union[list, Data, DataL
     device = torch.device('cpu') if device is None else device
 
     if not isinstance(test_data_loader, DataLoader):
-        test_data_loader = DataLoader(test_data_loader, batch_size = batch_size)
+        test_data_loader = DataLoader([data for data in test_data_loader], batch_size = batch_size)
 
     model.eval()
 

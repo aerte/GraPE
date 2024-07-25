@@ -57,7 +57,7 @@ frag_dim = fragmentation.frag_dim
 print("done.")
 
 # Load into DataSet
-data = FragmentGraphDataSet(smiles=smiles, target=target, global_features=None, filter=True, fragmentation=fragmentation)
+data = DataSet(smiles=smiles, target=target, global_features=None, filter=True, fragmentation=fragmentation)
 train, val, test = split_data(data, split_type='consecutive', split_frac=[0.8, 0.1, 0.1],)
 breakpoint()
 ############################################################################################

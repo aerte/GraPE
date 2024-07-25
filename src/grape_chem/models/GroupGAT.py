@@ -1,8 +1,6 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
-from torch_geometric.nn import global_add_pool, global_mean_pool
-from torch_geometric.data import Batch
+from torch_geometric.nn import global_add_pool
 
 from grape_chem.models import AFP
 
