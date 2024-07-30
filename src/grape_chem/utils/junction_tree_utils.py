@@ -347,22 +347,30 @@ class JT_SubGraph(object):
         return atom_mask[frag, :].nonzero()[0].tolist()
 
     def rebuild_frag_graph(self, frag_graph, motif_graph, mol=None):
+        if frag_graph.x is None:
+            print("FRAG GRAPF X IS NONE !!!")
         num_motifs = motif_graph.num_nodes
         frag_graph_list = []
-        #logging.debug("[PyG]\nnum_motifs: {}\n frag_graph edge index: {}\n frag_graph num nodes: {}\n\n".format(num_motifs, frag_graph.edge_index, frag_graph.num_nodes))
+
         for idx_motif in range(num_motifs):
             # Get the indices of nodes in this motif
-            coord = motif_graph.atom_mask[idx_motif:idx_motif+1, :].nonzero()
-            idx_list = []
-            for idx_node in coord:
-                idx_list.append(idx_node[1])
+            coord = motif_graph.atom_mask[idx_motif:idx_motif+1, :].nonzero(as_tuple=True)[1]
+            idx_list = coord.tolist()
+            # idx_list = [] #keeping in case need to revert
+            # for idx_node in coord:
+            #     idx_list.append(idx_node[1])
             # Create new fragment graph as a subgraph of the original
-            new_graph_edge_index, new_graph_edge_attr = subgraph(idx_list, frag_graph.edge_index, edge_attr=frag_graph.edge_attr, relabel_nodes=True,)
-            #TODO: make into new pyg Data object
+            new_graph_edge_index, new_graph_edge_attr,= subgraph(
+                idx_list, frag_graph.edge_index, edge_attr=frag_graph.edge_attr, relabel_nodes=True,num_nodes=frag_graph.num_nodes,
+            )
+
+            new_node_features = frag_graph.x[idx_list] if frag_graph.x is not None else None
+
             new_frag_graph= Data(
                 edge_index=new_graph_edge_index,
                 edge_attr=new_graph_edge_attr,
-                num_nodes=len(idx_list) 
+                num_nodes=len(idx_list), 
+                x=new_node_features #explicitely passing nodes. TODO: unit test to make sure feats match with origin graph
             )
             frag_graph_list.append(new_frag_graph)
         
