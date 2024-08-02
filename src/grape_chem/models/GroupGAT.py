@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 from torch_geometric.nn import global_add_pool
+from torch_geometric.data import Data
 
 from grape_chem.models import AFP
 
@@ -180,15 +181,20 @@ class GCGAT_v4pro(nn.Module):
         self.linear_predict2.append(nn.Linear(mid_dim, 1, bias=True))
         self.linear_predict2.append(nn.LeakyReLU(negative_slope=1e-7))
 
-    def forward(self, origin_data, frag_data, junction_data, get_attention=False, get_descriptors=False):
+    def forward(self, data, get_attention=False, get_descriptors=False):
         # Approach:
         # 1. extract graph-level features from different channels
+        device = self.parameters().__next__().device
+        data = data.to(device) #TODO: investigate why second call to this is required
+        origin_data = Data(data.x, data.edge_index, data.edge_attr,)
+        frag_data, junction_data = data.frag_graphs, data.motif_graphs
         graph_origin = self.origin_module(origin_data)
         graph_frag = self.frag_module(frag_data)
         super_new_graph, super_attention_weight = self.junction_module(junction_data)
 
 
         # if descriptors: sum node features for motif graph (akin to dgl.sum_nodes)
+        print("it thinks it has to use device: ", graph_frag.x.device)
         motifs_series = global_add_pool(graph_frag.x, graph_frag.batch) if get_attention else torch.zeros((graph_frag.x.size(0), 0), device=graph_frag.x.device)
 
         # 2. concat the output from different channels

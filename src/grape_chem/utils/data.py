@@ -311,8 +311,7 @@ class DataSet(DataLoad):
 
         if fragmentation is not None:
             self.fragmentation = fragmentation
-            self.frag_graphs, self.motif_graphs = self._prepare_frag_data()
-            assert len(self.motif_graphs) == len(self.graphs) == len(self.frag_graphs), "motif, frag, origin - graph attributes should be of same length"
+            self._prepare_frag_data()
 
     @staticmethod
     def standardize(target):
@@ -443,7 +442,8 @@ class DataSet(DataLoad):
             if frag_graph is not None:
                 frag_graphs.append(frag_graph)
                 motif_graphs.append(motif_graph)
-        return frag_graphs, motif_graphs
+            self.graphs[i].frag_graphs = frag_graphs
+            self.graphs[i].motif_graphs = motif_graphs
 
     def indices(self):
         return range(len(self.graphs)) if self._indices is None else self._indices
@@ -453,20 +453,31 @@ class DataSet(DataLoad):
 
     def __getitem__(self, idx):
         if isinstance(idx, (int, np.integer)):
-            if hasattr(self, 'fragmentation') and self.fragmentation is not None:
-                return self.graphs[idx], self.frag_graphs[idx], self.motif_graphs[idx]
-            else:
-                return self.graphs[idx]
+            return self.graphs[idx]
         else:
             return self.index_select(idx)
 
     def __iter__(self):
-        if hasattr(self, 'fragmentation') and self.fragmentation is not None:
-            for i in range(len(self.graphs)):
-                yield self.graphs[i], self.frag_graphs[i], self.motif_graphs[i]
-        else:
-            for i in range(len(self.graphs)):
-                yield self.graphs[i]
+        for i in range(len(self.graphs)):
+            yield self.graphs[i]
+
+    # when fragments is its own attribute:
+    # def __getitem__(self, idx):
+    #     if isinstance(idx, (int, np.integer)):
+    #         if hasattr(self, 'fragmentation') and self.fragmentation is not None:
+    #             return self.graphs[idx], self.frag_graphs[idx], self.motif_graphs[idx]
+    #         else:
+    #             return self.graphs[idx]
+    #     else:
+    #         return self.index_select(idx)
+
+    # def __iter__(self):
+    #     if hasattr(self, 'fragmentation') and self.fragmentation is not None:
+    #         for i in range(len(self.graphs)):
+    #             yield self.graphs[i], self.frag_graphs[i], self.motif_graphs[i]
+    #     else:
+    #         for i in range(len(self.graphs)):
+    #             yield self.graphs[i]
 
     def index_select(self, idx:object):
         r"""Creates a subset of the dataset from specified indices :obj:`idx`.
