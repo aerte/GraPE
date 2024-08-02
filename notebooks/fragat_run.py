@@ -58,16 +58,22 @@ print("done.")
 
 # Load into DataSet
 data = DataSet(smiles=smiles, target=target, global_features=None, filter=True, fragmentation=fragmentation)
+
 train, val, test = split_data(data, split_type='consecutive', split_frac=[0.8, 0.1, 0.1],)
-breakpoint()
+
 ############################################################################################
 ############################################################################################
 ############################################################################################
 
+if torch.cuda.is_available():
+    device = torch.device('cuda')
+else:
+    device = torch.device('cpu')
 
 # num_global_feats is the dimension of global features per observation
 mlp = return_hidden_layers(mlp_layers)
 net_params = {
+              "device": device, #shouldn't be passed in in this way, but best we have for now  
               "num_atom_type": 39, # == node_in_dim TODO: check matches with featurizer or read from featurizer
               "num_bond_type": 12, # == edge_in_dim
               "dropout": 0.0,
@@ -102,11 +108,6 @@ net_params = {
               "L3_hidden_dim": 36,
               }
 model = GroupGAT.GCGAT_v4pro(net_params)
-
-if torch.cuda.is_available():
-    device = torch.device('cuda')
-else:
-    device = torch.device('cpu')
 
 optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
 early_Stopper = EarlyStopping(patience=patience, model_name='random', skip_save=True)

@@ -63,9 +63,9 @@ train, val, test = split_data(data, split_type='random', split_frac=[0.8, 0.1, 0
 ############################################################################################
 
 
-# num_global_feats is the dimension of global features per observation
+# num_global_feats is the dimension of global features per observation, change to 0 if not defined
 mlp = return_hidden_layers(mlp_layers)
-model = AFP(node_in_dim=44, edge_in_dim=12, num_global_feats=1, hidden_dim=hidden_dim,
+model = AFP(node_in_dim=44, edge_in_dim=12, num_global_feats=0, hidden_dim=hidden_dim,
             mlp_out_hidden=mlp, num_layers_atom=atom_layers, num_layers_mol=mol_layers)
 
 if torch.cuda.is_available():

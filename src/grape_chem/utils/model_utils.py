@@ -205,14 +205,22 @@ def train_model(model: torch.nn.Module, loss_func: Union[Callable,str], optimize
     train_loss = []
     val_loss = []
     
+    def move_to_device(data, device):
+        if isinstance(data, torch.Tensor):
+            return data.to(device)
+        elif isinstance(data, list):
+            return [move_to_device(item, device) for item in data]
+        elif isinstance(data, dict):
+            return {key: move_to_device(value, device) for key, value in data.items()}
+        else:
+            return data
+
     with tqdm(total = epochs) as pbar:
         for i in range(epochs):
             temp = np.zeros(len(train_data_loader))
-            breakpoint()
             for idx, batch in enumerate(train_data_loader):
                 optimizer.zero_grad()
-                out = model(batch.to(device))
-                breakpoint()
+                out = model(move_to_device(batch, device))
                 loss_train = loss_func(batch.y, out)
 
                 temp[idx] = loss_train.detach().cpu().numpy()
