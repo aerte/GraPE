@@ -293,7 +293,8 @@ class DataSet(DataLoad):
                                             allowed_atoms = allowed_atoms,
                                             atom_feature_list = atom_feature_list,
                                             bond_feature_list = bond_feature_list)
-
+            for g in self.graphs:
+                assert g.edge_index.shape[1] == g.edge_attr.shape[0], "Mismatch between edge_index and edge_attr dimensions"
             self.global_features = global_features
         
         self.allowed_atoms = allowed_atoms
@@ -430,7 +431,6 @@ class DataSet(DataLoad):
         TODO: complete, remove debug statements, could be made static
         """
         assert self.fragmentation is not None, 'fragmentation scheme and method must not be none to prepare frag data'
-        #^not optimal way to pass fragmentation but w/e
         frag_graphs = []
         motif_graphs = []
         print("beginning fragmentation...")
@@ -438,7 +438,7 @@ class DataSet(DataLoad):
             if log_progress:
                 if (i + 1) % log_every == 0:
                     print('Currently performing fragmentation on molecule {:d}/{:d}'.format(i + 1, len(self.smiles)))
-            frag_graph, motif_graph, _, _ = graph_2_frag(s, self.graphs[i], self.fragmentation) #TODO: add graph_2_frag method to take fragmentation
+            frag_graph, motif_graph, _, _ = graph_2_frag(s, self.graphs[i], self.fragmentation) #TODO: add graph_2_frag method to take fragmentation 
             if frag_graph is not None:
                 frag_graphs.append(frag_graph)
                 motif_graphs.append(motif_graph)

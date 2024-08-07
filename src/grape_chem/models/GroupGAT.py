@@ -19,8 +19,10 @@ class SingleHeadOriginLayer(nn.Module):
 
     def forward(self, data):
         # TODO: add check that data contains .x, .edge_index, .edge_attr, and make sure upstream that they match
-        node_features = self.AttentiveEmbedding(data.x, data.edge_index, data.edge_attr)
-        graph_features = global_add_pool(node_features, data.batch)  # or global_mean_pool
+        d = Data(data.x, data.edge_index, data.edge_attr, data.batch)
+        d.batch = data.batch #batch needs to be explicitely passed because AFP expects it. Known issue/bad QoL
+        node_features = self.AttentiveEmbedding(d) #TODO: batch data up
+        graph_features = global_add_pool(node_features, data.batch)  # or global_mean_pool TODO: find out where its getting its size set
         return graph_features
 
 
@@ -28,7 +30,7 @@ class OriginChannel(nn.Module):
     def __init__(self, net_params):
         super().__init__()
         self.embedding_node_lin = nn.Sequential(
-            nn.Linear(net_params["num_atom_type"], net_params["node_in_dim"], bias=True),
+            nn.Linear( net_params["num_atom_type"], net_params["node_in_dim"], bias=True),
             nn.BatchNorm1d(net_params["node_in_dim"]), #node in dim or L2_hidden_dim?
             nn.LeakyReLU()
         )
@@ -187,6 +189,7 @@ class GCGAT_v4pro(nn.Module):
         device = self.parameters().__next__().device
         data = data.to(device) #TODO: investigate why second call to this is required
         origin_data = Data(data.x, data.edge_index, data.edge_attr,)
+        origin_data.batch = data.batch
         frag_data, junction_data = data.frag_graphs, data.motif_graphs
         graph_origin = self.origin_module(origin_data)
         graph_frag = self.frag_module(frag_data)
@@ -194,7 +197,6 @@ class GCGAT_v4pro(nn.Module):
 
 
         # if descriptors: sum node features for motif graph (akin to dgl.sum_nodes)
-        print("it thinks it has to use device: ", graph_frag.x.device)
         motifs_series = global_add_pool(graph_frag.x, graph_frag.batch) if get_attention else torch.zeros((graph_frag.x.size(0), 0), device=graph_frag.x.device)
 
         # 2. concat the output from different channels
