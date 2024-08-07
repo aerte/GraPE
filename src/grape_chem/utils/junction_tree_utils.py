@@ -183,7 +183,8 @@ class JT_SubGraph(object):
             return frag_graph_list, motif_graph, atom_mask, frag_flag
 
     def compute_fragments(self, mol, graph, num_atoms):
-        graph.edge_index = add_self_loops(graph.edge_index)[0] #might make it slower: TODO: investigate
+        clean_edge_index = graph.edge_index
+        graph.edge_index = add_self_loops(graph.edge_index)[0] #might make it slower: TODO: investigate #this part changes the self loops
         pat_list = []
         mol_size = mol.GetNumAtoms()
         for line in self.patterns:
@@ -310,7 +311,7 @@ class JT_SubGraph(object):
         # idx_tuples = list(set([tuple(sorted(item)) for item in idx_tuples]))
 
         frag_graph = remove_edges(graph, idx_tuples)
-
+        graph.edge_index = clean_edge_index #set the edge index back. Quick fix TODO: find a better way to count self loops instead
         return frag_graph, frag_flag, atom_mask, idx_tuples, frag_features
         
     def build_adjacency_motifs(self, atom_mask, idx_tuples, motif_graph):
