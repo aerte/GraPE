@@ -21,7 +21,7 @@ set_seed(42)
 epochs = 50
 batch_size = 700
 patience = 30
-hidden_dim = 256
+hidden_dim = 132
 learning_rate = 0.001
 weight_decay = 1e-4
 mlp_layers = 1
@@ -33,7 +33,7 @@ mol_layers = 3
 root = './env/data_splits.xlsx'
 sheet_name = 'Melting Point'
 
-df = pd.read_excel(root, sheet_name=sheet_name).iloc[:20] #REMOVE the slice, just because fragmentation is so slow
+df = pd.read_excel(root, sheet_name=sheet_name).iloc[:21] #REMOVE the slice, just because fragmentation is so slow
 smiles = df['SMILES'].to_numpy()
 target = df['Target'].to_numpy()
 ### Global feature from sheet, uncomment
@@ -60,7 +60,7 @@ print("done.")
 data = DataSet(smiles=smiles, target=target, global_features=None, filter=True, fragmentation=fragmentation)
 
 train, val, test = split_data(data, split_type='consecutive', split_frac=[0.8, 0.1, 0.1],)
-
+breakpoint()
 ############################################################################################
 ############################################################################################
 ############################################################################################
@@ -74,7 +74,7 @@ else:
 mlp = return_hidden_layers(mlp_layers)
 net_params = {
               "device": device, #shouldn't be passed in in this way, but best we have for now  
-              "num_atom_type": 39, # == node_in_dim TODO: check matches with featurizer or read from featurizer
+              "num_atom_type": 44, # == node_in_dim TODO: check matches with featurizer or read from featurizer
               "num_bond_type": 12, # == edge_in_dim
               "dropout": 0.0,
               "MLP_layers":mlp_layers,
@@ -86,7 +86,7 @@ net_params = {
               "node_in_dim": 44, 
               "edge_in_dim": 12, 
               "num_global_feats":1, 
-              "hidden_dim": hidden_dim,
+              "hidden_dim": hidden_dim, #Important: check matches with `L1_hidden_dim`
               "mlp_out_hidden": mlp, 
               "num_layers_atom": atom_layers, 
               "num_layers_mol": mol_layers,

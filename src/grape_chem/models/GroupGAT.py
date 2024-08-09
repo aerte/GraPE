@@ -9,34 +9,35 @@ __all__ = ['GCGAT_v4pro']
 class SingleHeadOriginLayer(nn.Module):
     def __init__(self, net_params):
         super().__init__()
+        print("passing-in out_dim:", net_params['L1_hidden_dim'])
         self.AttentiveEmbedding = AFP(node_in_dim=net_params["node_in_dim"],
                                       edge_in_dim=net_params["edge_in_dim"],
                                         hidden_dim=net_params['hidden_dim'],
                                         num_layers_atom=net_params['num_layers_atom'],
                                         num_layers_mol=net_params['num_layers_mol'], #why is it called timesteps (old codebase)?
-                                        dropout=net_params['dropout']
+                                        dropout=net_params['dropout'],
+                                        out_dim=net_params['L1_hidden_dim'],
+                                        regressor=False
                                     )
 
     def forward(self, data):
-        # TODO: add check that data contains .x, .edge_index, .edge_attr, and make sure upstream that they match
         d = Data(data.x, data.edge_index, data.edge_attr, data.batch)
         d.batch = data.batch #batch needs to be explicitely passed because AFP expects it. Known issue/bad QoL
-        node_features = self.AttentiveEmbedding(d) #TODO: batch data up
-        graph_features = global_add_pool(node_features, data.batch)  # or global_mean_pool TODO: find out where its getting its size set
-        return graph_features
+        origin_graph_features = self.AttentiveEmbedding(d, return_lats = True)
+        return origin_graph_features
 
 
 class OriginChannel(nn.Module):
     def __init__(self, net_params):
         super().__init__()
         self.embedding_node_lin = nn.Sequential(
-            nn.Linear( net_params["num_atom_type"], net_params["node_in_dim"], bias=True),
-            nn.BatchNorm1d(net_params["node_in_dim"]), #node in dim or L2_hidden_dim?
+            nn.Linear(net_params['num_atom_type'], net_params['L1_hidden_dim'], bias=True),
+            nn.BatchNorm1d(net_params['L1_hidden_dim']),
             nn.LeakyReLU()
         )
         self.embedding_edge_lin = nn.Sequential(
-            nn.Linear(net_params['num_bond_type'], net_params["edge_in_dim"], bias=True),
-            nn.BatchNorm1d(net_params["edge_in_dim"]),
+            nn.Linear(net_params['num_bond_type'], net_params['L1_hidden_dim'], bias=True),
+            nn.BatchNorm1d(net_params['L1_hidden_dim']),
             nn.LeakyReLU()
         )
         self.origin_heads = nn.ModuleList([SingleHeadOriginLayer(net_params) for _ in range(net_params['num_heads'])])
@@ -48,6 +49,7 @@ class OriginChannel(nn.Module):
 
     def reset_parameters(self):
         # Reset parameters in all sub-modules
+        #TODO: clean-up
         for layer in self.embedding_node_lin:
             if isinstance(layer, nn.Linear):
                 layer.reset_parameters()
@@ -60,10 +62,11 @@ class OriginChannel(nn.Module):
         for head in self.origin_heads:
             head.reset_parameters()
 
-    def forward(self, batch):
-        batch.x = self.embedding_node_lin(batch.x.float())
-        batch.edge_attr = self.embedding_edge_lin(batch.edge_attr.float())
-        origin_heads_out = [head(batch) for head in self.origin_heads]
+    def forward(self, data): #TODO: perhaps batch should be a data instance instead
+        origin_data = Data(data.x, data.edge_index, data.edge_attr,)
+        origin_data.batch = data.batch
+        #(embedding -> hidden_dim is handled in the call to AFP)
+        origin_heads_out = [head(origin_data) for head in self.origin_heads]
         graph_origin = self.origin_attend(torch.cat(origin_heads_out, dim=-1))
         return graph_origin
     
@@ -79,21 +82,22 @@ class SingleHeadFragmentLayer(nn.Module):
                                     )
 
     def forward(self, data):
-        node_features = self.AttentiveEmbedding(data.x, data.edge_index, data.edge_attr)
-        graph_features = global_add_pool(node_features, data.batch)
-        return graph_features
+        d = Data(data.x, data.edge_index, data.edge_attr, data.batch)
+        d.batch = data.batch
+        frag_features = self.AttentiveEmbedding(d, return_lats=True)
+        return frag_features
 
 class FragmentChannel(nn.Module):
     def __init__(self, net_params):
         super().__init__()
         self.embedding_node_lin = nn.Sequential(
-            nn.Linear(net_params["num_atom_type"], net_params["node_in_dim"], bias=True),
-            nn.BatchNorm1d(net_params["node_in_dim"]),
+            nn.Linear(net_params["num_atom_type"], net_params["L2_hidden_dim"], bias=True),
+            nn.BatchNorm1d(net_params["L2_hidden_dim"]),
             nn.LeakyReLU()
         )
         self.embedding_edge_lin = nn.Sequential(
-            nn.Linear(net_params['num_bond_type'], net_params["edge_in_dim"], bias=True),
-            nn.BatchNorm1d(net_params["edge_in_dim"]),
+            nn.Linear(net_params['num_bond_type'], net_params["L2_hidden_dim"], bias=True),
+            nn.BatchNorm1d(net_params["L2_hidden_dim"]),
             nn.LeakyReLU()
         )
         self.fragment_heads = nn.ModuleList([SingleHeadFragmentLayer(net_params) for _ in range(net_params['num_heads'])])
@@ -124,9 +128,11 @@ class SingleHeadJunctionLayer(nn.Module):
 
     def forward(self, data):
         data.x = self.project_motif(data.x)
-        node_features = self.AttentiveEmbedding(data.x, data.edge_index, data.edge_attr)
-        graph_features, attention_weights = global_add_pool(node_features, data.batch), None  # Adjust if you get attention weights
-        return graph_features, attention_weights
+        d = Data(data.x, data.edge_index, data.edge_attr, data.batch)
+        d.batch = data.batch
+        motif_graph_features = self.AttentiveEmbedding(d)
+        #graph_features, attention_weights = global_add_pool(node_features, data.batch), None  # Adjust if you get attention weights
+        return motif_graph_features
 
 class JT_Channel(nn.Module):
     def __init__(self, net_params):
