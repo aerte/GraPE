@@ -14,7 +14,6 @@ notebooks/processed
 notebooks/test_classyfire
 notebooks/analysis_results
 
-tests/
 dockerfiles/
 
 # test cache

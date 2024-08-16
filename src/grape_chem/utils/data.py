@@ -431,8 +431,7 @@ class DataSet(DataLoad):
         TODO: complete, remove debug statements, could be made static
         """
         assert self.fragmentation is not None, 'fragmentation scheme and method must not be none to prepare frag data'
-        frag_graphs = []
-        motif_graphs = []
+
         print("beginning fragmentation...")
         for i, s in enumerate(self.smiles):
             if log_progress:
@@ -440,10 +439,8 @@ class DataSet(DataLoad):
                     print('Currently performing fragmentation on molecule {:d}/{:d}'.format(i + 1, len(self.smiles)))
             frag_graph, motif_graph, _, _ = graph_2_frag(s, self.graphs[i], self.fragmentation) #TODO: add graph_2_frag method to take fragmentation 
             if frag_graph is not None:
-                frag_graphs.append(frag_graph)
-                motif_graphs.append(motif_graph)
-            self.graphs[i].frag_graphs = frag_graphs
-            self.graphs[i].motif_graphs = motif_graphs
+                self.graphs[i].frag_graphs = frag_graph #empty lists could cause issues. consider replacing with None in case list empty
+                self.graphs[i].motif_graphs = motif_graph
 
     def indices(self):
         return range(len(self.graphs)) if self._indices is None else self._indices
