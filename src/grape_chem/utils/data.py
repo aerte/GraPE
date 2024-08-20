@@ -135,7 +135,7 @@ def filter_smiles(smiles: list[str], target: Union[list[str], list[float], ndarr
 
 def construct_dataset(smiles: list[str], target: Union[list[int], list[float], ndarray], allowed_atoms: list[str] = None,
                       atom_feature_list: list[str] = None, bond_feature_list: list[str] = None,
-                      global_features = None) -> list[Data]:
+                      global_features = None, graph_only: bool = False) -> list[Data]:
     """Constructs a dataset out of the smiles and target lists based on the feature lists provided. The dataset will be
     a list of torch geometric Data objects, using their conventions.
 
@@ -154,7 +154,8 @@ def construct_dataset(smiles: list[str], target: Union[list[int], list[float], n
         Bond features of the bond featurizer, see utils.featurizer for more details. Default: All implemented features.
     global_features
         A list of global features matching the length of the SMILES or target. Default: None
-
+    graph_only
+        If set to True, return only first graph without target values. Use for when unit-testing graph formation. Default: False
     Returns
     --------
     list of Data
@@ -175,6 +176,9 @@ def construct_dataset(smiles: list[str], target: Union[list[int], list[float], n
         edge_index = dense_to_sparse(torch.tensor(rdmolops.GetAdjacencyMatrix(mol)))[0]
         x = atom_featurizer(mol) #creates nodes
         edge_attr = bond_featurizer(mol) #creates "edges" attrs
+        if graph_only:
+            data_temp = Data(x=x, edge_index=edge_index, edge_attr=edge_attr)
+            return data_temp
         data_temp = Data(x = x, edge_index = edge_index, edge_attr = edge_attr, y=tensor([target[i]],
                                                                                          dtype=torch.float32))
         # TODO: Might need to be tested on multidim global feats
