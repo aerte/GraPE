@@ -546,13 +546,16 @@ class TestJTSubGraph(unittest.TestCase):
         in the same way. DGL produces a list of tuples of edges. Our graphs are undirected so we
         manipulate them before comparing.
         """
-        coo_src = self.frag_graph_list[0].edge_index[0].tolist()
-        coo_dst = self.frag_graph_list[0].edge_index[1].tolist()
-        coo_as_tupleset = {(min(s, d), max(s, d)) for s, d in zip(coo_src, coo_dst)}
-        tuples_as_tupleset = {(min(a, b), max(a, b)) for a, b in wanted_frag_graphs[0]['edge_indices']}
-
+        for i in range(len(self.frag_graph_list)):
+            coo_src = self.frag_graph_list[i].edge_index[0].tolist()
+            coo_dst = self.frag_graph_list[i].edge_index[1].tolist()
+            coo_as_tupleset = {(min(s, d), max(s, d)) for s, d in zip(coo_src, coo_dst)}
+            tuples_as_tupleset = {(min(a, b), max(a, b)) for a, b in wanted_frag_graphs[i]['edge_indices']}
+            print("pyg: ", coo_as_tupleset)
+            print("dig: ", tuples_as_tupleset)
         # Compare sets of edges
         self.assertEqual(coo_as_tupleset, tuples_as_tupleset, "Edge lists do not match for undirected graph")
+
 if __name__ == '__main__':
     unittest.main()
 
