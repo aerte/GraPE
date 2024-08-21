@@ -1,3 +1,14 @@
+##########################################################################################
+#####################    JT CODE START  ##################################################
+##########################################################################################
+##########################################################################################
+#####################    JT CODE START  ##################################################
+##########################################################################################
+##########################################################################################
+#####################    JT CODE START  ##################################################
+##########################################################################################
+
+
 import os
 import pandas as pd
 import torch
@@ -145,7 +156,7 @@ class JT_SubGraph(object):
             motif_graph.ndata['atom_mask'] is graph.atom_mask (arbitrary)
         we assume that the ndata['feat'] from before entering the function is not needed
         """
-
+    
         #graph = from_dgl(graph) #if passing a dgl for debugging
         num_atoms = mol.GetNumAtoms()
 
@@ -184,132 +195,107 @@ class JT_SubGraph(object):
 
     def compute_fragments(self, mol, graph, num_atoms):
         clean_edge_index = graph.edge_index
-        graph.edge_index = add_self_loops(graph.edge_index)[0] #might make it slower: TODO: investigate #this part changes the self loops
+        #graph.edge_index = add_self_loops(graph.edge_index)[0] #might make it slower: TODO: investigate #this part changes the self loops
         pat_list = []
         mol_size = mol.GetNumAtoms()
+        num_atoms = mol.GetNumAtoms()
         for line in self.patterns:
             pat = Chem.MolFromSmarts(line[1])
             pat_list.append(list(mol.GetSubstructMatches(pat)))
-
+            #if pat_list[-1] != []:
+                #print("Pattern: ", line, " found in molecule")
         atom_idx_list = list(range(num_atoms))
         hit_ats = {}
-        frag_flag = []
+        frag_flag = [] # List[str], len := #fragments
         prior_set = set()
-        adj_masks = []
-        atom_masks = []
+        adj_mask = []
+        atom_mask = []
         frag_features = []
         k = 0
 
         for idx, line in enumerate(self.patterns):
-            pat_list = []
-            mol_size = mol.GetNumAtoms()
-            for line in self.patterns:
-                pat = Chem.MolFromSmarts(line[1])
-                pat_list.append(list(mol.GetSubstructMatches(pat)))
+            key = line[0]
+            frags = pat_list[idx]
+            #print(frags)
+                #remove all the nodes in the frag that might appear multiple times until they appear 
+            for i, item in enumerate(frags):
+                item_set = set(item) #set(int)
+                new_frags = frags[:i] + frags[i + 1:]
+                left_set = set(sum(new_frags, ()))
+                if not item_set.isdisjoint(left_set):
+                    frags = new_frags
 
-            atom_idx_list = [i for i in range(num_atoms)]
-            hit_ats = {}
-            frag_flag = []
-            prior_set = set()
-            k = 0
+            for frag in frags: #frag:tuple in frags:List[Tuples]
+                frag_set = set(frag)
+                if not prior_set.isdisjoint(frag_set) or not frag_set:
+                    continue
+                ats = frag_set
+                adjacency_origin = Chem.rdmolops.GetAdjacencyMatrix(mol)
+                adj_mask.append(adjacency_origin.copy())
+                atom_mask.append(torch.zeros((mol_size,)))
+                frag_features.append(torch.tensor([float(key == s) for s in self.frag_name_list], dtype=torch.float))
 
-            for idx, line in enumerate(self.patterns):
-                key = line[0]
-                frags = pat_list[idx]
-                if frags:
-                    #print(f"in PyG got {len(frags)} frags")
-                    for i, item in enumerate(frags):
-                        item_set = set(item)
-                        new_frags = frags[:i] + frags[i + 1:]
-                        left_set = set(sum(new_frags, ()))
-                        if not item_set.isdisjoint(left_set):
-                            frags = new_frags
+                if key not in hit_ats.keys():
+                    hit_ats[key] = np.asarray(list(ats))
+                else:
+                    hit_ats[key] = np.vstack((hit_ats[key], np.asarray(list(ats))))
+                ignores = list(set(atom_idx_list) - set(ats))
+                adj_mask[k][ignores, :] = 0
+                adj_mask[k][:, ignores] = 0 
+                atom_mask[k][list(ats)] = 1
+                frag_flag.append(key)
+                k += 1
+                prior_set.update(ats)
+        if k > 0:
+            frag_features = np.asarray(frag_features)
+            adj_mask = np.asarray(adj_mask)
+            atom_mask = np.asarray(atom_mask)
+        #     print("adj mask: ", adj_mask.shape)
+        #     print("atom mask: ", atom_mask.shape)
+        #     print("frag features: ", frag_features.shape)
 
-                    for frag in frags:
-                        frag_set = set(frag)
-                        if prior_set.isdisjoint(frag_set):
-                            ats = frag_set
-                        else:
-                            ats = set() # /!\ dictionary? TODO: investigate
-                        if ats:
-                            adjacency_origin = Chem.rdmolops.GetAdjacencyMatrix(mol)[np.newaxis, :, :]
-                            if k == 0:
-                                adj_mask = adjacency_origin
-                                atom_mask = torch.zeros((1, mol_size))
-                                frag_features = torch.tensor([float(key == s) for s in self.frag_name_list], dtype=torch.float).unsqueeze(0)
-                                #logger.debug("# in PyG #")
-                                #logger.debug(adj_mask, "\n", atom_mask, "\n", frag_features)
-                            else:
-                                adj_mask = np.vstack((adj_mask, adjacency_origin))
-                                atom_mask = np.vstack((atom_mask, np.zeros((1, mol_size))))
-                                frag_features = np.vstack((frag_features,
-                                                        np.asarray(
-                                                            list(map(lambda s: float(key == s), self.frag_name_list)))))
-                            if key not in hit_ats.keys():
-                                hit_ats[key] = np.asarray(list(ats))
-                            else:
-                                hit_ats[key] = np.vstack((hit_ats[key], np.asarray(list(ats))))
-                            ignores = list(set(atom_idx_list) - set(ats))
-                                # adj_mask = torch.cat((adj_mask, adjacency_origin), dim=0)
-                                # atom_mask = torch.cat((atom_mask, torch.zeros((1, mol_size))), dim=0)
-                                # frag_features = torch.cat((frag_features, torch.tensor([float(key == s) for s in self.frag_name_list], dtype=torch.float).unsqueeze(0)))
-                                #logger.debug("# in PyG #")
-                                #logger.debug(adj_mask, "\n", atom_mask, "\n", frag_features)
-                            # if key not in hit_ats:
-                            #     hit_ats[key] = torch.tensor(list(ats))
-                            # else:
-                            #     hit_ats[key] = torch.cat((hit_ats[key], torch.tensor(list(ats))))
-
-                            ignores = list(set(atom_idx_list) - ats)
-                            adj_mask[k, ignores, :] = 0
-                            adj_mask[k, :, ignores] = 0 
-                            atom_mask[k, list(ats)] = 1
-                            frag_flag.append(key)
-                            k += 1
-                            prior_set.update(ats)
-
-            # unknown fragments:
-            unknown_ats = list(set(atom_idx_list) - prior_set)
-            if len(unknown_ats) > 0:
-                for i, at in enumerate(unknown_ats):
-                    if k == 0:
-                        if num_atoms == 1:
-                            adjacency_origin = Chem.rdmolops.GetAdjacencyMatrix(mol)[np.newaxis, :, :]
-                        adj_mask = adjacency_origin
-                        atom_mask = np.zeros((1, mol_size))
-                    else:
-                        # adjacency_origin = Chem.rdmolops.GetAdjacencyMatrix(m)[np.newaxis, :, :]
-                        adj_mask = np.vstack((adj_mask, adjacency_origin))
-                        atom_mask = np.vstack((atom_mask, np.zeros((1, mol_size))))
-                    if 'unknown' not in hit_ats.keys():
-                        hit_ats['unknown'] = np.asarray(at)
-                    else:
-                        hit_ats['unknown'] = np.vstack((hit_ats['unknown'], np.asarray(at)))
-                    ignores = list(set(atom_idx_list) - set([at]))
-                    # print(prior_idx)
-                    if num_atoms != 1:
-                        adj_mask[k, ignores, :] = 0
-                        adj_mask[k, :, ignores] = 0
-                    atom_mask[k, at] = 1
-                    frag_flag.append('unknown')
-                    if num_atoms != 1:
-                        frag_features = np.vstack( #convert to PyG
-                            (frag_features, np.asarray(list(map(lambda s: float('unknown' == s), self.frag_name_list)))))
-                    else:
-                        frag_features = np.asarray(list(map(lambda s: float('unknown' == s), self.frag_name_list))) #convert to PyG
-                    k += 1
-        
+        # unknown fragments:
+        unknown_ats = list(set(atom_idx_list) - prior_set)
+        for i, at in enumerate(unknown_ats):
+            print("had unknown ats")
+            if k == 0:
+                if num_atoms == 1:
+                    adjacency_origin = Chem.rdmolops.GetAdjacencyMatrix(mol)
+                adj_mask = adjacency_origin
+                atom_mask = np.zeros((1, mol_size))
+            else:
+                # adjacency_origin = Chem.rdmolops.GetAdjacencyMatrix(m)[np.newaxis, :, :]
+                adj_mask = np.vstack((adj_mask, adjacency_origin))
+                atom_mask = np.vstack((atom_mask, np.zeros((1, mol_size))))
+            if 'unknown' not in hit_ats.keys():
+                hit_ats['unknown'] = np.asarray(at)
+            else:
+                hit_ats['unknown'] = np.vstack((hit_ats['unknown'], np.asarray(at))) #stack all unknown atoms into 1 thing
+            ignores = list(set(atom_idx_list) - set([at]))
+            # print(prior_idx)
+            if num_atoms != 1:
+                adj_mask[k, ignores, :] = 0
+                adj_mask[k, :, ignores] = 0
+            atom_mask[k, at] = 1
+            frag_flag.append('unknown')
+            if num_atoms != 1:
+                frag_features = np.vstack( #convert to PyG
+                    (frag_features, np.asarray(list(map(lambda s: float('unknown' == s), self.frag_name_list)))))
+            else:
+                frag_features = np.asarray(list(map(lambda s: float('unknown' == s), self.frag_name_list))) #convert to PyG
+            k += 1
+            #should be modified to only vstack at the end instead of in all the complex conditions
         #### end of preprocessing #####
         adjacency_fragments = adj_mask.sum(axis=0)
+        # print("adjacency_fragments: ", adjacency_fragments.shape)
+        # print(adjacency_fragments)
         try:
-            idx1, idx2 = (adjacency_origin.squeeze(0) - adjacency_fragments).nonzero()
+            idx1, idx2 = (adjacency_origin - adjacency_fragments).nonzero()
         except:
             breakpoint()  
         # idx_tuples: list of tuples, idx of begin&end atoms on each new edge
         idx_tuples = list(zip(idx1.tolist(), idx2.tolist())) # the tuples to remove?
-        # remove reverse edges
-        # idx_tuples = list(set([tuple(sorted(item)) for item in idx_tuples]))
-
+        #if bigraph is wanted it should be setup here
         frag_graph = remove_edges(graph, idx_tuples)
         graph.edge_index = clean_edge_index #set the edge index back. Quick fix TODO: find a better way to count self loops instead
         return frag_graph, frag_flag, atom_mask, idx_tuples, frag_features
@@ -320,7 +306,7 @@ class JT_SubGraph(object):
         adjacency_motifs = np.zeros((k, k)).astype(int)
         motif_edge_begin = list(map(lambda x: self.atom_locate_frag(atom_mask, x[0]), idx_tuples))
         motif_edge_end = list(map(lambda x: self.atom_locate_frag(atom_mask, x[1]), idx_tuples))
-        #adjacency_motifs[new_edge_begin, new_edge_end] = 1
+
         # eliminate duplicate bond in triangle substructure
         for idx1, idx2 in zip(motif_edge_begin, motif_edge_end):
             if adjacency_motifs[idx1, idx2] == 0:
@@ -357,9 +343,7 @@ class JT_SubGraph(object):
             # Get the indices of nodes in this motif
             coord = motif_graph.atom_mask[idx_motif:idx_motif+1, :].nonzero(as_tuple=True)[1]
             idx_list = coord.tolist()
-            # idx_list = [] #keeping in case need to revert
-            # for idx_node in coord:
-            #     idx_list.append(idx_node[1])
+
             # Create new fragment graph as a subgraph of the original
             new_graph_edge_index, new_graph_edge_attr,= subgraph(
                 idx_list, frag_graph.edge_index, edge_attr=frag_graph.edge_attr, relabel_nodes=True,num_nodes=frag_graph.num_nodes,
@@ -376,35 +360,42 @@ class JT_SubGraph(object):
             frag_graph_list.append(new_frag_graph)
         
         return frag_graph_list
-    
+
 
 def remove_edges(data, to_remove: list[tuple[int, int]]):
     """
-    takes: PyG data object, list of pairs nodes making edges to remove
-    returns: data with edges removed
-    TODO: rewrite so that it also acts on:
-    graph.feat
-    graph.nfeat     (node features)      
-    graph.atom_mask (optional)
+    Takes: PyG data object, list of pairs of nodes making edges to remove.
+    Returns: Data with specified edges removed, including edge attributes.
     """
-    edges_to_remove = []
-    for src, tgt in to_remove:
-        # we assume undirected graph (so both directions need to be added)
-        idx = ((data.edge_index[0] == src) & (data.edge_index[1] == tgt)) | \
-            ((data.edge_index[0] == tgt) & (data.edge_index[1] == src))
-        edges_to_remove.append(idx.nonzero(as_tuple=True)[0])
-    if (len(edges_to_remove) == 0):
-        return data
-    edges_to_remove = torch.cat(edges_to_remove)  # Flatten list of indices
-    #logger.debug("Indices of Edges to Remove:\n", edges_to_remove)
+    edge_index = data.edge_index
+    edge_attr = data.edge_attr
+    
+    # List to store indices of edges to keep
+    keep_indices = []
 
-    # True values : to edges we want to keep
-    keep_edges = torch.ones(data.edge_index.size(1), dtype=torch.bool)
-    keep_edges[edges_to_remove] = False
+    for i in range(edge_index.size(1)):
+        src, tgt = edge_index[0, i].item(), edge_index[1, i].item()
+        
+        if (src, tgt) not in to_remove and (tgt, src) not in to_remove: #removes both directions
+            keep_indices.append(i)
+    
 
-    new_edge_index = data.edge_index[:, keep_edges]
-    new_data = Data(x=data.x, num_nodes=data.num_nodes, edge_index=new_edge_index)
+    keep_indices = torch.tensor(keep_indices, dtype=torch.long)
+    #filter edges and attr over mask
+    new_edge_index = edge_index[:, keep_indices]
+    new_edge_attr = edge_attr[keep_indices] if edge_attr is not None else None
+    
+    new_data = Data(x=data.x, edge_index=new_edge_index, edge_attr=new_edge_attr, num_nodes=data.num_nodes)
     return new_data
+##########################################################################################
+#####################    JT CODE END    ##################################################
+##########################################################################################
+##########################################################################################
+#####################    JT CODE END    ##################################################
+##########################################################################################
+##########################################################################################
+#####################    JT CODE END    ##################################################
+##########################################################################################
 
 def remove_edges_other(data, to_remove: list[tuple[int, int]]):
     """
