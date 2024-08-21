@@ -60,7 +60,6 @@ print("done.")
 data = DataSet(smiles=smiles, target=target, global_features=None, filter=True, fragmentation=fragmentation)
 
 train, val, test = split_data(data, split_type='consecutive', split_frac=[0.8, 0.1, 0.1],)
-breakpoint()
 ############################################################################################
 ############################################################################################
 ############################################################################################
@@ -148,5 +147,3 @@ val_mae = pred_metric(prediction=val_preds, target=val.y, metrics='mae', print_o
 
 overall_mae = (train_mae+val_mae+test_mae)/3 * std_target + mean_target
 print(f'Rescaled overall MAE {overall_mae:.3f}')
-
-

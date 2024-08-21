@@ -29,7 +29,7 @@ mol_layers = 1
 
 
 # Change to your own specifications
-root = './env/data_splits.xlsx'
+root = 'env/data_splits.xlsx'
 sheet_name = 'Melting Point'
 
 df = pd.read_excel(root, sheet_name=sheet_name)
