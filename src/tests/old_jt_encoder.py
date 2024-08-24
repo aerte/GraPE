@@ -1,3 +1,11 @@
+import os
+from torch_geometric.data import Data
+from torch_geometric.utils import subgraph
+import torch
+import numpy as np
+import pandas as pd
+from rdkit import Chem
+
 ##########################################################################################
 #####################    JT CODE START  ##################################################
 ##########################################################################################
@@ -246,10 +254,6 @@ class JT_SubGraph(object):
                 frag_flag.append(key)
                 k += 1
                 prior_set.update(ats)
-        if k > 0:
-            frag_features = np.asarray(frag_features)
-            adj_mask = np.asarray(adj_mask)
-            atom_mask = np.asarray(atom_mask)
 
         # unknown fragments:
         unknown_ats = list(set(atom_idx_list) - prior_set)
@@ -257,32 +261,40 @@ class JT_SubGraph(object):
             print(f"had unknown ats for mol {Chem.MolToSmiles(mol)}")
             if k == 0:
                 if num_atoms == 1:
-                    adjacency_origin = Chem.rdmolops.GetAdjacencyMatrix(mol)[np.newaxis, :, :]
+                    adjacency_origin = Chem.rdmolops.GetAdjacencyMatrix(mol)
                 adj_mask = adjacency_origin
                 atom_mask = np.zeros((1, mol_size))
             else:
                 # adjacency_origin = Chem.rdmolops.GetAdjacencyMatrix(m)[np.newaxis, :, :]
-                adj_mask = np.vstack((adj_mask, adjacency_origin))
-                atom_mask = np.vstack((atom_mask, np.zeros((1, mol_size))))
+                adj_mask.append(adjacency_origin)
+                atom_mask.append(torch.zeros((mol_size,)))
             if 'unknown' not in hit_ats.keys():
                 hit_ats['unknown'] = np.asarray(at)
             else:
-                hit_ats['unknown'] = np.vstack((hit_ats['unknown'], np.asarray(at))) #stack all unknown atoms into 1 thing
+                hit_ats['unknown'] = np.append(hit_ats['unknown'], np.asarray(at)) #stack all unknown atoms into 1 thing
             ignores = list(set(atom_idx_list) - set([at]))
             # print(prior_idx)
             if num_atoms != 1:
-                adj_mask[k, ignores, :] = 0
-                adj_mask[k, :, ignores] = 0
-            atom_mask[k, at] = 1
+                adj_mask[k][ignores, :] = 0
+                adj_mask[k][ignores] = 0
+            print("k: ", k)
+            print("at: ", at)
+            print("atom_mask:\n", atom_mask)
+            atom_mask[k][at] = 1
             frag_flag.append('unknown')
             if num_atoms != 1:
-                frag_features = np.vstack( #convert to PyG
-                    (frag_features, np.asarray(list(map(lambda s: float('unknown' == s), self.frag_name_list)))))
+                frag_features.append(np.asarray(list(map(lambda s: float('unknown' == s), self.frag_name_list))))
             else:
                 frag_features = np.asarray(list(map(lambda s: float('unknown' == s), self.frag_name_list))) #convert to PyG
             k += 1
             #should be modified to only vstack at the end instead of in all the complex conditions
         #### end of preprocessing #####
+
+        if k > 0:
+            frag_features = np.asarray(frag_features)
+            adj_mask = np.asarray(adj_mask)
+            atom_mask = np.asarray(atom_mask)
+
         adjacency_fragments = adj_mask.sum(axis=0)
         # print("adjacency_fragments: ", adjacency_fragments.shape)
         # print(adjacency_fragments)

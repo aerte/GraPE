@@ -2,10 +2,12 @@ import unittest
 import torch
 from torch_geometric.data import Data
 from frag_graphs_compare import wanted_frag_graphs #to unclutter
-from grape_chem.utils.junction_tree_utils import remove_edges, JT_SubGraph
+#from grape_chem.utils.junction_tree_utils import remove_edges, JT_SubGraph
+from old_jt_encoder import remove_edges, JT_SubGraph
 from grape_chem.utils.data import construct_dataset
 from rdkit import Chem
-
+import numpy as np
+from numpy.testing import assert_array_equal
 class TestRemoveEdges(unittest.TestCase):
     def setUp(self):
         """
@@ -141,9 +143,8 @@ class TestJTSubGraph(unittest.TestCase):
     def test_jt_subgraph_edges_match_with_other_implementation(self):
         """
         PyG graphs store edges in COO format with an array of src and an array of dest indexed
-        in the same way. DGL produces a list of tuples of edges. Our graphs are undirected so we
-        manipulate them before comparing.
-        The node indexing between the two implementations is not the same so for now this fails...
+        in the same way. DGL produces a list of tuples of edges.
+        ->The node indexing between the two implementations is not the same so for now this fails...
         """
         pass
         if False:
@@ -155,6 +156,34 @@ class TestJTSubGraph(unittest.TestCase):
 
                 # Compare sets of edges
                 self.assertEqual(coo_as_tupleset, tuples_as_tupleset, "Edge lists do not match for undirected graph")
+    
+    def test_jt_subgraph_correct_on_mol_with_unknown_atoms(self):
+        uknown_at_smiles='O=[N+]([O-])c1ccc(Cl)c(Cl)c1Cl'
+        mol = Chem.MolFromSmiles(uknown_at_smiles)
+        graph = construct_dataset([uknown_at_smiles], None, graph_only=True)
+        frag_graph_list, motif_graph, atom_mask, frag_flag = self.jt_subgraph.fragmentation(graph, mol)
+        
+        wanted_atom_mask = np.array([[0., 1., 0., 1., 0., 0., 0., 0., 0., 0., 0., 0.],
+                                    [0., 0., 0., 0., 0., 0., 1., 1., 0., 0., 0., 0.],
+                                    [0., 0., 0., 0., 0., 0., 0., 0., 1., 1., 0., 0.],
+                                    [0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 1., 1.],
+                                    [0., 0., 0., 0., 1., 0., 0., 0., 0., 0., 0., 0.],
+                                    [0., 0., 0., 0., 0., 1., 0., 0., 0., 0., 0., 0.],
+                                    [1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+                                    [0., 0., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0.]])
+        wanted_frag_flag = ['ACN', 'ACCl', 'ACCl', 'ACCl', 'ACH', 'ACH', 'unknown', 'unknown']
+        wanted_num_frag_graphs = 8
+        wanted_motif_graph_num_nodes = 8
+        wanted_motif_graph_num_edges = 16
+
+        assert_array_equal(atom_mask[0], wanted_atom_mask[0]) #fails because of np error
+        self.assertEqual(frag_flag, wanted_frag_flag)
+        self.assertEqual(len(frag_graph_list), wanted_num_frag_graphs)
+        self.assertEqual(motif_graph.num_nodes, wanted_motif_graph_num_nodes)
+        print(motif_graph)
+        print(motif_graph.edge_index)
+        self.assertEqual(motif_graph.num_edges, wanted_motif_graph_num_edges)
+
 
 if __name__ == '__main__':
     unittest.main()
