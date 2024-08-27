@@ -174,8 +174,10 @@ class JT_SubGraph(object):
         edge_index = torch.tensor([], dtype=torch.long)
         motif_graph = Data(edge_index=edge_index,)
         motif_graph.num_nodes = num_motifs
+        print("mol: ", Chem.MolToSmiles(mol))
+        print("idx_tuples before adj motifs: ", idx_tuples)
         _, idx_tuples, motif_graph = self.build_adjacency_motifs(atom_mask, idx_tuples, motif_graph)
-
+        print("new idx_tuples pyg: ", idx_tuples)
         if frag_features.ndim == 1:
             frag_features = frag_features.reshape(-1, 1).transpose()
 
@@ -266,7 +268,7 @@ class JT_SubGraph(object):
                 atom_mask = np.zeros((1, mol_size))
             else:
                 # adjacency_origin = Chem.rdmolops.GetAdjacencyMatrix(m)[np.newaxis, :, :]
-                adj_mask.append(adjacency_origin)
+                adj_mask.append(adjacency_origin.copy())
                 atom_mask.append(torch.zeros((mol_size,)))
             if 'unknown' not in hit_ats.keys():
                 hit_ats['unknown'] = np.asarray(at)
@@ -276,10 +278,10 @@ class JT_SubGraph(object):
             # print(prior_idx)
             if num_atoms != 1:
                 adj_mask[k][ignores, :] = 0
-                adj_mask[k][ignores] = 0
-            print("k: ", k)
-            print("at: ", at)
-            print("atom_mask:\n", atom_mask)
+                adj_mask[k][:, ignores] = 0
+            #print("k: ", k)
+            #print("at: ", at)
+            #print("atom_mask:\n", atom_mask)
             atom_mask[k][at] = 1
             frag_flag.append('unknown')
             if num_atoms != 1:
@@ -294,14 +296,14 @@ class JT_SubGraph(object):
             frag_features = np.asarray(frag_features)
             adj_mask = np.asarray(adj_mask)
             atom_mask = np.asarray(atom_mask)
-
+        
         adjacency_fragments = adj_mask.sum(axis=0)
         # print("adjacency_fragments: ", adjacency_fragments.shape)
         # print(adjacency_fragments)
-        try:
-            idx1, idx2 = (adjacency_origin - adjacency_fragments).nonzero()
-        except:
-            breakpoint()  
+
+        idx1, idx2 = (adjacency_origin - adjacency_fragments).nonzero()
+        #print("idx1, idx2: ", idx1, idx2)
+            #print them here 26AUG24
         # idx_tuples: list of tuples, idx of begin&end atoms on each new edge
         idx_tuples = list(zip(idx1.tolist(), idx2.tolist())) # the tuples to remove?
         #if bigraph is wanted it should be setup here
@@ -318,6 +320,8 @@ class JT_SubGraph(object):
 
         # eliminate duplicate bond in triangle substructure
         for idx1, idx2 in zip(motif_edge_begin, motif_edge_end):
+            #print(f"Adding edge between motif {idx1} and motif {idx2}")
+            #
             if adjacency_motifs[idx1, idx2] == 0:
                 adjacency_motifs[idx1, idx2] = 1
                 add_edge(motif_graph, (idx1, idx2))
