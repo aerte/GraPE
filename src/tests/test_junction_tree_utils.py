@@ -2,8 +2,8 @@ import unittest
 import torch
 from torch_geometric.data import Data
 from frag_graphs_compare import wanted_frag_graphs #to unclutter
-#from grape_chem.utils.junction_tree_utils import remove_edges, JT_SubGraph
-from old_jt_encoder import remove_edges, JT_SubGraph
+from grape_chem.utils.junction_tree_utils import remove_edges, JT_SubGraph
+#from old_jt_encoder import remove_edges, JT_SubGraph
 from grape_chem.utils.data import construct_dataset
 from rdkit import Chem
 import numpy as np
@@ -156,8 +156,13 @@ class TestJTSubGraph(unittest.TestCase):
 
                 # Compare sets of edges
                 self.assertEqual(coo_as_tupleset, tuples_as_tupleset, "Edge lists do not match for undirected graph")
-    
+
     def test_jt_subgraph_correct_on_mol_with_unknown_atoms(self):
+        """
+        top code was only testing one of the cases.
+        This test could be factored out into multiple 
+        ones for readability in the case of errorrs.(<-TODO)
+        """
         uknown_at_smiles='O=[N+]([O-])c1ccc(Cl)c(Cl)c1Cl'
         mol = Chem.MolFromSmiles(uknown_at_smiles)
         graph = construct_dataset([uknown_at_smiles], None, graph_only=True)
@@ -180,8 +185,6 @@ class TestJTSubGraph(unittest.TestCase):
         self.assertEqual(frag_flag, wanted_frag_flag)
         self.assertEqual(len(frag_graph_list), wanted_num_frag_graphs)
         self.assertEqual(motif_graph.num_nodes, wanted_motif_graph_num_nodes)
-        print(motif_graph)
-        print(motif_graph.edge_index)
         self.assertEqual(motif_graph.num_edges, wanted_motif_graph_num_edges)
 
 
