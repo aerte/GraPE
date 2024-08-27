@@ -442,6 +442,8 @@ class DataSet(DataLoad):
                 if (i + 1) % log_every == 0:
                     print('Currently performing fragmentation on molecule {:d}/{:d}'.format(i + 1, len(self.smiles)))
             frag_graph, motif_graph, _, _ = graph_2_frag(s, self.graphs[i], self.fragmentation) #TODO: add graph_2_frag method to take fragmentation 
+            if hasattr(motif_graph, 'atom_mask'):
+                del motif_graph.atom_mask #hacky, but necessary to avoid issues with pytorch geometric
             if frag_graph is not None:
                 self.graphs[i].frag_graphs = frag_graph #empty lists could cause issues. consider replacing with None in case list empty
                 self.graphs[i].motif_graphs = motif_graph

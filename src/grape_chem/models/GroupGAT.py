@@ -83,6 +83,7 @@ class SingleHeadFragmentLayer(nn.Module):
                                     )
 
     def forward(self, data):
+        breakpoint()
         d = Data(data.x, data.edge_index, data.edge_attr, data.batch)
         d.batch = data.batch
         frag_features = self.AttentiveEmbedding(d, return_lats=True)
@@ -124,7 +125,8 @@ class SingleHeadJunctionLayer(nn.Module):
                                 hidden_dim=net_params['hidden_dim'],
                                 num_layers_atom=net_params['num_layers_atom'],
                                 num_layers_mol=net_params['num_layers_mol'], #used to be called num_timesteps in old codebase
-                                    dropout=net_params['dropout']
+                                dropout=net_params['dropout'],
+                                regressor=False
                             ) #I hope these actually match
 
     def forward(self, data):
@@ -198,7 +200,7 @@ class GCGAT_v4pro(nn.Module):
         origin_data = Data(data.x, data.edge_index, data.edge_attr,)
         origin_data.batch = data.batch
         breakpoint()
-        frag_data, junction_data = Batch.from_data_list(data.frag_graphs[0][0]), Batch.from_data_list(data.motif_graphs[0])
+        frag_data, junction_data = Batch.from_data_list(data.frag_graphs[0]), Batch.from_data_list(data.motif_graphs)
         graph_origin = self.origin_module(origin_data)
         graph_frag = self.frag_module(frag_data)
         super_new_graph, super_attention_weight = self.junction_module(junction_data)
