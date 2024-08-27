@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 from torch_geometric.nn import global_add_pool
-from torch_geometric.data import Data
+from torch_geometric.data import Data, Batch
 
 from grape_chem.models import AFP
 
@@ -9,7 +9,6 @@ __all__ = ['GCGAT_v4pro']
 class SingleHeadOriginLayer(nn.Module):
     def __init__(self, net_params):
         super().__init__()
-        print("passing-in out_dim:", net_params['L1_hidden_dim'])
         self.AttentiveEmbedding = AFP(node_in_dim=net_params["node_in_dim"],
                                       edge_in_dim=net_params["edge_in_dim"],
                                         hidden_dim=net_params['hidden_dim'],
@@ -77,8 +76,10 @@ class SingleHeadFragmentLayer(nn.Module):
                                       edge_in_dim=net_params["edge_in_dim"],
                                         hidden_dim=net_params['hidden_dim'],
                                         num_layers_atom=net_params['num_layers_atom'],
-                                        num_layers_mol=net_params['num_layers_mol'], #used to be called num_timesteps in old codebase
-                                         dropout=net_params['dropout']
+                                        num_layers_mol=net_params['num_layers_mol'], #why is it called timesteps (old codebase)?
+                                        dropout=net_params['dropout'],
+                                        out_dim=net_params['L2_hidden_dim'],
+                                        regressor=False
                                     )
 
     def forward(self, data):
@@ -108,8 +109,8 @@ class FragmentChannel(nn.Module):
         )
 
     def forward(self, batch):
-        batch.x = self.embedding_node_lin(batch.x.float())
-        batch.edge_attr = self.embedding_edge_lin(batch.edge_attr.float())
+        #batch.x = self.embedding_node_lin(batch.x.float())
+        #batch.edge_attr = self.embedding_edge_lin(batch.edge_attr.float())
         frag_heads_out = [frag_block(batch) for frag_block in self.fragment_heads]
         graph_frag = self.frag_attend(torch.cat(frag_heads_out, dim=-1))
         return graph_frag
@@ -196,7 +197,8 @@ class GCGAT_v4pro(nn.Module):
         data = data.to(device) #TODO: investigate why second call to this is required
         origin_data = Data(data.x, data.edge_index, data.edge_attr,)
         origin_data.batch = data.batch
-        frag_data, junction_data = data.frag_graphs, data.motif_graphs
+        breakpoint()
+        frag_data, junction_data = Batch.from_data_list(data.frag_graphs[0][0]), Batch.from_data_list(data.motif_graphs[0])
         graph_origin = self.origin_module(origin_data)
         graph_frag = self.frag_module(frag_data)
         super_new_graph, super_attention_weight = self.junction_module(junction_data)
