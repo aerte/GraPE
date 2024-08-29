@@ -83,7 +83,6 @@ class SingleHeadFragmentLayer(nn.Module):
                                     )
 
     def forward(self, data):
-        breakpoint()
         d = Data(data.x, data.edge_index, data.edge_attr, data.batch)
         d.batch = data.batch
         frag_features = self.AttentiveEmbedding(d, return_lats=True)
@@ -120,15 +119,14 @@ class SingleHeadJunctionLayer(nn.Module):
     def __init__(self, net_params):
         super().__init__()
         self.project_motif = nn.Linear(net_params['L2_hidden_dim'] + net_params['L3_hidden_dim'], net_params['L3_hidden_dim'], bias=True)
-        self.AttentiveEmbedding = AFP(node_in_dim=net_params["node_in_dim"],
-                                edge_in_dim=net_params["edge_in_dim"],
+        self.AttentiveEmbedding = AFP(node_in_dim=net_params["L3_hidden_dim"],
+                                edge_in_dim=net_params["L3_hidden_dim"], #seems like edges also sent to this dimension: is it correct? (TODO)
                                 hidden_dim=net_params['hidden_dim'],
                                 num_layers_atom=net_params['num_layers_atom'],
-                                num_layers_mol=net_params['num_layers_mol'], #used to be called num_timesteps in old codebase
+                                num_layers_mol=net_params['num_layers_mol'],
                                 dropout=net_params['dropout'],
                                 regressor=False
-                            ) #I hope these actually match
-
+                            )
     def forward(self, data):
         data.x = self.project_motif(data.x)
         d = Data(data.x, data.edge_index, data.edge_attr, data.batch)
@@ -152,12 +150,13 @@ class JT_Channel(nn.Module):
         )
         self.junction_heads = nn.ModuleList([SingleHeadJunctionLayer(net_params) for _ in range(net_params['num_heads'])])
 
-    def forward(self, batch):
+    def forward(self, batch, motif_nodes):
         """
         TODO: still doesn't match exactly with dgl version
         """
-        batch.x = self.embedding_frag_lin(batch.x)
+        motif_nodes = self.embedding_frag_lin(motif_nodes) #takes `frag_dim * num_frags` to `L3_hidden_dim * num_frags`
         batch.edge_attr = self.embedding_edge_lin(batch.edge_attr)
+        batch.x = torch.cat([batch.x, motif_nodes], dim=-1) # `(L2_hidden_dim + L3_hidden_dim) * num_frags` (or permuted idk) 
         junction_graph_heads_out = []
         junction_attention_heads_out = []
         for single_head in self.junction_heads:
@@ -174,7 +173,7 @@ class GCGAT_v4pro(nn.Module):
         self.origin_module = OriginChannel(net_params)
         self.frag_module = FragmentChannel(net_params)
         self.junction_module = JT_Channel(net_params)
-
+        print("frag_dim= ", net_params['frag_dim'])
         # assuming net_params includes dimensions for concatenated outputs (does it?)
         concat_dim = net_params['L1_hidden_dim'] + net_params['L2_hidden_dim'] + net_params['L3_hidden_dim']
         self.linear_predict1 = nn.Sequential(
@@ -199,11 +198,15 @@ class GCGAT_v4pro(nn.Module):
         data = data.to(device) #TODO: investigate why second call to this is required
         origin_data = Data(data.x, data.edge_index, data.edge_attr,)
         origin_data.batch = data.batch
-        breakpoint()
-        frag_data, junction_data = Batch.from_data_list(data.frag_graphs[0]), Batch.from_data_list(data.motif_graphs)
+        frag_data, junction_data = Batch.from_data_list(data.frag_graphs), Batch.from_data_list(data.motif_graphs)
         graph_origin = self.origin_module(origin_data)
         graph_frag = self.frag_module(frag_data)
-        super_new_graph, super_attention_weight = self.junction_module(junction_data)
+        breakpoint()
+
+        #preprocess junction data
+        motif_nodes = junction_data.x
+        junction_data.x = graph_frag.clone() #setting as this tensor of size `num frags * L2_hidden_dim` .Still unsure why but it's what the dgl version does
+        super_new_graph, super_attention_weight = self.junction_module(junction_data, motif_nodes)
 
 
         # if descriptors: sum node features for motif graph (akin to dgl.sum_nodes)
