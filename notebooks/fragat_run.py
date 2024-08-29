@@ -117,7 +117,7 @@ loss_func = torch.nn.functional.l1_loss
 
 model.to(device)
 train_model(model=model, loss_func=loss_func, optimizer=optimizer, train_data_loader=train,
-            val_data_loader=val, epochs=epochs, device=device, batch_size=batch_size)
+            val_data_loader=val, epochs=epochs, device=device, batch_size=batch_size, model_needs_frag=True)
 
 ####### Generating prediction tensor for the TEST set (Not rescaled) #########
 

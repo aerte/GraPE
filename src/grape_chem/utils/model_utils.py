@@ -138,7 +138,7 @@ def train_model(model: torch.nn.Module, loss_func: Union[Callable,str], optimize
                 train_data_loader: Union[list, Data, DataLoader], val_data_loader: Union[list, Data, DataLoader],
                 device: str = None, epochs: int = 50, batch_size: int = 32,
                 early_stopper: EarlyStopping = None, scheduler: lr_scheduler = None,
-                tuning: bool = False, model_name:str = None, model_needs_frag : bool = False, cast_dataloader_to_pyg : bool = True) -> tuple[list,list]:
+                tuning: bool = False, model_name:str = None, model_needs_frag : bool = False,) -> tuple[list,list]:
     """Auxiliary function to train and test a given model and return the (training, test) losses.
     Can initialize DataLoaders if only lists of Data objects are given.
 
@@ -195,10 +195,10 @@ def train_model(model: torch.nn.Module, loss_func: Union[Callable,str], optimize
                 exclude_keys = ["frag_graphs", "motif_graphs"]
     
 
-    if not isinstance(train_data_loader, DataLoader) and not model_needs_frag: #datasets with fragmentation need to be batched differently
+    if not isinstance(train_data_loader, DataLoader):
         train_data_loader = DataLoader(train_data_loader, batch_size = batch_size, exclude_keys=exclude_keys,)
 
-    if not isinstance(val_data_loader, DataLoader) and not model_needs_frag:
+    if not isinstance(val_data_loader, DataLoader):
         val_data_loader = DataLoader(val_data_loader, batch_size = batch_size, exclude_keys=exclude_keys,)
 
     model.train()

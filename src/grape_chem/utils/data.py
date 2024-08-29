@@ -17,7 +17,7 @@ from rdkit import Chem
 from rdkit.Chem import rdmolops, MolFromSmiles, Draw, MolToSmiles
 from rdkit import RDLogger
 
-from torch_geometric.data import Data, HeteroData
+from torch_geometric.data import Data, HeteroData, Batch
 from torch_geometric.utils import dense_to_sparse
 
 from grape_chem.utils.featurizer import AtomFeaturizer, BondFeaturizer
@@ -441,11 +441,11 @@ class DataSet(DataLoad):
             if log_progress:
                 if (i + 1) % log_every == 0:
                     print('Currently performing fragmentation on molecule {:d}/{:d}'.format(i + 1, len(self.smiles)))
-            frag_graph, motif_graph, _, _ = graph_2_frag(s, self.graphs[i], self.fragmentation) #TODO: add graph_2_frag method to take fragmentation 
+            frag_graphs, motif_graph, _, _ = graph_2_frag(s, self.graphs[i], self.fragmentation) #TODO: add graph_2_frag method to take fragmentation 
             if hasattr(motif_graph, 'atom_mask'):
                 del motif_graph.atom_mask #hacky, but necessary to avoid issues with pytorch geometric
-            if frag_graph is not None:
-                self.graphs[i].frag_graphs = frag_graph #empty lists could cause issues. consider replacing with None in case list empty
+            if frag_graphs is not None:
+                self.graphs[i].frag_graphs = Batch.from_data_list(frag_graphs) #empty lists could cause issues. consider replacing with None in case list empty
                 self.graphs[i].motif_graphs = motif_graph
 
     def indices(self):
