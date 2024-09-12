@@ -24,8 +24,8 @@ HYPERPARAMS = {
 
 # Chemprop allowed atoms and features
 allowed_atoms = ['H', 'He', 'Li', 'Be', 'B', 'C', 'N', 'O', 'F', 'Ne', 'Na', 'Mg', 'Al', 'Si', 'P', 'S', 'Cl', 'Ar', 'K', 'Ca', 'Sc', 'Ti', 'V', 'Cr', 'Mn', 'Fe', 'Co', 'Ni', 'Cu', 'Zn', 'Ga', 'Ge', 'As', 'Se', 'Br', 'Kr', 'I']
-atom_feature_list = ['chemprop_v2_atom_features']
-bond_feature_list = ['chemprop_v2_bond_features']
+atom_feature_list = ['chemprop_atom_features']
+bond_feature_list = ['chemprop_bond_features']
 
 def print_averages(metrics, technique):
     avg_metrics = {k: sum(d[k] for d in metrics) / len(metrics) for k in metrics[0]}
