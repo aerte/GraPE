@@ -1,10 +1,10 @@
 import torch
 import pandas as pd
 import numpy as np
-import grape_chem
 from grape_chem.models import DMPNN, AFP
 from grape_chem.utils import train_model, test_model, pred_metric, return_hidden_layers, RevIndexedSubSet, DataSet
-from grape_chem.utils.model_utils import set_seed, load_model
+from grape_chem.utils.model_utils import set_seed
+from grape_chem.utils.model_utils import load_model 
 from grape_chem.utils.featurizer import AtomFeaturizer
 from grape_chem.utils import EarlyStopping
 
@@ -49,11 +49,11 @@ set_seed(42)
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 allowed_atoms = ['H', 'He', 'Li', 'Be', 'B', 'C', 'N', 'O', 'F', 'Ne', 'Na', 'Mg', 'Al', 'Si', 'P', 'S', 'Cl', 'Ar', 'K', 'Ca', 'Sc', 'Ti', 'V', 'Cr', 'Mn', 'Fe', 'Co', 'Ni', 'Cu', 'Zn', 'Ga', 'Ge', 'As', 'Se', 'Br', 'Kr', 'I']
-atom_feature_list = ['chemprop_v2_atom_features']
-bond_feature_list = ['chemprop_v2_bond_features']
+atom_feature_list = ['chemprop_atom_features']
+bond_feature_list = ['chemprop_bond_features']
 
 dippr_dataset = True
-load_data = False
+load_data = True
 if load_data:
     if dippr_dataset:
         dippr = 'C:\\Users\\Thoma\\GraPE\\notebooks\\dippr.csv'
@@ -82,27 +82,27 @@ if load_data:
         num_global_feats = 2
 
 ### Init model to save a valid checkpoint###
-# model = AFP(node_in_dim=node_in_dim, edge_in_dim=edge_in_dim, hidden_dim=hidden_dim, out_dim=1, num_layers_atom=atom_layers, num_layers_mol=mol_layers, dropout=dropout, mlp_out_hidden=mlp, num_global_feats=num_global_feats, dataset_dict=dataset_dict)
-# print('Full model:\n--------------------------------------------------')
-# print(model)
-# num_learnable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
-# print(f'Total number of learnable weights in the model: {num_learnable_params}')
-# print('Full model:\n--------------------------------------------------')
-# model = model.to(device)
+model = AFP(node_in_dim=node_in_dim, edge_in_dim=edge_in_dim, hidden_dim=hidden_dim, out_dim=1, num_layers_atom=atom_layers, num_layers_mol=mol_layers, dropout=dropout, mlp_out_hidden=mlp, num_global_feats=num_global_feats, dataset_dict=dataset_dict)
+print('Full model:\n--------------------------------------------------')
+print(model)
+num_learnable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+print(f'Total number of learnable weights in the model: {num_learnable_params}')
+print('Full model:\n--------------------------------------------------')
+model = model.to(device)
 
-# ### Train the model ###
-# optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
-# early_stopper = EarlyStopping(patience=patience, model_name=model_name)
-# scheduler = lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.9999, min_lr=0.0000000000001,
-#                                            patience=patience)
+### Train the model ###
+optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
+early_stopper = EarlyStopping(patience=patience, model_name=model_name)
+scheduler = lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.9999, min_lr=0.0000000000001,
+                                           patience=patience)
 
-# loss_func = torch.nn.functional.l1_loss
+loss_func = torch.nn.functional.l1_loss
 
-# train_model(model=model, loss_func=loss_func, optimizer=optimizer, train_data_loader=train_data, val_data_loader=val_data, epochs=epochs, batch_size=batch_size, early_stopper=early_stopper, scheduler=scheduler, device=device)
+train_model(model=model, loss_func=loss_func, optimizer=optimizer, train_data_loader=train_data, val_data_loader=val_data, epochs=epochs, batch_size=batch_size, early_stopper=early_stopper, scheduler=scheduler, device=device)
 
-#global_feats = np.column_stack((temperature, molecular_weights))
-#global_feats = None
-#print("Global feats shape: ", global_feats.shape, "global feats head: ", global_feats[:5])
+global_feats = np.column_stack((temperature, molecular_weights))
+global_feats = None
+print("Global feats shape: ", global_feats.shape, "global feats head: ", global_feats[:5])
 
 
 #### Load model ####

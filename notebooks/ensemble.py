@@ -2,7 +2,7 @@ import torch
 from grape_chem.datasets import FreeSolv
 from grape_chem.utils.model_utils import set_seed
 from grape_chem.utils import RevIndexedSubSet
-from src.grape_chem.utils.ensemble import Bagging, RandomWeightInitialization, Jackknife, BayesianBootstrap
+from grape_chem.utils.ensemble import Bagging, RandomWeightInitialization, Jackknife, BayesianBootstrap
 import time
 import numpy as np
 
