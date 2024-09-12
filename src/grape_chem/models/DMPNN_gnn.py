@@ -4,15 +4,14 @@ from typing import Union
 import torch
 import torch.nn as nn
 import torch.utils.data
-from torch_geometric.nn import global_mean_pool
+from torch_geometric.nn import global_mean_pool, global_add_pool
 from torch_scatter import scatter_sum
+
 
 __all__ = [
     'DMPNNEncoder',
     'DMPNN'
 ]
-
-
 
 class DMPNNEncoder(nn.Module):
     """An implementation of the D-MPNN Model by Yang et al. [1,2], their original code is at
@@ -58,11 +57,12 @@ class DMPNNEncoder(nn.Module):
                  bias:bool=True, pool:bool=True):
         super(DMPNNEncoder, self).__init__()
         self.act_func = nn.ReLU()
-        self.W1 = nn.Linear(node_in_dim + edge_in_dim, node_hidden_dim, bias=bias)
-        self.W2 = nn.Linear(node_hidden_dim, node_hidden_dim, bias=bias)
+        self.W1 = nn.Linear(node_in_dim + edge_in_dim, node_hidden_dim, bias=False)
+        self.W2 = nn.Linear(node_hidden_dim, node_hidden_dim, bias=False)
         self.W3 = nn.Linear(node_in_dim + node_hidden_dim, node_hidden_dim, bias=bias)
         self.depth = depth
         self.dropout_layer = nn.Dropout(dropout)
+        self.relu_layer = nn.ReLU()
         self.pool = pool
 
     @staticmethod
@@ -106,9 +106,13 @@ class DMPNNEncoder(nn.Module):
         ### Dropout layer
         node_attr = self.dropout_layer(node_attr)
 
+        ### Relu layer ## added this
+        node_attr = self.relu_layer(node_attr)
+
         # readout: pyg global pooling
         if self.pool:
             return global_mean_pool(node_attr, batch)
+            #return global_add_pool(node_attr, batch)
         else:
             return node_attr
 
@@ -160,6 +164,7 @@ class DMPNN(torch.nn.Module):
         self.depth = depth
 
         self.rep_dropout = nn.Dropout(rep_dropout)
+        self.bn = nn.BatchNorm1d(1)  
         self.num_global_feats = num_global_feats
 
         self.encoder = DMPNNEncoder(node_in_dim = node_in_dim,
@@ -171,33 +176,50 @@ class DMPNN(torch.nn.Module):
 
 
         if isinstance(mlp_out_hidden, int):
-            self.mlp_out = nn.Sequential(
-                nn.Linear(self.hidden_size+self.num_global_feats, mlp_out_hidden),
-                nn.ReLU(),
-                nn.Linear(mlp_out_hidden, mlp_out_hidden // 2),
-                nn.ReLU(),
-                nn.Linear(mlp_out_hidden // 2, 1)
+            # self.mlp_out = nn.Sequential(
+            #     nn.Linear(self.hidden_size+self.num_global_feats, mlp_out_hidden),
+            #     nn.ReLU(),
+            #     nn.Linear(mlp_out_hidden, mlp_out_hidden // 2),
+            #     nn.ReLU(),
+            #     nn.Linear(mlp_out_hidden // 2, 1)
+            # )
+
+            # Define first sequential block
+            self.sequential_block_1 = nn.Sequential(
+                nn.Linear(self.hidden_size + self.num_global_feats, self.hidden_size + self.num_global_feats),
             )
+            
+            # Define second sequential block
+            self.sequential_block_2 = nn.Sequential(
+                nn.ReLU(),
+                nn.Dropout(dropout),
+                nn.Linear(self.hidden_size + self.num_global_feats, 1)
+            )
+
+            #self.identity_layer = nn.Identity()
         else:
-            self.mlp_out = []
-            self.mlp_out.append(nn.Linear(self.hidden_size+self.num_global_feats, mlp_out_hidden[0]))
-            for i in range(len(mlp_out_hidden)):
-                self.mlp_out.append(nn.ReLU())
-                if i == len(mlp_out_hidden) - 1:
-                    self.mlp_out.append(nn.Linear(mlp_out_hidden[i], 1))
-                else:
-                    self.mlp_out.append(nn.Linear(mlp_out_hidden[i], mlp_out_hidden[i + 1]))
-            self.mlp_out = nn.Sequential(*self.mlp_out)
+            # Create the first sequential block from the list of hidden dimensions
+            layers = [nn.Linear(self.hidden_size + self.num_global_feats, mlp_out_hidden[0])]
+            for i in range(len(mlp_out_hidden) - 1):
+                layers.append(nn.ReLU())
+                layers.append(nn.Linear(mlp_out_hidden[i], mlp_out_hidden[i + 1]))
+            layers.append(nn.ReLU())
+            self.sequential_block_1 = nn.Sequential(*layers)
+            
+            # Create the second sequential block
+            self.sequential_block_2 = nn.Sequential(
+                nn.Linear(mlp_out_hidden[-1], 1)
+            )
 
         self.reset_parameters()
 
     def reset_parameters(self):
         from grape_chem.utils import reset_weights
-        reset_weights(self.mlp_out)
+        reset_weights(self.sequential_block_1)
+        reset_weights(self.sequential_block_2)
         reset_weights(self.encoder)
 
     def forward(self, data, return_lats:bool=False):
-
         z = self.encoder(data)
 
         if return_lats:
@@ -205,12 +227,18 @@ class DMPNN(torch.nn.Module):
 
         z = self.rep_dropout(z)
 
-        ### Check if global graphs is present for each graph
+        # Check if global features are present
         if self.num_global_feats > 0:
-            z = torch.concat((z, data.global_feats[:, None]), dim=1)
+            if self.num_global_feats > 1:
+                z = torch.cat((z, data.global_feats), dim=1)
+            else:
+                z = torch.cat((z, data.global_feats[:, None]), dim=1)
 
-        out = self.mlp_out(z)
+        # Apply the first sequential block
+        z = self.sequential_block_1(z)
+
+        # Apply the second sequential block
+        out = self.sequential_block_2(z)
+        #out = self.identity_layer(out)
+        out = self.bn(out)
         return out.view(-1)
-
-
-
