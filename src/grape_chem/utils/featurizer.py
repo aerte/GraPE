@@ -7,7 +7,7 @@ import itertools
 from _collections import defaultdict
 from functools import partial
 
-from typing import Callable
+from typing import Callable, Union
 
 import numpy as np
 import rdkit.Chem
@@ -28,6 +28,7 @@ class FunctionNotWellDefined(Exception):
 ##########################################################################
 ########### Atom featurizer ##############################################
 ##########################################################################
+    
 
 class AtomFeaturizer(object):
     """An atom featurizer based on a flexible input list. Inspired by https://github.com/awslabs/dgl-lifesci.
@@ -155,6 +156,8 @@ class AtomFeaturizer(object):
         'atom_chirality_type_one_hot': partial(ff.atom_chiral, type_='type'),
         'atom_is_chiral_center': partial(ff.atom_chiral, type_='center'),
         'atom_mass': ff.atom_mass,
+        'chemprop_atom_features': ff.chemprop_v2_atom_features
+        #'qm_descriptors': ff.qm_descriptors
         }
 
         if atom_feature_list is None:
@@ -340,7 +343,8 @@ class BondFeaturizer(object):
             'bond_is_conjugated': ff.bond_is_conjugated,
             'bond_is_in_ring': ff.bond_in_ring,
             'bond_stereo_one_hot': ff.bond_stereo,
-            'bond_direction_one_hot':ff.bond_direction
+            'bond_direction_one_hot':ff.bond_direction,
+            'chemprop_bond_features': ff.chemprop_v2_bond_features
         }
 
         if bond_feature_list is None:

@@ -20,14 +20,18 @@ __all__ = [
     'atom_mass',
     'atom_is_aromatic',
     'atom_formal_charge',
+    'chemprop_atom_features',
     'bond_direction',
     'bond_type',
     'bond_stereo',
     'bond_is_conjugated',
-    'bond_in_ring'
+    'bond_in_ring',
+    'chemprop_bond_features'
 ]
 
 def one_hot(input_, mapping, encode_unknown = True):
+    #print("Allowed set: ", mapping)
+    #print("Atomic number: ", input_)
     """One hot encodes an arbitrary input given a mapping.
 
     Parameters
@@ -87,7 +91,39 @@ def mol_weight(mol):
 
 #############################################################################################################
 ###################################### ATOM FEATURES ########################################################
-#############################################################################################################
+#############################################################################################################     
+
+#### Chemprop Atom Features    
+def chemprop_atom_features(atom, allowed_set=['H', 'He', 'Li', 'Be', 'B', 'C', 'N', 'O', 'F', 'Ne', 'Na', 'Mg', 'Al', 'Si', 'P', 'S', 'Cl', 'Ar', 'K', 'Ca', 'Sc', 'Ti', 'V', 'Cr', 'Mn', 'Fe', 'Co', 'Ni', 'Cu', 'Zn', 'Ga', 'Ge', 'As', 'Se', 'Br', 'Kr', 'I'], encode_unknown=True):
+    """
+    Returns the atom features used in Chemprop V2.
+
+    Parameters
+    ------------
+    atom: rdkit.Chem.rdkit.Atom
+        RDKit atom object.
+    allowed_set: list
+        A list of values that the input will be encoding to.
+        The default list is the list of elements in the first four rows of the periodic table plus iodine. Same as chemprop v2
+    encode_unknown: bool
+        Decides if, should the input not be represented in the mapping, the unknowns input is encoded as 'other' at
+        the end. Default: True Because chemprop v2 has an 'other' category padded.
+
+    Returns
+    ---------
+    list
+        One hot encoding of the atom features used in Chemprop V2.
+        Atom number, atom degree, atom formal charge, atom chiral, atom number of H, atom hybridization, atom aromatic, atom mass
+    """
+    return (atom_number(atom, 'one_hot', allowed_set, encode_unknown) + 
+            atom_degree(atom, 'one_hot', None, encode_unknown) + 
+            atom_formal_charge(atom, 'one_hot', None, encode_unknown) + 
+            atom_chiral(atom, 'tag', None, encode_unknown) + 
+            atom_num_H(atom, 'one_hot', None, encode_unknown) + 
+            atom_hybridization_chemprop(atom, None, encode_unknown) + 
+            atom_is_aromatic(atom) + atom_mass(atom))
+
+
 
 #### Atom Symbol
 def atom_symbol(atom, allowed_set = None, encode_unknown=True):
@@ -155,6 +191,18 @@ def atom_hybridization(atom, allowed_set=None, encode_unknown=True):
     if allowed_set is None:
         allowed_set = [Chem.rdchem.HybridizationType.SP,
                        Chem.rdchem.HybridizationType.SP2,
+                       Chem.rdchem.HybridizationType.SP3,
+                       Chem.rdchem.HybridizationType.SP3D,
+                       Chem.rdchem.HybridizationType.SP3D2]
+    return one_hot(atom.GetHybridization(), allowed_set, encode_unknown)
+
+def atom_hybridization_chemprop(atom, allowed_set=None, encode_unknown=True):
+
+    if allowed_set is None:
+        allowed_set = [Chem.rdchem.HybridizationType.S,
+                       Chem.rdchem.HybridizationType.SP,
+                       Chem.rdchem.HybridizationType.SP2,
+                       Chem.rdchem.HybridizationType.SP2D,
                        Chem.rdchem.HybridizationType.SP3,
                        Chem.rdchem.HybridizationType.SP3D,
                        Chem.rdchem.HybridizationType.SP3D2]
@@ -242,6 +290,38 @@ def atom_mass(atom, scale=0.01):
 #############################################################################################################
 ###################################### BOND FEATURES ########################################################
 #############################################################################################################
+
+def chemprop_bond_features(bond, allowed_set=None, encode_unknown=True):
+    """
+    Returns the bond features used in Chemprop V2.
+
+    Parameters
+    ------------
+    bond: rdkit.Chem.rdkit.Bond
+        RDKit bond object.
+    allowed_set: list
+        A list of values that the input will be encoding to.
+        The default list is the list of bond types in RDKit.
+    encode_unknown: bool
+        Decides if, should the input not be represented in the mapping, the unknowns input is encoded as 'other' at
+        the end. Default: True Because chemprop v2 has an 'other' category padded.
+
+    Returns
+    ---------
+    list
+        One hot encoding of the bond features used in Chemprop V2.
+        Bond type, bond stereo, bond direction, bond conjugated, bond in ring
+    """
+    return (is_Null(bond) +
+            bond_type(bond, None) + 
+            bond_is_conjugated(bond) + 
+            bond_in_ring(bond)) + bond_stereo(bond, allowed_set, encode_unknown) 
+    
+def is_Null(bond):
+    if bond is None:
+        return [1]
+    else:
+        return [0]
 
 def bond_type(bond, allowed_set=None, encode_unknown=False):
 

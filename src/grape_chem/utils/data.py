@@ -27,6 +27,9 @@ from grape_chem.utils.featurizer import AtomFeaturizer, BondFeaturizer
 from grape_chem.utils.split_utils import split_data
 from grape_chem.utils.feature_func import mol_weight
 
+from sklearn.preprocessing import StandardScaler
+
+
 RDLogger.DisableLog('rdApp.*')
 
 __all__ = ['filter_smiles',
@@ -74,12 +77,24 @@ def filter_smiles(smiles: list[str], target: Union[list[str], list[float], ndarr
         allowed_atoms = ['C', 'N', 'O', 'S', 'F', 'Cl', 'Br', 'I', 'P']
 
     if global_feats is not None:
-        df = pd.DataFrame({'smiles': smiles, 'target': target, 'global_feat': global_feats})
+        # New implementation to handle nD global features
+        if global_feats.ndim > 1:
+            # Column name for each global feature
+            n_features = global_feats.shape[1]
+            global_feat_columns = [f'global_feat_{i}' for i in range(n_features)]
+            
+            # Dictionary with global feature columns
+            global_feats_dict = {f'global_feat_{i}': global_feats[:, i] for i in range(n_features)}
+            
+            # Combine the dictionaries to create the DataFrame
+            df = pd.DataFrame({'smiles': smiles, 'target': target, **global_feats_dict})
+        else:
+            # If global_feats is 1D, add it as a single column (original GraPE implementation)
+            df = pd.DataFrame({'smiles': smiles, 'target': target, 'global_feat': global_feats})
     else:
         df = pd.DataFrame({'smiles': smiles, 'target': target})
 
     indices_to_drop = []
-
     for element in smiles:
         mol = Chem.MolFromSmiles(element)
 
@@ -94,10 +109,10 @@ def filter_smiles(smiles: list[str], target: Union[list[str], list[float], ndarr
                     print(f'SMILES {element} in index {list(df.smiles).index(element)} consists of less than 2 heavy atoms'
                         f' and will be ignored.')
                 indices_to_drop.append(list(df.smiles).index(element))
-
             else:
                 carbon_count = 0
-                for atoms in mol.GetAtoms():
+                for idx, atoms in enumerate(mol.GetAtoms()):
+                    #print(f"atom {idx} ",atoms.GetSymbol(), "in molecule ", element)
                     if atoms.GetSymbol() not in allowed_atoms:
                         if log:
                             print(f'SMILES {element} in index {list(df.smiles).index(element)} contains the atom {atoms.GetSymbol()} that is not'
@@ -113,18 +128,28 @@ def filter_smiles(smiles: list[str], target: Union[list[str], list[float], ndarr
                         print(f'SMILES {element} in index {list(df.smiles).index(element)} does not contain at least one'
                             f' carbon and will be ignored.')
 
-
+    indices_to_drop = list(indices_to_drop)
+    unique_indices = list(set(indices_to_drop))
+    print(f"Number of smiles to drop: {len(unique_indices)} out of {len(smiles)}")
+    print("Length of df before dropping: ", len(df))
     df.drop(indices_to_drop, inplace=True)
+    print("Length of df after dropping: ", len(df))
     df.reset_index(drop=True, inplace=True)
 
     # map smiles to mol and back to ensure SMILE notation consistency
     mols = df.smiles.map(lambda x: MolFromSmiles(x))
     df.smiles = mols.map(lambda x: MolToSmiles(x))
+    # for idx, mol in enumerate(mols):
+    #     print(f"mol {idx} ", df.smiles[idx])
+    #     for atom in mol.GetAtoms():
+    #         print(f"atom {atom.GetSymbol()}")
 
     if not allow_dupes:
         df.drop_duplicates(subset='smiles', inplace=True)
 
     if global_feats is not None:
+        if global_feats.ndim > 1:
+            return np.array(df.smiles), np.array(df.target), np.array(df[global_feat_columns])
         return np.array(df.smiles), np.array(df.target), np.array(df.global_feat)
     return np.array(df.smiles), np.array(df.target), None
 
@@ -161,7 +186,6 @@ def construct_dataset(smiles: list[str], target: Union[list[int], list[float], n
         list of Pytorch-Geometric Data objects
 
     """
-
     atom_featurizer = AtomFeaturizer(allowed_atoms=allowed_atoms,
                                     atom_feature_list = atom_feature_list)
 
@@ -177,11 +201,12 @@ def construct_dataset(smiles: list[str], target: Union[list[int], list[float], n
         edge_attr = bond_featurizer(mol) #creates "edges" attrs
         data_temp = Data(x = x, edge_index = edge_index, edge_attr = edge_attr, y=tensor([target[i]],
                                                                                          dtype=torch.float32))
-        # TODO: Might need to be tested on multidim global feats
+
         if global_features is not None:
-            data_temp['global_feats'] = tensor([global_features[i]], dtype=torch.float32)
+            data_temp['global_feats'] = torch.tensor([global_features[i]], dtype=torch.float32)
         else:
             data_temp['global_feats'] = None
+
 
         data.append(data_temp)
 
@@ -253,61 +278,74 @@ class DataSet(DataLoad):
     """
     def __init__(self, file_path: str = None, smiles: list[str] = None, target: Union[list[int], list[float],
     ndarray] = None, global_features:Union[list[float], ndarray] = None, filter: bool=True,allowed_atoms:list[str] = None,
-    only_organic: bool = True, atom_feature_list: list[str] = None, bond_feature_list: list[str] = None,
-    log: bool = False, root: str = None, indices:list[int] = None):
+    only_organic: bool = True, allow_dupes: bool = False, atom_feature_list: list[str] = None, bond_feature_list: list[str] = None,
+    log: bool = False, root: str = None, indices:list[int] = None, mean: float = None, std: float = None):
 
-        assert (file_path is not None) or (smiles is not None and target is not None),'path or (smiles and target) must given.'
 
         super().__int__(root)
-
-        if file_path is not None:
-            with open(file_path, 'rb') as handle:
-                try:
-                    df = pd.read_pickle(handle)
-                    print('Loaded dataset.')
-                except:
-                    raise ValueError('A dataset is stored as a DataFrame.')
-
-            self.smiles = np.array(df.smiles)
-
-            self.global_features = np.array(df.global_features)
-            self.graphs = list(df.graphs)
+        if smiles is None:
+            if allowed_atoms is not None and atom_feature_list is not None and bond_feature_list is not None and mean is not None and std is not None:
+                self.allowed_atoms = allowed_atoms
+                self.atom_feature_list = atom_feature_list
+                self.bond_feature_list = bond_feature_list
+                self.mean = mean
+                self.std = std
+                
+            else:
+                raise ValueError('If smiles are not given, allowed_atoms, atom_feature_list, bond_feature_list, mean and std must be given.')
 
         else:
-            if filter:
-                self.smiles, self.raw_target, self.global_features = filter_smiles(smiles, target,
-                                                                                   allowed_atoms= allowed_atoms,
-                                                                                    only_organic=only_organic, log=log,
-                                                                                   global_feats=global_features)
+            assert (file_path is not None) or (smiles is not None and target is not None),'path or (smiles and target) must given.'
+            if file_path is not None:
+                with open(file_path, 'rb') as handle:
+                    try:
+                        df = pd.read_pickle(handle)
+                        print('Loaded dataset.')
+                    except:
+                        raise ValueError('A dataset is stored as a DataFrame.')
+
+                self.smiles = np.array(df.smiles)
+                print("Smiles: ", self.smiles)
+
+                self.global_features = np.array(df.global_features)
+                self.graphs = list(df.graphs)
 
             else:
-                self.smiles, self.raw_target = np.array(smiles), np.array(target)
-                self.global_features = np.array(global_features) if global_features is not None else None
+                if filter:
+                    self.smiles, self.raw_target, self.global_features = filter_smiles(smiles, target,
+                                                                                    allowed_atoms= allowed_atoms,
+                                                                                        only_organic=only_organic, log=log,
+                                                                                        allow_dupes=allow_dupes,
+                                                                                    global_feats=global_features)
 
-            self.target = self.raw_target
+                else:
+                    self.smiles, self.raw_target = np.array(smiles), np.array(target)
+                    self.global_features = np.array(global_features) if global_features is not None else None
 
-            self.graphs = construct_dataset(smiles=self.smiles,
-                                            target=self.target,
-                                            global_features=self.global_features,
-                                            allowed_atoms = allowed_atoms,
-                                            atom_feature_list = atom_feature_list,
-                                            bond_feature_list = bond_feature_list)
+                self.target = self.raw_target
 
-            self.global_features = global_features
+                self.graphs = construct_dataset(smiles=self.smiles,
+                                                target=self.target,
+                                                global_features=self.global_features,
+                                                allowed_atoms = allowed_atoms,
+                                                atom_feature_list = atom_feature_list,
+                                                bond_feature_list = bond_feature_list)
 
-        self.allowed_atoms = allowed_atoms
-        self.atom_feature_list = atom_feature_list
-        self.bond_feature_list = bond_feature_list
-        self._indices = indices
-        self.num_node_features = self.graphs[0].num_node_features
-        self.num_edge_features = self.graphs[0].num_edge_features
-        self.data_name=None
-        self.mean, self.std = None, None
+                self.global_features = global_features
 
-        self.mol_weights = np.zeros(len(self.smiles))
+            self.allowed_atoms = allowed_atoms
+            self.atom_feature_list = atom_feature_list
+            self.bond_feature_list = bond_feature_list
+            self._indices = indices
+            self.num_node_features = self.graphs[0].num_node_features
+            self.num_edge_features = self.graphs[0].num_edge_features
+            self.data_name=None
+            self.mean, self.std = mean, std
 
-        for i in range(len(self.smiles)):
-            self.mol_weights[i] = mol_weight(Chem.MolFromSmiles(self.smiles[i]))
+            self.mol_weights = np.zeros(len(self.smiles))
+
+            for i in range(len(self.smiles)):
+                self.mol_weights[i] = mol_weight(Chem.MolFromSmiles(self.smiles[i]))
 
     @staticmethod
     def standardize(target):
@@ -674,7 +712,6 @@ class DataSet(DataLoad):
             return train, val, test, self.mean, self.std
         return train, val, test
 
-
     def predict_smiles(self, smiles:Union[str, list[str]], model, mean:float = None,
                        std:float = None) -> dict:
         """A dataset-dependent prediction function. When a SMILE or a list of SMILES is passed together
@@ -710,27 +747,30 @@ class DataSet(DataLoad):
         """
         from torch_geometric.loader import DataLoader
         from grape_chem.utils import RevIndexedData
-        out = dict({})
-        model.eval()
-        for smile, i in zip(smiles, range(len(smiles))):
-            try:
+        try:
+            device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+            out = dict({})
+            model.to(device)
+            model.eval()
+            for smile, i in zip(smiles, range(len(smiles))):
+                #try:
                 graph = construct_dataset(smiles=[smile],
-                                          target=list([0]),
-                                          global_features=list([0]),
-                                          allowed_atoms=self.allowed_atoms,
-                                          atom_feature_list=self.atom_feature_list,
-                                          bond_feature_list=self.bond_feature_list)
+                                            target=list([0]),
+                                            global_features=list([0]),
+                                            allowed_atoms=self.allowed_atoms,
+                                            atom_feature_list=self.atom_feature_list,
+                                            bond_feature_list=self.bond_feature_list)
                 # Account for dmpnn models
-                graph = RevIndexedData(graph[0])
-                data_temp = next(iter(DataLoader([graph])))
+                graph = RevIndexedData(graph[0])           
+                data_temp = next(iter(DataLoader([graph]))).to(device)
                 temp = model(data_temp).cpu().detach().numpy()
                 if self.mean is not None and self.std is not None:
                     temp = self.rescale(temp, self.mean, self.std)
                 elif mean is not None and std is None:
                     temp = self.rescale(temp, mean, std)
                 out[smile] = float(temp)
-            except:
-                print(f'{smiles[i]} is not valid.')
+        except:
+            print(f'{smiles[i]} is not valid.')
 
         return out
 
