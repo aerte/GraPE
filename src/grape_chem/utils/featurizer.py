@@ -156,7 +156,7 @@ class AtomFeaturizer(object):
         'atom_chirality_type_one_hot': partial(ff.atom_chiral, type_='type'),
         'atom_is_chiral_center': partial(ff.atom_chiral, type_='center'),
         'atom_mass': ff.atom_mass,
-        'chemprop_atom_features': ff.chemprop_v2_atom_features
+        'chemprop_atom_features': ff.chemprop_atom_features
         #'qm_descriptors': ff.qm_descriptors
         }
 
@@ -344,7 +344,7 @@ class BondFeaturizer(object):
             'bond_is_in_ring': ff.bond_in_ring,
             'bond_stereo_one_hot': ff.bond_stereo,
             'bond_direction_one_hot':ff.bond_direction,
-            'chemprop_bond_features': ff.chemprop_v2_bond_features
+            'chemprop_bond_features': ff.chemprop_bond_features
         }
 
         if bond_feature_list is None:

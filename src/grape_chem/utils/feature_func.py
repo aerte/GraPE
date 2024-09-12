@@ -96,7 +96,7 @@ def mol_weight(mol):
 #### Chemprop Atom Features    
 def chemprop_atom_features(atom, allowed_set=['H', 'He', 'Li', 'Be', 'B', 'C', 'N', 'O', 'F', 'Ne', 'Na', 'Mg', 'Al', 'Si', 'P', 'S', 'Cl', 'Ar', 'K', 'Ca', 'Sc', 'Ti', 'V', 'Cr', 'Mn', 'Fe', 'Co', 'Ni', 'Cu', 'Zn', 'Ga', 'Ge', 'As', 'Se', 'Br', 'Kr', 'I'], encode_unknown=True):
     """
-    Returns the atom features used in Chemprop V2.
+    Returns the atom features used in Chemprop.
 
     Parameters
     ------------
@@ -104,15 +104,15 @@ def chemprop_atom_features(atom, allowed_set=['H', 'He', 'Li', 'Be', 'B', 'C', '
         RDKit atom object.
     allowed_set: list
         A list of values that the input will be encoding to.
-        The default list is the list of elements in the first four rows of the periodic table plus iodine. Same as chemprop v2
+        The default list is the list of elements in the first four rows of the periodic table plus iodine. Same as chemprop
     encode_unknown: bool
         Decides if, should the input not be represented in the mapping, the unknowns input is encoded as 'other' at
-        the end. Default: True Because chemprop v2 has an 'other' category padded.
+        the end. Default: True Because chemprop has an 'other' category padded.
 
     Returns
     ---------
     list
-        One hot encoding of the atom features used in Chemprop V2.
+        One hot encoding of the atom features used in Chemprop.
         Atom number, atom degree, atom formal charge, atom chiral, atom number of H, atom hybridization, atom aromatic, atom mass
     """
     return (atom_number(atom, 'one_hot', allowed_set, encode_unknown) + 
@@ -293,7 +293,7 @@ def atom_mass(atom, scale=0.01):
 
 def chemprop_bond_features(bond, allowed_set=None, encode_unknown=True):
     """
-    Returns the bond features used in Chemprop V2.
+    Returns the bond features used in Chemprop.
 
     Parameters
     ------------
@@ -304,12 +304,12 @@ def chemprop_bond_features(bond, allowed_set=None, encode_unknown=True):
         The default list is the list of bond types in RDKit.
     encode_unknown: bool
         Decides if, should the input not be represented in the mapping, the unknowns input is encoded as 'other' at
-        the end. Default: True Because chemprop v2 has an 'other' category padded.
+        the end. Default: True Because chemprop has an 'other' category padded.
 
     Returns
     ---------
     list
-        One hot encoding of the bond features used in Chemprop V2.
+        One hot encoding of the bond features used in Chemprop.
         Bond type, bond stereo, bond direction, bond conjugated, bond in ring
     """
     return (is_Null(bond) +
