@@ -18,24 +18,57 @@ class Ensemble:
         self.device = device
         self.hyperparams = hyperparams
 
-    def predict_ensemble(self, models, device, test_data):
+    def predict_ensemble(self, models):
         predictions = []
         metrics = []
         for model in models:
-            model.to(device)
-            pred = test_model(model=model, test_data_loader=test_data, device=device, batch_size=len(test_data))
+            model.to(self.device)
+            pred = test_model(model=model, test_data_loader=self.test_data, device=self.device, batch_size=len(self.test_data))
             predictions.append(pred)
-            test_targets = [data.y for data in test_data]
-            targets = torch.cat(test_targets, dim=0).to(device)
+            test_targets = [data.y for data in self.test_data]
+            targets = torch.cat(test_targets, dim=0).to(self.device)
             metric_results = pred_metric(prediction=pred, target=targets, metrics='all', print_out=False)
             metrics.append(metric_results)
         return metrics
 
+    def create_model(self):
+        if self.hyperparams['model'] == 'afp':
+            return AFP(node_in_dim=self.node_in_dim, edge_in_dim=self.edge_in_dim).to(self.device)
+        elif self.hyperparams['model'] == 'dmpnn':
+            return DMPNN(node_in_dim=self.node_in_dim, edge_in_dim=self.edge_in_dim).to(self.device)
+        else:
+            raise ValueError('Invalid model type')
+
+    def train_single_model(self, train_data, val_data, model_index):
+        print(f'Training model {model_index + 1}/{self.hyperparams["n_models"]}')
+        model = self.create_model()
+        criterion = MSELoss()
+        optimizer = Adam(model.parameters(), lr=self.hyperparams['learning_rate'])
+        early_stopping = EarlyStopping(patience=self.hyperparams['early_stopping_patience'])
+        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+            optimizer, mode='min', factor=self.hyperparams['scheduler_factor'], patience=self.hyperparams['scheduler_patience']
+        )
+
+        train_model(model=model, loss_func=criterion, optimizer=optimizer, scheduler=scheduler,
+                    train_data_loader=train_data, val_data_loader=val_data, epochs=self.hyperparams['epochs'], device=self.device,
+                    batch_size=self.hyperparams['batch_size'], early_stopper=early_stopping)
+        model.load_state_dict(torch.load('best_model.pt'))
+        return model
+
     def run(self):
+        train_samples, val_samples = self.create_samples()
+        models = []
+        for i in range(self.hyperparams['n_models']):
+            model = self.train_single_model(train_samples[i], val_samples[i], i)
+            models.append(model)
+        metrics = self.predict_ensemble(models)
+        return metrics
+
+    def create_samples(self):
         raise NotImplementedError("Subclasses should implement this method")
 
 class Bagging(Ensemble):
-    def run(self):
+    def create_samples(self):
         def create_bootstrap_samples(data, n_samples):
             samples = []
             for _ in range(n_samples):
@@ -44,72 +77,22 @@ class Bagging(Ensemble):
                 samples.append(sample_data)
             return samples
 
-        def train_models(train_samples, val_samples, n_models):
-            models = []
-            for i, sample_data in enumerate(train_samples):
-                print(f'Training Bagging model {i + 1}/{n_models}')
-                val_data = val_samples[i]
-                if self.hyperparams['model'] == 'afp':
-                    model = AFP(node_in_dim=self.node_in_dim, edge_in_dim=self.edge_in_dim).to(self.device)
-                elif self.hyperparams['model'] == 'dmpnn':
-                    model = DMPNN(node_in_dim=self.node_in_dim, edge_in_dim=self.edge_in_dim).to(self.device)
-                else:
-                    raise ValueError('Invalid model type')
-                criterion = MSELoss()
-                optimizer = Adam(model.parameters(), lr=self.hyperparams['learning_rate'])
-                early_stopping = EarlyStopping(patience=self.hyperparams['early_stopping_patience'])
-                scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-                    optimizer, mode='min', factor=self.hyperparams['scheduler_factor'], patience=self.hyperparams['scheduler_patience']
-                )
-
-                train_model(model=model, loss_func=criterion, optimizer=optimizer, scheduler=scheduler,
-                            train_data_loader=sample_data, val_data_loader=val_data, epochs=self.hyperparams['epochs'], device=self.device,
-                            batch_size=self.hyperparams['batch_size'], early_stopper=early_stopping)
-                model.load_state_dict(torch.load('best_model.pt'))
-                models.append(model)
-            return models
-
         train_samples = create_bootstrap_samples(self.train_data, self.hyperparams['n_models'])
         val_samples = create_bootstrap_samples(self.val_data, self.hyperparams['n_models'])
-        models = train_models(train_samples, val_samples, self.hyperparams['n_models'])
-        metrics = self.predict_ensemble(models, self.device, self.test_data)
-        return metrics
+        return train_samples, val_samples
 
 class RandomWeightInitialization(Ensemble):
-    def run(self):
-        def train_models(n_models):
-            models = []
-            for i in range(n_models):
-                print(f'Training Random Initialization model {i + 1}/{n_models}')
-                set_seed(self.hyperparams['weight_seed'] + i)
-                if self.hyperparams['model'] == 'afp':
-                    model = AFP(node_in_dim=self.node_in_dim, edge_in_dim=self.edge_in_dim).to(self.device)
-                elif self.hyperparams['model'] == 'dmpnn':
-                    model = DMPNN(node_in_dim=self.node_in_dim, edge_in_dim=self.edge_in_dim).to(self.device)
-                else:
-                    raise ValueError('Invalid model type')
-                criterion = MSELoss()
-                optimizer = Adam(model.parameters(), lr=self.hyperparams['learning_rate'])
-                early_stopping = EarlyStopping(patience=self.hyperparams['early_stopping_patience'])
-                scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-                    optimizer, mode='min', factor=self.hyperparams['scheduler_factor'], patience=10
-                )
+    def create_samples(self):
+        train_samples = [self.train_data] * self.hyperparams['n_models']
+        val_samples = [self.val_data] * self.hyperparams['n_models']
+        return train_samples, val_samples
 
-                train_model(model=model, loss_func=criterion, optimizer=optimizer, scheduler=scheduler,
-                            train_data_loader=self.train_data, val_data_loader=self.val_data, epochs=self.hyperparams['epochs'], device=self.device,
-                            batch_size=self.hyperparams['batch_size'], early_stopper=early_stopping)
-                model.load_state_dict(torch.load('best_model.pt'))
-                models.append(model)
-            return models
-
-        models = train_models(self.hyperparams['n_models'])
-        metrics = self.predict_ensemble(models, self.device, self.test_data)
-        return metrics
-
-
+    def train_single_model(self, train_data, val_data, model_index):
+        set_seed(self.hyperparams['weight_seed'] + model_index)
+        return super().train_single_model(train_data, val_data, model_index)
 
 class Jackknife(Ensemble):
-    def run(self):
+    def create_samples(self):
         def create_synth_samples(reference_model, data, n_samples):
             synth_samples = []
             reference_model = reference_model.to(self.device)
@@ -126,48 +109,20 @@ class Jackknife(Ensemble):
                 synth_samples.append(synthetic_dataset)
             return synth_samples
 
-        def train_models(jackknife_samples):
-            jackknife_models = []
-            criterion = MSELoss()
-            for i, synthetic_data in enumerate(jackknife_samples):
-                print(f'Training Jackknife model {i + 1}/{len(jackknife_samples)}')
-                if self.hyperparams['model'] == 'afp':
-                    model = AFP(node_in_dim=self.node_in_dim, edge_in_dim=self.edge_in_dim).to(self.device)
-                elif self.hyperparams['model'] == 'dmpnn':
-                    model = DMPNN(node_in_dim=self.node_in_dim, edge_in_dim=self.edge_in_dim).to(self.device)
-                else:
-                    raise ValueError('Invalid model type')
-                optimizer = Adam(model.parameters(), lr=self.hyperparams['learning_rate'])
-                early_stopping = EarlyStopping(patience=self.hyperparams['early_stopping_patience'])
-                scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-                    optimizer, mode='min', factor=self.hyperparams['scheduler_factor'], patience=10
-                )
-
-                train_model(model=model, loss_func=criterion, optimizer=optimizer, scheduler=scheduler,
-                            train_data_loader=synthetic_data, val_data_loader=self.val_data, epochs=self.hyperparams['epochs'], device=self.device,
-                            batch_size=len(synthetic_data), early_stopper=early_stopping)
-                model.load_state_dict(torch.load('best_model.pt'))
-                jackknife_models.append(model)
-            return jackknife_models
-
-        if self.hyperparams['model'] == 'afp':
-            reference_model = AFP(node_in_dim=self.node_in_dim, edge_in_dim=self.edge_in_dim).to(self.device)
-        elif self.hyperparams['model'] == 'dmpnn':
-            reference_model = DMPNN(node_in_dim=self.node_in_dim, edge_in_dim=self.edge_in_dim).to(self.device)
+        reference_model = self.create_model()
         criterion = MSELoss()
         optimizer = Adam(reference_model.parameters(), lr=self.hyperparams['learning_rate'])
         early_stopping = EarlyStopping(patience=self.hyperparams['early_stopping_patience'])
         train_model(model=reference_model, loss_func=criterion, optimizer=optimizer, train_data_loader=self.train_data,
                     val_data_loader=self.val_data, epochs=self.hyperparams['epochs'], device=self.device, batch_size=self.hyperparams['batch_size'], early_stopper=early_stopping)
-        jackknife_samples = create_synth_samples(reference_model, self.train_data, self.hyperparams['n_models'])
-        jackknife_models = train_models(jackknife_samples)
-        metrics = self.predict_ensemble(jackknife_models, self.device, self.test_data)
-        return metrics
+        
+        train_samples = create_synth_samples(reference_model, self.train_data, self.hyperparams['n_models'])
+        val_samples = [self.val_data] * self.hyperparams['n_models']
+        return train_samples, val_samples
 
 class BayesianBootstrap(Ensemble):
-    def run(self):
+    def create_samples(self):
         def Dirichlet_sample(m, n):
-            """Returns a matrix of Dirichlet-distributed weights."""
             Dirichlet_params = np.ones(m * n)
             Dirichlet_weights = np.asarray([np.random.gamma(a, 1) for a in Dirichlet_params])
             Dirichlet_weights = Dirichlet_weights.reshape(m, n)
@@ -186,39 +141,6 @@ class BayesianBootstrap(Ensemble):
             
             return samples
 
-        def train_models(train_samples, val_samples, n_models):
-            models = []
-            for i, sample_data in enumerate(train_samples):
-                print(f'Training Bayesian Bootstrap model {i + 1}/{n_models}')
-                val_data = val_samples[i]
-                if self.hyperparams['model'] == 'afp':
-                    model = AFP(node_in_dim=self.node_in_dim, edge_in_dim=self.edge_in_dim).to(self.device)
-                elif self.hyperparams['model'] == 'dmpnn':
-                    model = DMPNN(node_in_dim=self.node_in_dim, edge_in_dim=self.edge_in_dim).to(self.device)
-                else:
-                    raise ValueError('Invalid model type')
-                
-                criterion = MSELoss()
-                optimizer = Adam(model.parameters(), lr=self.hyperparams['learning_rate'])
-                early_stopping = EarlyStopping(patience=self.hyperparams['early_stopping_patience'])
-                scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-                    optimizer, mode='min', factor=self.hyperparams['scheduler_factor'], patience=self.hyperparams['scheduler_patience']
-                )
-
-                train_model(model=model, loss_func=criterion, optimizer=optimizer, scheduler=scheduler,
-                            train_data_loader=sample_data, val_data_loader=val_data, epochs=self.hyperparams['epochs'], device=self.device,
-                            batch_size=self.hyperparams['batch_size'], early_stopper=early_stopping)
-                model.load_state_dict(torch.load('best_model.pt'))
-                models.append(model)
-            return models
-
-        # Generate bootstrap samples
         train_samples = create_bayesian_samples(self.train_data, self.hyperparams['n_models'])
         val_samples = create_bayesian_samples(self.val_data, self.hyperparams['n_models'])
-
-        # Train models
-        models = train_models(train_samples, val_samples, self.hyperparams['n_models'])
-        
-        # Evaluate models
-        metrics = self.predict_ensemble(models, self.device, self.test_data)
-        return metrics
+        return train_samples, val_samples

@@ -1,21 +1,10 @@
 import torch
-from torch.utils.data import random_split
-from torch.optim import Adam
-from torch.nn import MSELoss
-from torch_geometric.data import Data
-from grape_chem.models import AFP, DMPNN
 from grape_chem.datasets import FreeSolv
-from grape_chem.utils import train_model, test_model, pred_metric, RevIndexedSubSet
 from grape_chem.utils.model_utils import set_seed
-from grape_chem.utils import EarlyStopping
-from sklearn.utils import resample
-from rdkit import Chem
-from rdkit.Chem import Descriptors
-import numpy as np
-import time
-import random
-
+from grape_chem.utils import RevIndexedSubSet
 from src.grape_chem.utils.ensemble import Bagging, RandomWeightInitialization, Jackknife, BayesianBootstrap
+import time
+import numpy as np
 
 # Hyperparameters
 HYPERPARAMS = {
@@ -51,7 +40,6 @@ def print_averages(metrics, technique):
     """)
 
 def calculate_std_metrics(metrics_dict):
-    # Convert the list of dictionaries into a list of lists
     metrics = np.array([
         [metric['mse'], metric['rmse'], metric['sse'], metric['mae'], 
          metric['r2'], metric['mre'], metric['mdape']]
@@ -68,17 +56,10 @@ def calculate_std_metrics(metrics_dict):
     }
     return std_metrics
 
-# Function to calculate molecular weight
-def calculate_molecular_weight(smiles):
-    mol = Chem.MolFromSmiles(smiles)
-    return Descriptors.MolWt(mol)
-
-# Define the dataset and split
 def setup_data(seed=42):
     set_seed(seed)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     if HYPERPARAMS['model'] == 'dmpnn' and HYPERPARAMS['chemprop']:
-        #Missing molecular weight feature as global feature
         dataset = FreeSolv(allowed_atoms=allowed_atoms, atom_feature_list=atom_feature_list, bond_feature_list=bond_feature_list)
     else:
         dataset = FreeSolv()
@@ -88,12 +69,10 @@ def setup_data(seed=42):
 
     if HYPERPARAMS['model'] == 'afp':
         train_data, val_data, test_data = dataset.split_and_scale(scale=True, seed=seed, split_type='random', split_frac=[0.8, 0.1, 0.1], is_dmpnn=False)
-
     elif HYPERPARAMS['model'] == 'dmpnn':
         train_data, val_data, test_data = dataset.split_and_scale(scale=True, seed=seed, split_type='random', split_frac=[0.8, 0.1, 0.1], is_dmpnn=True)   
         train_data, val_data, test_data = RevIndexedSubSet(train_data), RevIndexedSubSet(val_data), RevIndexedSubSet(test_data)
 
-    # Set the batch size for training and evaluation
     HYPERPARAMS['batch_size'] = len(train_data)
     return train_data, val_data, test_data, node_in_dim, edge_in_dim, device
 
