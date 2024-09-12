@@ -125,15 +125,16 @@ class SingleHeadJunctionLayer(nn.Module):
                                 num_layers_atom=net_params['num_layers_atom'],
                                 num_layers_mol=net_params['num_layers_mol'],
                                 dropout=net_params['dropout'],
-                                regressor=False
+                                regressor=False,
+                                return_super_nodes=True
                             )
     def forward(self, data):
         data.x = self.project_motif(data.x)
         d = Data(data.x, data.edge_index, data.edge_attr, data.batch)
         d.batch = data.batch
-        motif_graph_features = self.AttentiveEmbedding(d)
+        motif_graph_features, alphas = self.AttentiveEmbedding(d)
         #graph_features, attention_weights = global_add_pool(node_features, data.batch), None  # Adjust if you get attention weights
-        return motif_graph_features
+        return motif_graph_features, alphas
 
 class JT_Channel(nn.Module):
     def __init__(self, net_params):
@@ -201,7 +202,6 @@ class GCGAT_v4pro(nn.Module):
         frag_data, junction_data = Batch.from_data_list(data.frag_graphs), Batch.from_data_list(data.motif_graphs)
         graph_origin = self.origin_module(origin_data)
         graph_frag = self.frag_module(frag_data)
-        breakpoint()
 
         #preprocess junction data
         motif_nodes = junction_data.x
