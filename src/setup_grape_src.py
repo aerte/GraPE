@@ -1,6 +1,9 @@
 import os
 from setuptools import setup, find_packages
 
+#Install grape_chem in edit mode in order to import grape_chem saved in src folder in branch
+#in src folder: pip install -e . --no-deps --config-settings editable_mode=compat -v --use-pep517 --config-settings=setup-file=setup_grape_src.py
+
 setup(
     name='grape_chem',
     version='1.0.3',
