@@ -8,7 +8,7 @@ import numpy as np
 from torch_geometric.loader import DataLoader
 from torch_geometric.data import Data
 from tqdm import tqdm
-from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score, root_mean_squared_error
+from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 from grape_chem.utils import DataSet
 import os
 import dgl
@@ -16,6 +16,7 @@ import dgl
 __all__ = [
     'EarlyStopping',
     'reset_weights',
+    'load_model',
     'train_model',
     'train_epoch',
     'val_epoch',
@@ -79,12 +80,20 @@ class EarlyStopping:
             print(f'Early stopping reached with best validation loss {self.best_score:.4f}')
             if not self.skip_save:
                 print(f'Model saved at: {self.model_name}')
+                self.save_checkpoint(model=model)
             self.stop = True
 
-
+    def reset(self):
+        self.best_score = np.inf
+        self.counter = 0
+        self.stop = False
 
     def save_checkpoint(self, model: Module):
-        torch.save(model.state_dict(), self.model_name)
+        print("Saving model with checkpoint: ", self.model_name)
+        #torch.save(model.state_dict(), self.model_name)
+        checkpoint = create_checkpoint(model)
+        #print("CHECKPOINT: ", checkpoint)
+        torch.save(checkpoint, self.model_name)
 
 
 def reset_weights(model: Module):
@@ -104,6 +113,47 @@ def reset_weights(model: Module):
             for child in model.children():
                 reset_weights(child)
 
+
+def load_model(model_class, model_path, device=None):
+    """
+    Load a model from a .pt file.
+
+    Args:
+        model_class (string): The class of the model to instantiate. Can choose from DMPNN and AFP
+        model_path (str): Path to the .pt file containing the model state_dict.
+        device (torch.device, optional): The device to load the model onto. Defaults to CUDA if available, otherwise CPU.
+
+    Returns:
+        torch.nn.Module: The loaded model.
+    """
+    try:
+        if model_class not in ['DMPNN', 'AFP']:
+            raise ValueError(f"Invalid model class {model_class}. Must be one of ['DMPNN', 'AFP']")
+        if device is None:
+            device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        checkpoint = torch.load(model_path, map_location=device)
+        #print(f'Checkpoint: {checkpoint}')
+        print(f'Checkpoint keys: {checkpoint.keys()}')
+        state_dict = checkpoint['model_state_dict']
+        model_params = checkpoint['model_params']
+        print(f'Model params: {model_params}')
+        # Instantiate the model
+        if model_class == 'AFP':
+            from grape_chem.models import AFP
+            model = AFP(node_in_dim=model_params["node_in_dim"], edge_in_dim=model_params["edge_in_dim"], hidden_dim=model_params["hidden_dim"], out_dim=model_params["out_dim"], num_layers_atom=model_params["num_layers_atom"], num_layers_mol=model_params["num_layers_mol"], dropout=model_params["dropout"], mlp_out_hidden=model_params["mlp_out_hidden"], num_global_feats=model_params["num_global_feats"])
+        # Load the state dictionary
+        dataset = DataSet(allowed_atoms=model_params["allowed_atoms"], atom_feature_list=model_params["atom_feature_list"], bond_feature_list=model_params["bond_feature_list"], mean=model_params["data_mean"], std=model_params["data_std"])
+        # Load the state dict into the model
+        model.load_state_dict(state_dict)
+        # Set the model to evaluation mode
+        model.eval()
+        # Move the model to the appropriate device
+        model.to(device)
+        
+        return model, dataset
+    except Exception as e:
+        print(f"An error occurred while loading the model: {e}")
+        return None
 
 ##########################################################################
 ########### Training and Testing functions ###############################
@@ -160,7 +210,6 @@ def train_model(model: torch.nn.Module, loss_func: Union[Callable,str], optimize
     if isinstance(loss_func, str):
         loss_func = loss_functions[loss_func]
 
-
     device = torch.device('cpu') if device is None else device
 
     if not isinstance(train_data_loader, DataLoader):
@@ -199,13 +248,14 @@ def train_model(model: torch.nn.Module, loss_func: Union[Callable,str], optimize
             val_loss.append(loss_val)
 
             if i%2 == 0:
-                    pbar.set_description(f"epoch={i}, training loss= {loss_train:.3f}, validation loss= {loss_val:.3f}")
+                pbar.set_description(f"epoch={i}, training loss= {loss_train:.3f}, validation loss= {loss_val:.3f}")
 
             if scheduler is not None:
                 scheduler.step(loss_val)
 
 
             if early_stopper is not None:
+                #print(f'early stopper: {early_stopper}')
                 early_stopper(val_loss=loss_val, model=model)
                 if early_stopper.stop:
                     early_stopper.stop_epoch = i-early_stopper.patience
@@ -215,12 +265,33 @@ def train_model(model: torch.nn.Module, loss_func: Union[Callable,str], optimize
                         break
 
             pbar.update(1)
-        if early_stopper.stop is False and model_name is not None:
-            torch.save(model.state_dict(), model_name)
-            print(f'Model saved at: {model_name}')
+        #print(f'eary stopper: {early_stopper}')
+#DataSet(smiles=smiles, target=target, global_features=global_features, allowed_atoms=allowed_atoms, atom_feature_list=atom_feature_list, bond_feature_list=bond_feature_list, log=False, only_organic=False, filter=True, allow_dupes=True)
+    
+        if early_stopper is not None:
+            print("Early stopper: ", early_stopper)
+            if early_stopper.stop is False and model_name is not None:
+                print("Early stopping did not set in, saving model.")
+                checkpoint = create_checkpoint(model)
+
+                print("Saving model with checkpoint: ", checkpoint)
+
+                # Save the checkpoint
+                torch.save(checkpoint, model_name)
+                #torch.save(model.state_dict(), model_name)
+                print(f'Model saved at: {model_name}')
+    
+        else:
+            if model_name is not None:
+                print("Saving model.")
+                checkpoint = create_checkpoint(model)
+                print("Saving model with checkpoint: ", checkpoint)
+                # Save the checkpoint
+                torch.save(checkpoint, model_name)
+                #torch.save(model.state_dict(), model_name)
+                print(f'Model saved at: {model_name}')
 
     return train_loss, val_loss
-
 
 ##############################################################################################################
 ################ Epoch level train and val ###################################################################
@@ -382,8 +453,6 @@ def rescale_arrays(arrays: Union[Tensor, tuple[Tensor,Tensor], list], data:objec
     return out
 
 
-
-
 def pred_metric(prediction: Union[Tensor, ndarray], target: Union[Tensor, ndarray],
                 metrics: Union[str,list[str]] = 'mse', print_out: \
                 bool = True, rescale_data: DataSet = None) -> list[float]:
@@ -446,8 +515,8 @@ def pred_metric(prediction: Union[Tensor, ndarray], target: Union[Tensor, ndarra
             results['mse'] = mean_squared_error(target, prediction)
             prints.append(f'MSE: {mean_squared_error(target, prediction):.3f}')
         elif metric_ == 'rmse':
-            results['rmse'] = root_mean_squared_error(target, prediction)
-            prints.append(f'RMSE: {root_mean_squared_error(target, prediction):.3f}')
+            results['rmse'] = np.sqrt(mean_squared_error(target, prediction))
+            prints.append(f'RMSE: {np.sqrt(mean_squared_error(target, prediction)):.3f}')
         elif metric_ ==  'sse':
             results['sse'] = np.sum((target-prediction)**2)
             prints.append(f'SSE: {np.sum((target-prediction)**2):.3f}')
@@ -467,7 +536,6 @@ def pred_metric(prediction: Union[Tensor, ndarray], target: Union[Tensor, ndarra
             results['mdape'] = np.median(np.abs((target-prediction)/target))*100
             prints.append(f'MDAPE: {np.median(np.abs((target-prediction)/target))*100:.3f}%')
 
-
     if print_out:
         for out in prints:
             print(out)
@@ -478,6 +546,39 @@ def pred_metric(prediction: Union[Tensor, ndarray], target: Union[Tensor, ndarra
 #######################################################################################################
 #################################### General tools ####################################################
 #######################################################################################################
+
+def create_checkpoint(model: Module) -> dict:
+    """Creates a dictionarty that contains the model state_dict and model parameters.
+
+    Args:
+        model (torch.nn.Module): The model to save.
+
+    Returns:
+        dict: A dictionary containing the model state_dict and model parameters.
+    """
+    model_params = {
+                    "node_in_dim": model.node_in_dim,
+                    "edge_in_dim": model.edge_in_dim,
+                    "hidden_dim": model.hidden_dim,
+                    "out_dim": model.out_dim,
+                    "num_layers_atom": model.num_layers_atom,
+                    "num_layers_mol": model.num_layers_mol,
+                    "dropout": model.dropout,
+                    "regressor": model.regressor,
+                    "mlp_out_hidden": model.mlp_out_hidden,
+                    "rep_dropout": model.rep_dropout,
+                    "num_global_feats": model.num_global_feats,
+                    "allowed_atoms": model.allowed_atoms,
+                    "atom_feature_list": model.atom_feature_list,
+                    "bond_feature_list": model.bond_feature_list,
+                    "data_mean": model.data_mean,
+                    "data_std": model.data_std
+                }
+    return {
+        'model_state_dict': model.state_dict(),
+        'model_params': model_params
+    }
+
 
 
 def set_seed(seed:int = 42, numpy_off: bool = False, is_ensemble: bool = False):

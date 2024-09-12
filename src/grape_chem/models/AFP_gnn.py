@@ -81,7 +81,7 @@ class AFP(Module):
     def __init__(self, node_in_dim: int, edge_in_dim:int, out_dim:int=None, hidden_dim:int=128,
                  num_layers_atom:int = 3, num_layers_mol:int = 3, dropout:float=0.0,
                  regressor:bool=True, mlp_out_hidden:Union[int,list]=512, rep_dropout:float=0.0,
-                 num_global_feats:int = 0):
+                 num_global_feats:int = 0, dataset_dict=None):
         super(AFP, self).__init__()
 
         self.regressor = regressor
@@ -89,6 +89,33 @@ class AFP(Module):
 
         self.rep_dropout = nn.Dropout(rep_dropout)
 
+        self.bn = nn.BatchNorm1d(out_dim)  
+
+        # Params needed to rebuild model and dataset for preditions
+        self.node_in_dim = node_in_dim
+        self.edge_in_dim = edge_in_dim
+        self.hidden_dim = hidden_dim
+        self.out_dim=1
+        self.num_layers_atom=num_layers_atom
+        self.num_layers_mol=num_layers_mol
+        self.dropout=rep_dropout
+        self.mlp_out_hidden=mlp_out_hidden
+        self.num_global_feats=num_global_feats
+        if dataset_dict is not None:
+            self.allowed_atoms = dataset_dict['allowed_atoms']
+            self.atom_feature_list = dataset_dict['atom_feature_list']
+            self.bond_feature_list = dataset_dict['bond_feature_list']
+            self.data_mean = dataset_dict['data_mean']
+            self.data_std = dataset_dict['data_std']
+            self.data_name = dataset_dict['data_name']
+        else:
+            self.allowed_atoms = None
+            self.atom_feature_list = None
+            self.bond_feature_list = None
+            self.data_mean = None
+            self.data_std = None
+            self.data_name = None
+        
         if out_dim is None or out_dim == 1 or self.regressor:
             self.regressor = True
             if isinstance(mlp_out_hidden, int):
@@ -148,11 +175,21 @@ class AFP(Module):
         # Dropout
         out = self.rep_dropout(out)
 
-        ### Check if global graphs is present for each graph
+        ### Check if global features are present
         if self.num_global_feats > 0:
-            out = torch.concat((out, data.global_feats[:,None]), dim=1)
+            if data.global_feats.dim() == 1:
+                # If global_feats is 1D, reshape it to (batch_size, 1)
+                global_feats = data.global_feats.unsqueeze(1)
+            else:
+                # Ensure global_feats is nD (batch_size, num_global_feats)
+                global_feats = data.global_feats
+            
+            # Concatenate along the feature dimension
+            out = torch.cat((out, global_feats), dim=1)
 
 
         if self.regressor:
             out = self.mlp_out(out)
+        out = self.bn(out)
         return out.view(-1)
+    
