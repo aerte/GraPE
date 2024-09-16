@@ -14,6 +14,9 @@ notebooks/processed
 notebooks/test_classyfire
 notebooks/analysis_results
 
+#could be included but creates bloat
+graphs/ 
+
 dockerfiles/
 
 # test cache
