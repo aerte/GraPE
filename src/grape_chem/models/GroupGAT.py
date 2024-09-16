@@ -119,12 +119,14 @@ class SingleHeadJunctionLayer(nn.Module):
     def __init__(self, net_params):
         super().__init__()
         self.project_motif = nn.Linear(net_params['L2_hidden_dim'] + net_params['L3_hidden_dim'], net_params['L3_hidden_dim'], bias=True)
-        self.AttentiveEmbedding = AFP(node_in_dim=net_params["L3_hidden_dim"],
+        self.AttentiveEmbedding = AFP(
+                                node_in_dim=net_params["L3_hidden_dim"],
                                 edge_in_dim=net_params["L3_hidden_dim"], #seems like edges also sent to this dimension: is it correct? (TODO)
-                                hidden_dim=net_params['hidden_dim'],
+                                hidden_dim=net_params["hidden_dim"], #internal AFP dim
                                 num_layers_atom=net_params['num_layers_atom'],
                                 num_layers_mol=net_params['num_layers_mol'],
                                 dropout=net_params['dropout'],
+                                out_dim=net_params["L3_hidden_dim"],
                                 regressor=False,
                                 return_super_nodes=True
                             )
@@ -132,7 +134,7 @@ class SingleHeadJunctionLayer(nn.Module):
         data.x = self.project_motif(data.x)
         d = Data(data.x, data.edge_index, data.edge_attr, data.batch)
         d.batch = data.batch
-        motif_graph_features, alphas = self.AttentiveEmbedding(d)
+        motif_graph_features, alphas  = self.AttentiveEmbedding(d, return_lats = True) #alphas
         #graph_features, attention_weights = global_add_pool(node_features, data.batch), None  # Adjust if you get attention weights
         return motif_graph_features, alphas
 
@@ -152,18 +154,16 @@ class JT_Channel(nn.Module):
         self.junction_heads = nn.ModuleList([SingleHeadJunctionLayer(net_params) for _ in range(net_params['num_heads'])])
 
     def forward(self, batch, motif_nodes):
-        """
-        TODO: still doesn't match exactly with dgl version
-        """
+        """"""
         motif_nodes = self.embedding_frag_lin(motif_nodes) #takes `frag_dim * num_frags` to `L3_hidden_dim * num_frags`
         batch.edge_attr = self.embedding_edge_lin(batch.edge_attr)
         batch.x = torch.cat([batch.x, motif_nodes], dim=-1) # `(L2_hidden_dim + L3_hidden_dim) * num_frags` (or permuted idk) 
         junction_graph_heads_out = []
         junction_attention_heads_out = []
         for single_head in self.junction_heads:
-            single_head_new_graph, single_head_attention_weight = single_head(batch)
+            single_head_new_graph, single_head_attention_weight  = single_head(batch) #single_head_attention_weight
             junction_graph_heads_out.append(single_head_new_graph)
-            junction_attention_heads_out.append(single_head_attention_weight)
+            junction_attention_heads_out.append(single_head_attention_weight[1]) #the AFP layer returns also the edge_index when computing the alphas
         super_new_graph = torch.relu(torch.mean(torch.stack(junction_graph_heads_out, dim=1), dim=1))
         super_attention_weight = torch.mean(torch.stack(junction_attention_heads_out, dim=1), dim=1)
         return super_new_graph, super_attention_weight
@@ -174,7 +174,7 @@ class GCGAT_v4pro(nn.Module):
         self.origin_module = OriginChannel(net_params)
         self.frag_module = FragmentChannel(net_params)
         self.junction_module = JT_Channel(net_params)
-        print("frag_dim= ", net_params['frag_dim'])
+        self.frag_res_dim = net_params['L2_hidden_dim'] #will be needed to sum and concat the frag graph embeddings
         # assuming net_params includes dimensions for concatenated outputs (does it?)
         concat_dim = net_params['L1_hidden_dim'] + net_params['L2_hidden_dim'] + net_params['L3_hidden_dim']
         self.linear_predict1 = nn.Sequential(
@@ -206,14 +206,19 @@ class GCGAT_v4pro(nn.Module):
         #preprocess junction data
         motif_nodes = junction_data.x
         junction_data.x = graph_frag.clone() #setting as this tensor of size `num frags * L2_hidden_dim` .Still unsure why but it's what the dgl version does
-        super_new_graph, super_attention_weight = self.junction_module(junction_data, motif_nodes)
+        super_new_graph, super_attention_weight = self.junction_module(junction_data, motif_nodes) #super_attention_weight
 
 
-        # if descriptors: sum node features for motif graph (akin to dgl.sum_nodes)
-        motifs_series = global_add_pool(graph_frag.x, graph_frag.batch) if get_attention else torch.zeros((graph_frag.x.size(0), 0), device=graph_frag.x.device)
+        #sum features for motif graph (akin to dgl.sum_nodes)
+        num_mols = len(junction_data.batch.unique(dim=0,))
+        frag_res = torch.zeros(num_mols, self.frag_res_dim) #vector that will contain the sums of the frags embedding of each mol
+        index = junction_data.batch.clone().unsqueeze(1).expand(-1, 133)
+        frag_res.scatter_add_(0, index, graph_frag)
 
+        #motifs_series = global_add_pool(junction_data.x, junction_data.batch) if get_attention else torch.zeros((graph_frag.x.size(0), 0), device=graph_frag.x.device)
         # 2. concat the output from different channels
-        concat_features = torch.cat([graph_origin, graph_frag, super_new_graph, motifs_series], dim=-1)
+
+        concat_features = torch.cat([graph_origin, frag_res, super_new_graph], dim=-1) #, motifs_series
         descriptors = self.linear_predict1(concat_features)
         output = self.linear_predict2(descriptors)
         
@@ -221,14 +226,14 @@ class GCGAT_v4pro(nn.Module):
         if get_attention:
             # TODO: depending on how attention weights are returned (per-node? per fragment?) 
             # we can either directly use them or we'll need to aggregate or de-aggregate them
-            # attention_list_array = []
-            # unique_graph_ids = torch.unique(data.batch, sorted=True)
-            # for graph_id in unique_graph_ids:
-            #     mask = (data.batch == graph_id)
-            #     graph_attention = super_attention_weight[mask]
-            #     attention_list_array.append(graph_attention.detach().cpu().numpy())
-            # results.append(attention_list_array)
-            results.append(super_attention_weight)
+            attention_list_array = []
+            unique_graph_ids = torch.unique(data.batch, sorted=True)
+            for graph_id in unique_graph_ids:
+                mask = (data.batch == graph_id)
+                graph_attention = super_attention_weight[mask]
+                attention_list_array.append(graph_attention.detach().cpu().numpy())
+            results.append(attention_list_array)
+            results.append(super_attention_weight) #uncomment
         if get_descriptors:
             results.append(descriptors)
 
