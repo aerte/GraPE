@@ -229,11 +229,12 @@ class GCGAT_v4pro(nn.Module):
             attention_list_array = []
             unique_graph_ids = torch.unique(data.batch, sorted=True)
             for graph_id in unique_graph_ids:
-                mask = (data.batch == graph_id)
-                graph_attention = super_attention_weight[mask]
+                mask = (junction_data.batch == graph_id)
+                graph_attention = super_attention_weight.clone().squeeze()[mask]
                 attention_list_array.append(graph_attention.detach().cpu().numpy())
             results.append(attention_list_array)
             results.append(super_attention_weight) #uncomment
+            pass
         if get_descriptors:
             results.append(descriptors)
 
