@@ -260,7 +260,7 @@ class DataSet(DataLoad):
     ndarray] = None, global_features:Union[list[float], ndarray] = None, filter: bool=True,allowed_atoms:list[str] = None,
     only_organic: bool = True, atom_feature_list: list[str] = None, bond_feature_list: list[str] = None,
     log: bool = False, root: str = None, indices:list[int] = None, fragmentation=None):
-
+        print("fragmentation in  call to DataSet: ", fragmentation)
         assert (file_path is not None) or (smiles is not None and target is not None),'path or (smiles and target) must given.'
 
         super().__int__(root)
@@ -315,6 +315,7 @@ class DataSet(DataLoad):
             self.mol_weights[i] = mol_weight(Chem.MolFromSmiles(self.smiles[i]))
 
         if fragmentation is not None:
+            print("made it into here with frag not none")
             self.fragmentation = fragmentation
             self._prepare_frag_data()
 
@@ -833,6 +834,8 @@ class GraphDataSet(DataSet):
         The numpy seed used to generate the splits. Default: None
     indices: list[int]
         Can be used to override the indices of the datasets objects. Recommended not to use.
+    fragmentation: optional
+        function to perform fragmentation if needed
 
     # TODO: Consider removing indices option
     """
@@ -841,12 +844,12 @@ class GraphDataSet(DataSet):
     ndarray] = None, global_features:Union[list[float], ndarray] = None,
     allowed_atoms:list[str] = None, only_organic: bool = True, atom_feature_list:list[str] = None,
     bond_feature_list:list[str] = None, split: bool = True, split_type:str = None, split_frac:list[float, float, float]
-    = None, custom_split: list[int] = None, log: bool = False, seed:int = None, indices:list[int] = None):
-
+    = None, custom_split: list[int] = None, log: bool = False, seed:int = None, indices:list[int] = None, fragmentation = None):
+        print("fragmentation in call to GraphDataSet: ", fragmentation)
         super().__init__(file_path=file_path, smiles=smiles, target=target, global_features=global_features,
                          allowed_atoms=allowed_atoms, only_organic=only_organic,
                          atom_feature_list=atom_feature_list,
-                         bond_feature_list=bond_feature_list, log=log, indices=indices)
+                         bond_feature_list=bond_feature_list, log=log, indices=indices, fragmentation=fragmentation)
 
         if split_type is None:
             split_type = 'random'
@@ -862,12 +865,11 @@ class GraphDataSet(DataSet):
 
         assert np.sum(self.split_frac), 'Split fractions should add to 1.'
 
-
         if split or (self.custom_split is not None):
             self.train, self.val, self.test = split_data(data = self, split_type = self.split_type,
                                                         split_frac = self.split_frac, custom_split = self.custom_split,
                                                          seed=seed)
-
+        print("split data was NOT called in GraphDataset init")
 
 
 

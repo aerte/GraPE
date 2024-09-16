@@ -206,6 +206,10 @@ def train_model(model: torch.nn.Module, loss_func: Union[Callable,str], optimize
     val_loss = []
     
     def move_to_device(data, device):
+        """
+        a wrapper for all the calls to properly move 
+        nested and batched PyG Data to a cuda device
+        """
         if isinstance(data, torch.Tensor):
             return data.to(device)
         elif isinstance(data, list):
@@ -220,8 +224,9 @@ def train_model(model: torch.nn.Module, loss_func: Union[Callable,str], optimize
             temp = np.zeros(len(train_data_loader))
             for idx, batch in enumerate(train_data_loader):
                 optimizer.zero_grad()
-                out = model(move_to_device(batch, device))
-                loss_train = loss_func(batch.y, out)
+
+                out = model(move_to_device(batch, device),)
+                loss_train = loss_func(batch.y, out.squeeze())
 
                 temp[idx] = loss_train.detach().cpu().numpy()
 
@@ -234,7 +239,7 @@ def train_model(model: torch.nn.Module, loss_func: Union[Callable,str], optimize
 
             temp = np.zeros(len(val_data_loader))
             for idx, batch in enumerate(val_data_loader):
-                out = model(batch.to(device))
+                out = model(batch.to(device)).squeeze()
                 temp[idx] = loss_func(batch.y, out).detach().cpu().numpy()
 
             loss_val = np.mean(temp)
