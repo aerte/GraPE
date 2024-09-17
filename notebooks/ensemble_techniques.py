@@ -1,3 +1,4 @@
+# Original code. Refactored into Grape.utils.ensemble and a ensemble notebook to showcase
 import torch
 from torch.utils.data import random_split
 from torch.optim import Adam

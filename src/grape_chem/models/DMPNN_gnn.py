@@ -155,17 +155,36 @@ class DMPNN(torch.nn.Module):
 
     """
     def __init__(self, node_in_dim:int, edge_in_dim:int,node_hidden_dim:int=64, depth=3, dropout=0.15,
-                        mlp_out_hidden:Union[int, list]=512, rep_dropout:float=0.0, num_global_feats:int=0):
+                        mlp_out_hidden:Union[int, list]=512, rep_dropout:float=0.0, num_global_feats:int=0, dataset_dict=None):
         super(DMPNN, self).__init__()
-
         self.hidden_size = node_hidden_dim
         self.node_dim = node_in_dim
         self.edge_dim = edge_in_dim
         self.depth = depth
+        self.dropout = dropout
+        self.mlp_out_hidden = mlp_out_hidden
 
         self.rep_dropout = nn.Dropout(rep_dropout)
         self.bn = nn.BatchNorm1d(1)  
         self.num_global_feats = num_global_feats
+
+        # Assign dataset_dict in order for the model to be initialized with the same dataset values
+        self.dataset_dict = dataset_dict
+        if dataset_dict is not None:
+            # Params needed to rebuild model and dataset for predictions
+            self.allowed_atoms = dataset_dict['allowed_atoms']
+            self.atom_feature_list = dataset_dict['atom_feature_list']
+            self.bond_feature_list = dataset_dict['bond_feature_list']
+            self.data_mean = dataset_dict['data_mean']
+            self.data_std = dataset_dict['data_std']
+            self.data_name = dataset_dict['data_name']
+        else:
+            self.allowed_atoms = None
+            self.atom_feature_list = None
+            self.bond_feature_list = None
+            self.data_mean = None
+            self.data_std = None
+            self.data_name = None
 
         self.encoder = DMPNNEncoder(node_in_dim = node_in_dim,
                                     edge_in_dim=edge_in_dim,

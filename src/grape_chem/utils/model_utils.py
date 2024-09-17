@@ -90,10 +90,12 @@ class EarlyStopping:
 
     def save_checkpoint(self, model: Module):
         print("Saving model with checkpoint: ", self.model_name)
-        #torch.save(model.state_dict(), self.model_name)
-        checkpoint = create_checkpoint(model)
-        #print("CHECKPOINT: ", checkpoint)
-        torch.save(checkpoint, self.model_name)
+        if model.dataset_dict is not None:
+            checkpoint = create_checkpoint(model)
+            torch.save(checkpoint, self.model_name)
+        else:
+            torch.save(model.state_dict(), self.model_name)
+        
 
 
 def reset_weights(model: Module):
@@ -126,21 +128,32 @@ def load_model(model_class, model_path, device=None):
     Returns:
         torch.nn.Module: The loaded model.
     """
+    allowed_models = ['DMPNN', 'AFP', 'dmpnn', 'afp']
     try:
-        if model_class not in ['DMPNN', 'AFP']:
-            raise ValueError(f"Invalid model class {model_class}. Must be one of ['DMPNN', 'AFP']")
+        if model_class not in allowed_models:
+            raise ValueError(f"Invalid model class {model_class}. Must be one of {allowed_models}")
         if device is None:
             device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         checkpoint = torch.load(model_path, map_location=device)
         #print(f'Checkpoint: {checkpoint}')
-        print(f'Checkpoint keys: {checkpoint.keys()}')
+        #print(f'Checkpoint keys: {checkpoint.keys()}')
+        if 'model_state_dict' not in checkpoint.keys():
+            raise ValueError("Model state_dict not found in the checkpoint.")
+        if 'model_params' not in checkpoint.keys():
+            raise ValueError("Model parameters not found in the checkpoint.")
+        
         state_dict = checkpoint['model_state_dict']
         model_params = checkpoint['model_params']
-        print(f'Model params: {model_params}')
+
         # Instantiate the model
-        if model_class == 'AFP':
+        if model_class == 'AFP' or model_class == 'afp':
             from grape_chem.models import AFP
             model = AFP(node_in_dim=model_params["node_in_dim"], edge_in_dim=model_params["edge_in_dim"], hidden_dim=model_params["hidden_dim"], out_dim=model_params["out_dim"], num_layers_atom=model_params["num_layers_atom"], num_layers_mol=model_params["num_layers_mol"], dropout=model_params["dropout"], mlp_out_hidden=model_params["mlp_out_hidden"], num_global_feats=model_params["num_global_feats"])
+        if model_class == 'DMPNN' or model_class == 'dmpnn':
+            from grape_chem.models import DMPNN
+            print("hi")
+            model = DMPNN(node_in_dim=model_params["node_dim"], edge_in_dim=model_params["edge_dim"], node_hidden_dim=model_params["hidden_size"], mlp_out_hidden=model_params["mlp_out_hidden"], num_global_feats=model_params["num_global_feats"])
+            print("__Something")
         # Load the state dictionary
         dataset = DataSet(allowed_atoms=model_params["allowed_atoms"], atom_feature_list=model_params["atom_feature_list"], bond_feature_list=model_params["bond_feature_list"], mean=model_params["data_mean"], std=model_params["data_std"])
         # Load the state dict into the model
@@ -153,7 +166,7 @@ def load_model(model_class, model_path, device=None):
         return model, dataset
     except Exception as e:
         print(f"An error occurred while loading the model: {e}")
-        return None
+        return None, None
 
 ##########################################################################
 ########### Training and Testing functions ###############################
@@ -272,23 +285,13 @@ def train_model(model: torch.nn.Module, loss_func: Union[Callable,str], optimize
             print("Early stopper: ", early_stopper)
             if early_stopper.stop is False and model_name is not None:
                 print("Early stopping did not set in, saving model.")
-                checkpoint = create_checkpoint(model)
-
-                print("Saving model with checkpoint: ", checkpoint)
-
-                # Save the checkpoint
-                torch.save(checkpoint, model_name)
-                #torch.save(model.state_dict(), model_name)
+                early_stopper.save_checkpoint(model, model_name)
                 print(f'Model saved at: {model_name}')
     
         else:
             if model_name is not None:
-                print("Saving model.")
-                checkpoint = create_checkpoint(model)
-                print("Saving model with checkpoint: ", checkpoint)
-                # Save the checkpoint
-                torch.save(checkpoint, model_name)
-                #torch.save(model.state_dict(), model_name)
+                print("Early stopping did not set in, saving model.")
+                early_stopper.save_checkpoint(model, model_name)
                 print(f'Model saved at: {model_name}')
 
     return train_loss, val_loss
@@ -556,24 +559,16 @@ def create_checkpoint(model: Module) -> dict:
     Returns:
         dict: A dictionary containing the model state_dict and model parameters.
     """
-    model_params = {
-                    "node_in_dim": model.node_in_dim,
-                    "edge_in_dim": model.edge_in_dim,
-                    "hidden_dim": model.hidden_dim,
-                    "out_dim": model.out_dim,
-                    "num_layers_atom": model.num_layers_atom,
-                    "num_layers_mol": model.num_layers_mol,
-                    "dropout": model.dropout,
-                    "regressor": model.regressor,
-                    "mlp_out_hidden": model.mlp_out_hidden,
-                    "rep_dropout": model.rep_dropout,
-                    "num_global_feats": model.num_global_feats,
-                    "allowed_atoms": model.allowed_atoms,
-                    "atom_feature_list": model.atom_feature_list,
-                    "bond_feature_list": model.bond_feature_list,
-                    "data_mean": model.data_mean,
-                    "data_std": model.data_std
-                }
+    possible_attributes = [
+        "node_in_dim", "edge_in_dim", "node_dim", "edge_dim", "hidden_dim", "hidden_size", "out_dim",
+        "num_layers_atom", "num_layers_mol", "dropout", "regressor",
+        "mlp_out_hidden", "rep_dropout", "num_global_feats",
+        "allowed_atoms", "atom_feature_list", "bond_feature_list",
+        "data_mean", "data_std"
+    ]
+
+    # Create model_params dictionary dynamically
+    model_params = {attr: getattr(model, attr) for attr in possible_attributes if hasattr(model, attr)}
     return {
         'model_state_dict': model.state_dict(),
         'model_params': model_params

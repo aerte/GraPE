@@ -18,7 +18,7 @@ HYPERPARAMS = {
     'seed': [42],
     'weight_seed': 100,
     'Print Metrics': True,
-    'model': 'afp',  # 'afp' or 'dmpnn'
+    'model': 'dmpnn',  # 'afp' or 'dmpnn'
     'chemprop': True
 }
 
@@ -70,6 +70,7 @@ def setup_data(seed=42):
     if HYPERPARAMS['model'] == 'afp':
         train_data, val_data, test_data = dataset.split_and_scale(scale=True, seed=seed, split_type='random', split_frac=[0.8, 0.1, 0.1], is_dmpnn=False)
     elif HYPERPARAMS['model'] == 'dmpnn':
+        #dataset = RevIndexedSubSet(dataset)
         train_data, val_data, test_data = dataset.split_and_scale(scale=True, seed=seed, split_type='random', split_frac=[0.8, 0.1, 0.1], is_dmpnn=True)   
         train_data, val_data, test_data = RevIndexedSubSet(train_data), RevIndexedSubSet(val_data), RevIndexedSubSet(test_data)
 

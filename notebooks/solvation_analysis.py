@@ -6,8 +6,9 @@ from torch.optim import Optimizer
 from torch.optim.lr_scheduler import LRScheduler
 from torch.optim import lr_scheduler
 from grape_chem.models import DMPNN, AFP
-from grape_chem.utils import train_model, test_model, pred_metric, return_hidden_layers, RevIndexedSubSet, DataSet
-from grape_chem.utils.model_utils import set_seed
+from grape_chem.utils.split_utils import RevIndexedSubSet
+from grape_chem.utils.data import DataSet
+from grape_chem.utils.model_utils import train_model, test_model, pred_metric, return_hidden_layers, set_seed
 from grape_chem.utils.featurizer import AtomFeaturizer
 from grape_chem.utils import EarlyStopping
 
@@ -28,7 +29,7 @@ set_seed(42)
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 ### PARAMETERS
-epochs = 50 #50
+epochs = 1 #50
 batch_size = 64 #64
 scheduler_batch = 50 #50
 hidden_dim = 300 #300
@@ -56,7 +57,7 @@ root = 'C:\\Users\\Thoma\\GraPE\\notebooks\\solvation\\solvation.csv'
 #input = "C:\\Users\\Thoma\\chempropv1\\input.csv"
 
 df = pd.read_csv(root, sep=';', encoding='utf-8')
-#df = df[:100]
+df = df[:100]
 print("head df", df.head())
 print("INITIAL SIZE DATASET", len(df))
 
@@ -72,8 +73,8 @@ global_feats = np.column_stack((temperature, molecular_weights))
 #print("Global feats shape: ", global_feats.shape, "global feats head: ", global_feats[:5])
 
 allowed_atoms = ['H', 'He', 'Li', 'Be', 'B', 'C', 'N', 'O', 'F', 'Ne', 'Na', 'Mg', 'Al', 'Si', 'P', 'S', 'Cl', 'Ar', 'K', 'Ca', 'Sc', 'Ti', 'V', 'Cr', 'Mn', 'Fe', 'Co', 'Ni', 'Cu', 'Zn', 'Ga', 'Ge', 'As', 'Se', 'Br', 'Kr', 'I']
-atom_feature_list = ['chemprop_v2_atom_features']
-bond_feature_list = ['chemprop_v2_bond_features']
+atom_feature_list = ['chemprop_atom_features']
+bond_feature_list = ['chemprop_bond_features']
 
 dataset = DataSet(smiles=smiles, target=target, global_features=global_feats, allowed_atoms=allowed_atoms, atom_feature_list=atom_feature_list, bond_feature_list=bond_feature_list, log=False, only_organic=False, filter=True, allow_dupes=True)
 
@@ -97,9 +98,9 @@ edge_in_dim = sample.edge_attr.shape[1]
 
 mlp = return_hidden_layers(mlp_layers)
 print("mlp layers:", mlp)
-#model = DMPNN(node_in_dim=node_in_dim, edge_in_dim=edge_in_dim, dropout=dropout, depth=depth, node_hidden_dim=hidden_dim, num_global_feats=num_global_feats, mlp_out_hidden=512)
-model = AFP(node_in_dim=node_in_dim, edge_in_dim=edge_in_dim, out_dim=1, num_global_feats=num_global_feats, hidden_dim=hidden_dim,
-            mlp_out_hidden=mlp, num_layers_atom=atom_layers, num_layers_mol=mol_layers)
+model = DMPNN(node_in_dim=node_in_dim, edge_in_dim=edge_in_dim, dropout=dropout, depth=depth, node_hidden_dim=hidden_dim, num_global_feats=num_global_feats, mlp_out_hidden=512)
+#model = AFP(node_in_dim=node_in_dim, edge_in_dim=edge_in_dim, out_dim=1, num_global_feats=num_global_feats, hidden_dim=hidden_dim,
+#            mlp_out_hidden=mlp, num_layers_atom=atom_layers, num_layers_mol=mol_layers)
 print('Full model:\n--------------------------------------------------')
 print(model)
 num_learnable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
@@ -108,7 +109,7 @@ print('Full model:\n--------------------------------------------------')
 model = model.to(device)
 
 # DMPNN requires Reverse Indexed Subset
-#train_data, val_data, test_data = RevIndexedSubSet(train_data), RevIndexedSubSet(val_data), RevIndexedSubSet(test_data)
+train_data, val_data, test_data = RevIndexedSubSet(train_data), RevIndexedSubSet(val_data), RevIndexedSubSet(test_data)
 
 
 # criterion = MSELoss()

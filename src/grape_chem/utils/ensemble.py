@@ -33,7 +33,7 @@ class Ensemble:
 
     def create_model(self):
         if self.hyperparams['model'] == 'afp':
-            return AFP(node_in_dim=self.node_in_dim, edge_in_dim=self.edge_in_dim).to(self.device)
+            return AFP(node_in_dim=self.node_in_dim, edge_in_dim=self.edge_in_dim, out_dim=1).to(self.device)
         elif self.hyperparams['model'] == 'dmpnn':
             return DMPNN(node_in_dim=self.node_in_dim, edge_in_dim=self.edge_in_dim).to(self.device)
         else:

@@ -18,7 +18,7 @@ def calculate_molecular_weight(smiles):
     return Descriptors.MolWt(mol)
 
 ### PARAMETERS
-epochs = 50 #50
+epochs = 1 #50
 batch_size = 64 #64
 scheduler_batch = 50 #50
 hidden_dim = 300 #300
@@ -41,7 +41,7 @@ num_global_feats = 0
 
 learning_rate = 0.0001
 
-model_name = '02-09-2024-afp'
+model_name = '15-09-2024-afp'
 ### PARAMETERS
 
 set_seed(42)
@@ -70,6 +70,8 @@ if load_data:
         mlp = return_hidden_layers(mlp_layers)
         print("Dataset length: ", len(data))
         train_data, val_data, test_data = data.split_and_scale(split_frac=[0.8,0.1,0.1], scale=True, seed=model_seed, is_dmpnn=False, split_type='random')
+        if 'dmpnn' in model_name:
+            train_data, val_data, test_data = RevIndexedSubSet(train_data), RevIndexedSubSet(val_data), RevIndexedSubSet(test_data)        
         dataset_dict = {'allowed_atoms': data.allowed_atoms, 'atom_feature_list': data.atom_feature_list, 'bond_feature_list': data.bond_feature_list, 'data_mean': data.mean, 'data_std': data.std, 'data_name': data.data_name}
         print("Dataset dict: data mean:", dataset_dict['data_mean'], "data std:", dataset_dict['data_std'])
     else:
@@ -82,7 +84,8 @@ if load_data:
         num_global_feats = 2
 
 ### Init model to save a valid checkpoint###
-model = AFP(node_in_dim=node_in_dim, edge_in_dim=edge_in_dim, hidden_dim=hidden_dim, out_dim=1, num_layers_atom=atom_layers, num_layers_mol=mol_layers, dropout=dropout, mlp_out_hidden=mlp, num_global_feats=num_global_feats, dataset_dict=dataset_dict)
+model = AFP(node_in_dim=node_in_dim, edge_in_dim=edge_in_dim, out_dim=1, dataset_dict=dataset_dict)
+#model = DMPNN(node_in_dim=node_in_dim, edge_in_dim=edge_in_dim, node_hidden_dim=hidden_dim, rep_dropout=dropout, mlp_out_hidden=mlp, num_global_feats=num_global_feats, dataset_dict=dataset_dict)
 print('Full model:\n--------------------------------------------------')
 print(model)
 num_learnable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
@@ -100,13 +103,14 @@ loss_func = torch.nn.functional.l1_loss
 
 train_model(model=model, loss_func=loss_func, optimizer=optimizer, train_data_loader=train_data, val_data_loader=val_data, epochs=epochs, batch_size=batch_size, early_stopper=early_stopper, scheduler=scheduler, device=device)
 
-global_feats = np.column_stack((temperature, molecular_weights))
+#global_feats = np.column_stack((temperature, molecular_weights))
 global_feats = None
-print("Global feats shape: ", global_feats.shape, "global feats head: ", global_feats[:5])
+if global_feats is not None:
+    print("Global feats shape: ", global_feats.shape, "global feats head: ", global_feats[:5])
 
 
 #### Load model ####
-model_path =  'C:\\Users\\Thoma\\GraPE\\'+model_name+'.pt'
+model_path =  'C:\\Users\\Thoma\\code\\GraPE\\'+model_name+'.pt'
 model_class = 'AFP'
 property_name = 'Energy'
 property_unit = 'kcal/mol'

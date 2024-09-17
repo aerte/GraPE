@@ -91,17 +91,20 @@ class AFP(Module):
 
         self.bn = nn.BatchNorm1d(out_dim)  
 
-        # Params needed to rebuild model and dataset for preditions
         self.node_in_dim = node_in_dim
         self.edge_in_dim = edge_in_dim
         self.hidden_dim = hidden_dim
-        self.out_dim=1
+        self.out_dim=out_dim
         self.num_layers_atom=num_layers_atom
         self.num_layers_mol=num_layers_mol
         self.dropout=rep_dropout
         self.mlp_out_hidden=mlp_out_hidden
         self.num_global_feats=num_global_feats
-        if dataset_dict is not None:
+
+        # Assign dataset_dict in order for the model to be initialized with the same dataset values
+        self.dataset_dict = dataset_dict
+        if self.dataset_dict is not None:
+            # Params needed to rebuild model and dataset for predictions
             self.allowed_atoms = dataset_dict['allowed_atoms']
             self.atom_feature_list = dataset_dict['atom_feature_list']
             self.bond_feature_list = dataset_dict['bond_feature_list']
