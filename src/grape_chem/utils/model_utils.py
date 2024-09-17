@@ -12,6 +12,8 @@ from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 from grape_chem.utils import DataSet
 import os
 import dgl
+import mlflow
+import mlflow.pytorch
 
 __all__ = [
     'EarlyStopping',
@@ -128,9 +130,9 @@ def load_model(model_class, model_path, device=None):
     Returns:
         torch.nn.Module: The loaded model.
     """
-    allowed_models = ['DMPNN', 'AFP', 'dmpnn', 'afp']
+    allowed_models = ['dmpnn', 'afp']
     try:
-        if model_class not in allowed_models:
+        if model_class.lower() not in allowed_models:
             raise ValueError(f"Invalid model class {model_class}. Must be one of {allowed_models}")
         if device is None:
             device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -248,6 +250,8 @@ def train_model(model: torch.nn.Module, loss_func: Union[Callable,str], optimize
 
                 loss_train.backward()
                 optimizer.step()
+                # Log training loss for this epoch
+                mlflow.log_metric("train_loss", loss_train, step=i)
 
             loss_train = np.mean(temp)
             train_loss.append(loss_train)
@@ -259,6 +263,8 @@ def train_model(model: torch.nn.Module, loss_func: Union[Callable,str], optimize
 
             loss_val = np.mean(temp)
             val_loss.append(loss_val)
+            # Log validation loss for this epoch
+            mlflow.log_metric("val_loss", loss_val, step=i)
 
             if i%2 == 0:
                 pbar.set_description(f"epoch={i}, training loss= {loss_train:.3f}, validation loss= {loss_val:.3f}")
@@ -322,7 +328,11 @@ def train_epoch(model: torch.nn.Module, loss_func: Callable, optimizer: torch.op
         loss_train.backward()
         optimizer.step()
 
-    return loss/it
+    avg_loss = loss/it
+    # Log training loss per epoch
+    mlflow.log_metric("train_loss_epoch", avg_loss, step=epoch_num)
+
+    return avg_loss
 
 
 def val_epoch(model: torch.nn.Module, loss_func: Callable, val_loader, device: str = None):
@@ -339,7 +349,12 @@ def val_epoch(model: torch.nn.Module, loss_func: Callable, val_loader, device: s
         loss += loss_val.detach().cpu().numpy()
         it += 1.
 
-    return loss/it
+    avg_loss = loss / it
+
+    # Log validation loss per epoch
+    mlflow.log_metric("val_loss_epoch", avg_loss, step=epoch_num)
+
+    return avg_loss
 
 
 ##############################################################################################################
@@ -388,12 +403,16 @@ def test_model(model: torch.nn.Module, test_data_loader: Union[list, Data, DataL
         test_data_loader = DataLoader(test_data_loader, batch_size = batch_size)
 
     model.eval()
+    all_preds = []
+    all_targets = []
 
     with tqdm(total = len(test_data_loader)) as pbar:
 
         for idx, batch in enumerate(test_data_loader):
             # TODO: Broaden use of return_latents
             out = model(batch.to(device))
+            all_preds.append(out)
+            all_targets.append(batch.y)
             if return_latents:
                lat = model(batch.to(device), return_lats=True)
 
@@ -408,6 +427,18 @@ def test_model(model: torch.nn.Module, test_data_loader: Union[list, Data, DataL
                     latents = torch.concat((latents, lat), dim=0)
 
             pbar.update(1)
+
+    log_preds = torch.cat(all_preds)
+    log_targets = torch.cat(all_targets)
+
+    # Log the final test metrics
+    test_mse = mean_squared_error(log_targets.cpu().numpy(), log_preds.cpu().numpy())
+    test_mae = mean_absolute_error(log_targets.cpu().numpy(), log_preds.cpu().numpy())
+    test_r2 = r2_score(log_targets.cpu().numpy(), log_preds.cpu().numpy())
+
+    mlflow.log_metric("test_mse", test_mse)
+    mlflow.log_metric("test_mae", test_mae)
+    mlflow.log_metric("test_r2", test_r2)
 
     if return_latents:
         return preds, latents
@@ -516,28 +547,32 @@ def pred_metric(prediction: Union[Tensor, ndarray], target: Union[Tensor, ndarra
     for metric_ in metrics:
         if metric_ == 'mse':
             results['mse'] = mean_squared_error(target, prediction)
-            prints.append(f'MSE: {mean_squared_error(target, prediction):.3f}')
+            mlflow.log_metric("mse", results['mse'])
+            prints.append(f'MSE: {results["mse"]:.3f}')
         elif metric_ == 'rmse':
             results['rmse'] = np.sqrt(mean_squared_error(target, prediction))
-            prints.append(f'RMSE: {np.sqrt(mean_squared_error(target, prediction)):.3f}')
-        elif metric_ ==  'sse':
-            results['sse'] = np.sum((target-prediction)**2)
-            prints.append(f'SSE: {np.sum((target-prediction)**2):.3f}')
-        elif metric_ ==  'mae':
+            mlflow.log_metric("rmse", results['rmse'])
+            prints.append(f'RMSE: {results["rmse"]:.3f}')
+        elif metric_ == 'mae':
             results['mae'] = mean_absolute_error(target, prediction)
-            prints.append(f'MAE: {mean_absolute_error(target, prediction):.3f}')
-        elif metric_ ==  'r2':
+            mlflow.log_metric("mae", results['mae'])
+            prints.append(f'MAE: {results["mae"]:.3f}')
+        elif metric_ == 'r2':
             results['r2'] = r2_score(target, prediction)
-            prints.append(f'R2: {r2_score(target, prediction):.3f}')
-        elif metric_ ==  'mre':
-            results['mre'] = np.mean(np.abs((target-prediction)/target))*100
-            prints.append(f'MRE: {np.mean(np.abs((target - prediction) / target)) * 100:.3f}%')
-            if results['mre'] > 100:
-                prints.append(f'Mean relative error is large, here is the median relative error'
-                                f':{np.median(np.abs((target-prediction)/target))*100:.3f}%')
+            mlflow.log_metric("r2", results['r2'])
+            prints.append(f'R2: {results["r2"]:.3f}')
+        elif metric_ == 'sse':
+            results['sse'] = np.sum(np.square(target-prediction))
+            mlflow.log_metric("sse", results['sse'])
+            prints.append(f'SSE: {results["sse"]:.3f}')
+        elif metric_ == 'mre':
+            results['mre'] = np.mean(np.abs((target - prediction) / target))
+            mlflow.log_metric("mre", results['mre'])
+            prints.append(f'MRE: {results["mre"]:.3f}')
         elif metric_ == 'mdape':
-            results['mdape'] = np.median(np.abs((target-prediction)/target))*100
-            prints.append(f'MDAPE: {np.median(np.abs((target-prediction)/target))*100:.3f}%')
+            results['mdape'] = np.median(np.abs((target - prediction) / target)) * 100
+            mlflow.log_metric("mdape", results['mdape'])
+            prints.append(f'MDAPE: {results["mdape"]:.3f}')
 
     if print_out:
         for out in prints:
