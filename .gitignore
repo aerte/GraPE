@@ -206,3 +206,10 @@ share/
 
 *.pt
 *.csv
+
+# Ignore mlflow artifacts and mlflow db
+mlruns/
+mlflow.db
+
+# Ignore json files
+*.json
