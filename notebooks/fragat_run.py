@@ -1,6 +1,7 @@
 from grape_chem.models import AFP
 from grape_chem.models import GroupGAT
 from grape_chem.utils import DataSet, train_model, EarlyStopping, split_data, test_model, pred_metric, return_hidden_layers, set_seed, JT_SubGraph, FragmentGraphDataSet
+from grape_chem.datasets import FreeSolv 
 from torch.optim import lr_scheduler
 import numpy as np
 import torch
@@ -18,7 +19,7 @@ def standardize(x, mean, std):
 set_seed(42)
 
 # Hyperparameters
-epochs = 50
+epochs = 300
 batch_size = 700
 patience = 30
 hidden_dim = 132
@@ -30,35 +31,43 @@ mol_layers = 3
 
 
 # Change to your own specifications
-root = './env/data_splits.xlsx'
-sheet_name = 'Melting Point'
+# root = './env/data_splits.xlsx'
+# sheet_name = 'Melting Point'
 
-df = pd.read_excel(root, sheet_name=sheet_name).iloc[:21] #REMOVE the slice, just because fragmentation is so slow
-smiles = df['SMILES'].to_numpy()
-target = df['Target'].to_numpy()
+# df = pd.read_excel(root, sheet_name=sheet_name).iloc[:25] #REMOVE the slice, just because fragmentation is so slow
+# smiles = df['SMILES'].to_numpy()
+# target = df['Target'].to_numpy()
 ### Global feature from sheet, uncomment
 #global_feats = df['Global Feats'].to_numpy()
 
 #### REMOVE, just for testing ####
-#global_feats = np.random.randn(len(smiles))
-##################################
-
+# global_feats = np.random.randn(len(smiles))
 
 ############ We need to standardize BEFORE loading it into a DataSet #############
-mean_target, std_target = np.mean(target), np.std(target)
-target = standardize(target, mean_target, std_target)
+# mean_target, std_target = np.mean(target), np.std(target)
+# target = standardize(target, mean_target, std_target)
 # mean_global_feats, std_global_feats = np.mean(global_feats), np.std(global_feats)
 # global_feats = standardize(global_feats, mean_global_feats, std_global_feats)
 
+
+########################## fragmentation #########################################
 fragmentation_scheme = "MG_plus_reference"
 print("initializing frag...")
 fragmentation = JT_SubGraph(scheme=fragmentation_scheme)
 frag_dim = fragmentation.frag_dim
 print("done.")
 
-# Load into DataSet
-data = DataSet(smiles=smiles, target=target, global_features=None, filter=True, fragmentation=fragmentation)
 
+########################### FreeSolv ###################################################
+data = FreeSolv(fragmentation=fragmentation)
+########################################################################################
+
+######################## QM9 / testing /excel ##########################################
+#data = DataSet(smiles=smiles, target=target, global_features=None, filter=True, fragmentation=fragmentation)
+########################################################################################
+
+
+#train_set, val_set, _ = data.split_and_scale(scale=True, split_type='random')
 train, val, test = split_data(data, split_type='consecutive', split_frac=[0.8, 0.1, 0.1],)
 ############################################################################################
 ############################################################################################
@@ -102,7 +111,7 @@ net_params = {
               "L3_layers": 1,
               "L3_dropout": 0.0,
 
-              "L1_hidden_dim": 132, #3*node in_dim
+              "L1_hidden_dim": 132,
               "L2_hidden_dim": 133,
               "L3_hidden_dim": 36,
               }
@@ -131,8 +140,8 @@ pred_metric(prediction=pred, target=test.y, metrics='all', print_out=True)
 ####### Example for rescaling the MAE prediction ##########
 
 test_mae = pred_metric(prediction=pred, target=test.y, metrics='mae', print_out=False)['mae']
-test_mae_rescaled = test_mae * std_target + mean_target
-print(f'Rescaled MAE for the test set {test_mae_rescaled:.3f}')
+#test_mae_rescaled = test_mae * std_target + mean_target #TODO: add rescaling to the 
+#print(f'Rescaled MAE for the test set {test_mae_rescaled:.3f}')
 
 # ---------------------------------------------------------------------------------------
 
@@ -145,5 +154,5 @@ val_preds = test_model(model=model, test_data_loader=val, device=device)
 train_mae = pred_metric(prediction=train_preds, target=train.y, metrics='mae', print_out=False)['mae']
 val_mae = pred_metric(prediction=val_preds, target=val.y, metrics='mae', print_out=False)['mae']
 
-overall_mae = (train_mae+val_mae+test_mae)/3 * std_target + mean_target
-print(f'Rescaled overall MAE {overall_mae:.3f}')
+#overall_mae = (train_mae+val_mae+test_mae)/3 * std_target + mean_target
+#print(f'Rescaled overall MAE {overall_mae:.3f}')

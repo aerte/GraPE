@@ -9,8 +9,8 @@ __all__ = ['GCGAT_v4pro']
 class SingleHeadOriginLayer(nn.Module):
     def __init__(self, net_params):
         super().__init__()
-        self.AttentiveEmbedding = AFP(node_in_dim=net_params["node_in_dim"],
-                                      edge_in_dim=net_params["edge_in_dim"],
+        self.AttentiveEmbedding = AFP(node_in_dim=net_params["L1_hidden_dim"],
+                                      edge_in_dim=net_params["L1_hidden_dim"],
                                         hidden_dim=net_params['hidden_dim'],
                                         num_layers_atom=net_params['num_layers_atom'],
                                         num_layers_mol=net_params['num_layers_mol'], #why is it called timesteps (old codebase)?
@@ -62,7 +62,9 @@ class OriginChannel(nn.Module):
             head.reset_parameters()
 
     def forward(self, data): #TODO: perhaps batch should be a data instance instead
-        origin_data = Data(data.x, data.edge_index, data.edge_attr,)
+        embedded_x = self.embedding_node_lin(data.x)
+        embedded_edge_attr = self.embedding_edge_lin(data.edge_attr)
+        origin_data = Data(embedded_x, data.edge_index, embedded_edge_attr,)
         origin_data.batch = data.batch
         #(embedding -> hidden_dim is handled in the call to AFP)
         origin_heads_out = [head(origin_data) for head in self.origin_heads]
@@ -174,13 +176,15 @@ class GCGAT_v4pro(nn.Module):
         self.origin_module = OriginChannel(net_params)
         self.frag_module = FragmentChannel(net_params)
         self.junction_module = JT_Channel(net_params)
+
         self.frag_res_dim = net_params['L2_hidden_dim'] #will be needed to sum and concat the frag graph embeddings
         # assuming net_params includes dimensions for concatenated outputs (does it?)
         concat_dim = net_params['L1_hidden_dim'] + net_params['L2_hidden_dim'] + net_params['L3_hidden_dim']
+        concat_dim_debug = net_params['L1_hidden_dim']
         self.linear_predict1 = nn.Sequential(
             nn.Dropout(net_params['final_dropout']),
             nn.Linear(concat_dim, int(concat_dim / 2), bias=True),
-            nn.LeakyReLU(negative_slope=1e-7),
+            nn.LeakyReLU(negative_slope=0.001),
             nn.BatchNorm1d(int(concat_dim / 2)),
         )
 
@@ -188,9 +192,9 @@ class GCGAT_v4pro(nn.Module):
         mid_dim = int(concat_dim / 2)
         for _ in range(net_params['MLP_layers'] - 1):
             self.linear_predict2.append(nn.Linear(mid_dim, mid_dim, bias=True))
-            self.linear_predict2.append(nn.LeakyReLU(negative_slope=1e-7))
+            self.linear_predict2.append(nn.LeakyReLU(negative_slope=0.001))
         self.linear_predict2.append(nn.Linear(mid_dim, 1, bias=True))
-        self.linear_predict2.append(nn.LeakyReLU(negative_slope=1e-7))
+        #self.linear_predict2.append(nn.LeakyReLU(negative_slope=0.001))
 
     def forward(self, data, get_attention=False, get_descriptors=False):
         # Approach:
@@ -205,21 +209,22 @@ class GCGAT_v4pro(nn.Module):
 
         #preprocess junction data
         motif_nodes = junction_data.x
-        junction_data.x = graph_frag.clone() #setting as this tensor of size `num frags * L2_hidden_dim` .Still unsure why but it's what the dgl version does
+        junction_data.x = graph_frag.clone() #.clone() #setting as this tensor of size `num frags * L2_hidden_dim` .Still unsure why but it's what the dgl version does
         super_new_graph, super_attention_weight = self.junction_module(junction_data, motif_nodes) #super_attention_weight
 
 
         #sum features for motif graph (akin to dgl.sum_nodes)
         num_mols = len(junction_data.batch.unique(dim=0,))
         frag_res = torch.zeros(num_mols, self.frag_res_dim) #vector that will contain the sums of the frags embedding of each mol
-        index = junction_data.batch.clone().unsqueeze(1).expand(-1, 133)
-        frag_res.scatter_add_(0, index, graph_frag)
+        index = junction_data.batch.unsqueeze(1).expand(-1, 133)
+        frag_res = frag_res.scatter_add_(0, index, graph_frag)
 
         #motifs_series = global_add_pool(junction_data.x, junction_data.batch) if get_attention else torch.zeros((graph_frag.x.size(0), 0), device=graph_frag.x.device)
         # 2. concat the output from different channels
 
         concat_features = torch.cat([graph_origin, frag_res, super_new_graph], dim=-1) #, motifs_series
         descriptors = self.linear_predict1(concat_features)
+        #descriptors = self.linear_predict1(graph_origin)
         output = self.linear_predict2(descriptors)
         
         results = [output]
@@ -230,7 +235,7 @@ class GCGAT_v4pro(nn.Module):
             unique_graph_ids = torch.unique(data.batch, sorted=True)
             for graph_id in unique_graph_ids:
                 mask = (junction_data.batch == graph_id)
-                graph_attention = super_attention_weight.clone().squeeze()[mask]
+                graph_attention = super_attention_weight.squeeze()[mask]
                 attention_list_array.append(graph_attention.detach().cpu().numpy())
             results.append(attention_list_array)
             results.append(super_attention_weight) #uncomment

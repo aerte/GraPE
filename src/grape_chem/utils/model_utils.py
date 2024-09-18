@@ -204,7 +204,21 @@ def train_model(model: torch.nn.Module, loss_func: Union[Callable,str], optimize
     model.train()
     train_loss = []
     val_loss = []
-    
+
+    def handle_heterogenous_sizes(y, out):
+        """
+        Unfortunate function due to the fact that we don't
+        have a standard return type for all our models.
+
+        Ideally we should have different training loops or 
+        standardized model outputs but this will do for now.
+        """
+        if not isinstance(out, torch.Tensor):
+            return out
+        if y.dim() == out.dim():
+            return out
+        return out.squeeze() #needed for some models
+
     def move_to_device(data, device):
         """
         a wrapper for all the calls to properly move 
@@ -226,7 +240,9 @@ def train_model(model: torch.nn.Module, loss_func: Union[Callable,str], optimize
                 optimizer.zero_grad()
 
                 out = model(move_to_device(batch, device),)
-                loss_train = loss_func(batch.y, out.squeeze())
+                out = handle_heterogenous_sizes(batch.y, out)
+
+                loss_train = loss_func(batch.y, out)
 
                 temp[idx] = loss_train.detach().cpu().numpy()
 
@@ -239,7 +255,8 @@ def train_model(model: torch.nn.Module, loss_func: Union[Callable,str], optimize
 
             temp = np.zeros(len(val_data_loader))
             for idx, batch in enumerate(val_data_loader):
-                out = model(batch.to(device)).squeeze()
+                out = model(move_to_device(batch, device),)
+                out = handle_heterogenous_sizes(batch.y, out)
                 temp[idx] = loss_func(batch.y, out).detach().cpu().numpy()
 
             loss_val = np.mean(temp)
