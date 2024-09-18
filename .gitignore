@@ -213,3 +213,6 @@ mlflow.db
 
 # Ignore json files
 *.json
+
+#Data folder
+data/
