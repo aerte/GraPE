@@ -4,7 +4,7 @@ import numpy as np
 import datetime
 from grape_chem.models import DMPNN, AFP
 from grape_chem.utils import train_model, test_model, pred_metric, return_hidden_layers, RevIndexedSubSet, DataSet
-from grape_chem.utils.model_utils import set_seed
+from grape_chem.utils.model_utils import set_seed, create_checkpoint
 from grape_chem.utils.featurizer import AtomFeaturizer
 from grape_chem.utils import EarlyStopping
 
@@ -90,7 +90,11 @@ def train_model_experiment(config: Dict):
         }
         
         # Initialize model
-        model = AFP(node_in_dim=node_in_dim, edge_in_dim=edge_in_dim, out_dim=1, dataset_dict=dataset_dict)
+        if 'dmpnn' in config['model_name'].lower():
+            model = DMPNN(node_in_dim=node_in_dim, edge_in_dim=edge_in_dim, node_hidden_dim=config['hidden_dim'], 
+                          dropout=config['dropout'], mlp_out_hidden=mlp, dataset_dict=dataset_dict)
+        if 'afp' in config['model_name'].lower():
+            model = AFP(node_in_dim=node_in_dim, edge_in_dim=edge_in_dim, out_dim=1, dataset_dict=dataset_dict)
         
         mlflow.log_params({
             "model": config['model_name'],
@@ -123,7 +127,7 @@ def train_model_experiment(config: Dict):
         # Save model locally
         model_dir = get_model_dir(config['model_name'])
         model_path = os.path.join(model_dir, f"{config['model_name']}.pt")
-        torch.save(model.state_dict(), model_path)
+        torch.save(create_checkpoint(model), model_path)
         mlflow.log_artifact(model_path)
         
         print(f"Model saved as {config['model_name']}.pt in {model_dir}")
@@ -131,12 +135,12 @@ def train_model_experiment(config: Dict):
 def main():
     mlflow.set_tracking_uri('http://localhost:5000')
     # Define configurations
-    time = datetime.datetime.now().strftime("%d-%m-%Y-%H-%M-%S")
+    time = datetime.datetime.now().strftime("%d-%m-%Y-%H")
     configs = {
         'experiment_name': ["Molecular Property Prediction Training"],
-        'run_name': ["AFP Model Training"],
-        'epochs': [1, 1],
-        'batch_size': [32, 64],
+        'run_name': ["Model Training"],
+        'epochs': [1],
+        'batch_size': [32],
         'hidden_dim': [300],
         'depth': [3],
         'dropout': [0.0],

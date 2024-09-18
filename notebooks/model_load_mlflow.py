@@ -13,6 +13,8 @@ import os
 from typing import Dict
 from itertools import product
 
+## Start server with: mlflow server --backend-store-uri sqlite:///mlflow.db --default-artifact-root ./mlruns --host 0.0.0.0 --port 5000
+
 def run_inference(config: Dict):
     mlflow.set_experiment(config['experiment_name'])
     with mlflow.start_run(run_name=config['run_name']):
@@ -23,8 +25,10 @@ def run_inference(config: Dict):
         # Load the pretrained model
         model_path = config['model_path']
         model_class = config['model_class']
-        print(f"Loading model from {model_path}")
         model, dataset = load_model(model_class, model_path, device)
+        if model == -1 and dataset == -1:
+            # continue to next configuration
+            return
         
         print("Dataset = ", dataset)
         # Log model details
@@ -38,6 +42,8 @@ def run_inference(config: Dict):
         # Perform inference
         preds = dataset.predict_smiles(input_smiles, model)
         
+        print("Predictions: ", preds)
+
         # Save and log predictions
         predictions_file = f"predictions_{config['run_name']}.json"
         with open(predictions_file, 'w') as f:
@@ -45,9 +51,8 @@ def run_inference(config: Dict):
         
         mlflow.log_artifact(predictions_file)
         print(f"Predictions saved to {predictions_file}")
-        
-        # Optionally, you can remove the file after logging
-        # os.remove(predictions_file)
+        # Removing file after logging with mlFLow
+        os.remove(predictions_file)
 
 def main():
     mlflow.set_tracking_uri('http://localhost:5000')
@@ -56,11 +61,10 @@ def main():
     configs = {
         'experiment_name': ["Molecular Property Prediction Inference"],
         'run_name': ["AFP Model Inference"],
-        'model_path': ['C:\\Users\\Thoma\\code\\GraPE\\15-09-2024-afp.pt', 'C:\\Users\\Thoma\\code\\GraPE\\15-09-2024-afp.pt'],
-        'model_class': ['AFP'],
+        'model_path': ['C:\\Users\\Thoma\\code\\GraPE\\models\\AFP\\18-09-2024-10_afp.pt', 'C:\\Users\\Thoma\\code\\GraPE\\models\\DMPNN\\18-09-2024-10_dmpnn.pt'],
+        'model_class': ['AFP', 'DMPNN'],
         'input_smiles': [
-            ['CC', 'CCc1ccccn1', 'C=C(C)C#C', 'CC(C)CCCC'],
-            ['CCO', 'c1ccccc1', 'CC(=O)O', 'CCCN']
+            ['CC', 'CCc1ccccn1', 'C=C(C)C#C', 'CC(C)CCCC']
         ]
     }
     

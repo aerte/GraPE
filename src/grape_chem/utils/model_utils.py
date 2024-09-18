@@ -131,27 +131,30 @@ def load_model(model_class, model_path, device=None):
         torch.nn.Module: The loaded model.
     """
     allowed_models = ['dmpnn', 'afp']
+    print(f"Loading model from {model_path}")
+    if model_class.lower() not in model_path.lower():
+        print((f"Model class {model_class} does not match with the model saved in {model_path}. Make sure they match."))
+        return -1, -1
+    if model_class.lower() not in allowed_models:
+        raise ValueError(f"Invalid model class {model_class}. Must be one of {allowed_models}")
+    if device is None:
+        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    checkpoint = torch.load(model_path, map_location=device)
+    if 'model_state_dict' not in checkpoint.keys():
+        raise ValueError("Model state_dict not found in the checkpoint.")
+    if 'model_params' not in checkpoint.keys():
+        raise ValueError("Model parameters not found in the checkpoint.")
+    state_dict = checkpoint['model_state_dict']
+    model_params = checkpoint['model_params']
+    #print("checkpoint state_dict: ", state_dict)
+    print("checkpoint model_params: ", model_params)
     try:
-        if model_class.lower() not in allowed_models:
-            raise ValueError(f"Invalid model class {model_class}. Must be one of {allowed_models}")
-        if device is None:
-            device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        checkpoint = torch.load(model_path, map_location=device)
-        #print(f'Checkpoint: {checkpoint}')
-        #print(f'Checkpoint keys: {checkpoint.keys()}')
-        if 'model_state_dict' not in checkpoint.keys():
-            raise ValueError("Model state_dict not found in the checkpoint.")
-        if 'model_params' not in checkpoint.keys():
-            raise ValueError("Model parameters not found in the checkpoint.")
-        
-        state_dict = checkpoint['model_state_dict']
-        model_params = checkpoint['model_params']
-
         # Instantiate the model
-        if model_class == 'AFP' or model_class == 'afp':
+        print("Model class: ", model_class)
+        if model_class.lower() == 'afp':
             from grape_chem.models import AFP
             model = AFP(node_in_dim=model_params["node_in_dim"], edge_in_dim=model_params["edge_in_dim"], hidden_dim=model_params["hidden_dim"], out_dim=model_params["out_dim"], num_layers_atom=model_params["num_layers_atom"], num_layers_mol=model_params["num_layers_mol"], dropout=model_params["dropout"], mlp_out_hidden=model_params["mlp_out_hidden"], num_global_feats=model_params["num_global_feats"])
-        if model_class == 'DMPNN' or model_class == 'dmpnn':
+        if model_class.lower() == 'dmpnn':
             from grape_chem.models import DMPNN
             print("hi")
             model = DMPNN(node_in_dim=model_params["node_dim"], edge_in_dim=model_params["edge_dim"], node_hidden_dim=model_params["hidden_size"], mlp_out_hidden=model_params["mlp_out_hidden"], num_global_feats=model_params["num_global_feats"])
@@ -159,6 +162,7 @@ def load_model(model_class, model_path, device=None):
         # Load the state dictionary
         dataset = DataSet(allowed_atoms=model_params["allowed_atoms"], atom_feature_list=model_params["atom_feature_list"], bond_feature_list=model_params["bond_feature_list"], mean=model_params["data_mean"], std=model_params["data_std"])
         # Load the state dict into the model
+        
         model.load_state_dict(state_dict)
         # Set the model to evaluation mode
         model.eval()
@@ -595,7 +599,7 @@ def create_checkpoint(model: Module) -> dict:
         dict: A dictionary containing the model state_dict and model parameters.
     """
     possible_attributes = [
-        "node_in_dim", "edge_in_dim", "node_dim", "edge_dim", "hidden_dim", "hidden_size", "out_dim",
+        "node_in_dim", "edge_in_dim", "node_dim", "edge_dim","hidden_dim", "hidden_size", "out_dim",
         "num_layers_atom", "num_layers_mol", "dropout", "regressor",
         "mlp_out_hidden", "rep_dropout", "num_global_feats",
         "allowed_atoms", "atom_feature_list", "bond_feature_list",
