@@ -17,7 +17,7 @@ def standardize(x, mean, std):
 set_seed(42)
 
 # Hyperparameters
-epochs = 50
+epochs = 300
 batch_size = 700
 patience = 30
 hidden_dim = 256
@@ -32,7 +32,7 @@ mol_layers = 1
 root = 'env/data_splits.xlsx'
 sheet_name = 'Melting Point'
 
-df = pd.read_excel(root, sheet_name=sheet_name)
+df = pd.read_excel(root, sheet_name=sheet_name).iloc[:25]
 smiles = df['SMILES'].to_numpy()
 target = df['Target'].to_numpy()
 ### Global feature from sheet, uncomment
@@ -56,7 +56,7 @@ print("done.")
 
 # Load into DataSet
 data = DataSet(smiles=smiles, target=target, global_features=None, filter=True, fragmentation=None)
-train, val, test = split_data(data, split_type='random', split_frac=[0.8, 0.1, 0.1],)
+train, val, test = split_data(data, split_type='consecutive', split_frac=[0.8, 0.1, 0.1],)
 
 ############################################################################################
 ############################################################################################
