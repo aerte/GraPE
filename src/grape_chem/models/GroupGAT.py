@@ -12,8 +12,8 @@ class SingleHeadOriginLayer(nn.Module):
         self.AttentiveEmbedding = AFP(node_in_dim=net_params["L1_hidden_dim"],
                                       edge_in_dim=net_params["L1_hidden_dim"],
                                         hidden_dim=net_params['hidden_dim'],
-                                        num_layers_atom=net_params['num_layers_atom'],
-                                        num_layers_mol=net_params['num_layers_mol'], #why is it called timesteps (old codebase)?
+                                        num_layers_atom=net_params['L1_layers_atom'],
+                                        num_layers_mol=net_params['L1_layers_mol'], #why is it called timesteps (old codebase)?
                                         dropout=net_params['dropout'],
                                         out_dim=net_params['L1_hidden_dim'],
                                         regressor=False
@@ -77,8 +77,8 @@ class SingleHeadFragmentLayer(nn.Module):
         self.AttentiveEmbedding = AFP(node_in_dim=net_params["node_in_dim"],
                                       edge_in_dim=net_params["edge_in_dim"],
                                         hidden_dim=net_params['hidden_dim'],
-                                        num_layers_atom=net_params['num_layers_atom'],
-                                        num_layers_mol=net_params['num_layers_mol'], #why is it called timesteps (old codebase)?
+                                        num_layers_atom=net_params['L2_layers_atom'],
+                                        num_layers_mol=net_params['L2_layers_mol'], #why is it called timesteps (old codebase)?
                                         dropout=net_params['dropout'],
                                         out_dim=net_params['L2_hidden_dim'],
                                         regressor=False
@@ -125,8 +125,8 @@ class SingleHeadJunctionLayer(nn.Module):
                                 node_in_dim=net_params["L3_hidden_dim"],
                                 edge_in_dim=net_params["L3_hidden_dim"], #seems like edges also sent to this dimension: is it correct? (TODO)
                                 hidden_dim=net_params["hidden_dim"], #internal AFP dim
-                                num_layers_atom=net_params['num_layers_atom'],
-                                num_layers_mol=net_params['num_layers_mol'],
+                                num_layers_atom=net_params['L3_layers_atom'],
+                                num_layers_mol=net_params['L3_layers_mol'],
                                 dropout=net_params['dropout'],
                                 out_dim=net_params["L3_hidden_dim"],
                                 regressor=False,
@@ -180,7 +180,7 @@ class GCGAT_v4pro(nn.Module):
         self.frag_res_dim = net_params['L2_hidden_dim'] #will be needed to sum and concat the frag graph embeddings
         # assuming net_params includes dimensions for concatenated outputs (does it?)
         concat_dim = net_params['L1_hidden_dim'] + net_params['L2_hidden_dim'] + net_params['L3_hidden_dim']
-        concat_dim_debug = net_params['L1_hidden_dim']
+        concat_dim_debug = net_params['L3_hidden_dim']
         self.linear_predict1 = nn.Sequential(
             nn.Dropout(net_params['final_dropout']),
             nn.Linear(concat_dim, int(concat_dim / 2), bias=True),
@@ -195,12 +195,12 @@ class GCGAT_v4pro(nn.Module):
             self.linear_predict2.append(nn.LeakyReLU(negative_slope=0.001))
         self.linear_predict2.append(nn.Linear(mid_dim, 1, bias=True))
         #self.linear_predict2.append(nn.LeakyReLU(negative_slope=0.001))
-
+    @torch.jit.script
     def forward(self, data, get_attention=False, get_descriptors=False):
         # Approach:
         # 1. extract graph-level features from different channels
-        device = self.parameters().__next__().device
-        data = data.to(device) #TODO: investigate why second call to this is required
+        #device = self.parameters().__next__().device
+        #data = data.to(device) #TODO: investigate why second call to this is required
         origin_data = Data(data.x, data.edge_index, data.edge_attr,)
         origin_data.batch = data.batch
         frag_data, junction_data = Batch.from_data_list(data.frag_graphs), Batch.from_data_list(data.motif_graphs)
@@ -223,8 +223,8 @@ class GCGAT_v4pro(nn.Module):
         # 2. concat the output from different channels
 
         concat_features = torch.cat([graph_origin, frag_res, super_new_graph], dim=-1) #, motifs_series
+        #descriptors = self.linear_predict1(concat_features)
         descriptors = self.linear_predict1(concat_features)
-        #descriptors = self.linear_predict1(graph_origin)
         output = self.linear_predict2(descriptors)
         
         results = [output]

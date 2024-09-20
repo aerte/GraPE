@@ -93,8 +93,8 @@ net_params = {
               "MLP_layers":mlp_layers,
               "frag_dim": frag_dim,
               "final_dropout": 0.0,
-            # for origin:
-              "num_heads": 1,
+            # for origins:
+              "num_heads": 4,
             # for AFP:
               "node_in_dim": 44, 
               "edge_in_dim": 12, 
@@ -104,16 +104,16 @@ net_params = {
               "num_layers_atom": atom_layers, 
               "num_layers_mol": mol_layers,
             # for channels:
-              "L1_depth": 1,
-              "L1_layers": 1,
+              "L1_layers_atom": 3, #L1_layers
+              "L1_layers_mol": 3,  #L1_depth
               "L1_dropout": 0.0,
 
-              "L2_depth": 1,
-              "L2_layers": 1,
+              "L2_layers_atom": 3, #L2_layers
+              "L2_layers_mol": 3,  #2_depth
               "L2_dropout": 0.0,
 
-              "L3_depth": 1,
-              "L3_layers": 1,
+              "L3_layers_atom": 3, #L3_layers
+              "L3_layers_mol": 3,  #L3_depth
               "L3_dropout": 0.0,
 
               "L1_hidden_dim": 132,
