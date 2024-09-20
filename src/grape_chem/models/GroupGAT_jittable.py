@@ -5,7 +5,7 @@ from torch_geometric.data import Data, Batch
 
 from grape_chem.models import AFP
 
-__all__ = ['GCGAT_v4pro']
+__all__ = ['GCGAT_v4pro_jit']
 class SingleHeadOriginLayer(nn.Module):
     def __init__(self, net_params):
         super().__init__()
@@ -170,7 +170,10 @@ class JT_Channel(nn.Module):
         super_attention_weight = torch.mean(torch.stack(junction_attention_heads_out, dim=1), dim=1)
         return super_new_graph, super_attention_weight
     
-class GCGAT_v4pro(nn.Module):
+class GCGAT_v4pro_jit(nn.Module):
+    """
+    the GCGAT_v4pro code, but with adaptations to allow jitting
+    """
     def __init__(self, net_params):
         super().__init__()
         self.origin_module = OriginChannel(net_params)

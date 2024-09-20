@@ -1,5 +1,5 @@
-from grape_chem.models import AFP
-from grape_chem.models import GroupGAT
+
+from grape_chem.models import GroupGAT_jittable
 from grape_chem.utils import DataSet, train_model, EarlyStopping, split_data, test_model, pred_metric, return_hidden_layers, set_seed, JT_SubGraph, FragmentGraphDataSet
 from grape_chem.datasets import FreeSolv 
 from torch.optim import lr_scheduler
