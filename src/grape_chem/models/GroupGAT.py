@@ -13,7 +13,7 @@ class SingleHeadOriginLayer(nn.Module):
                                       edge_in_dim=net_params["L1_hidden_dim"],
                                         hidden_dim=net_params['hidden_dim'],
                                         num_layers_atom=net_params['L1_layers_atom'],
-                                        num_layers_mol=net_params['L1_layers_mol'], #why is it called timesteps (old codebase)?
+                                        num_layers_mol=net_params['L1_layers_mol'],
                                         dropout=net_params['dropout'],
                                         out_dim=net_params['L1_hidden_dim'],
                                         regressor=False
@@ -48,7 +48,6 @@ class OriginChannel(nn.Module):
 
     def reset_parameters(self):
         # Reset parameters in all sub-modules
-        #TODO: clean-up
         for layer in self.embedding_node_lin:
             if isinstance(layer, nn.Linear):
                 layer.reset_parameters()
@@ -78,7 +77,7 @@ class SingleHeadFragmentLayer(nn.Module):
                                       edge_in_dim=net_params["edge_in_dim"],
                                         hidden_dim=net_params['hidden_dim'],
                                         num_layers_atom=net_params['L2_layers_atom'],
-                                        num_layers_mol=net_params['L2_layers_mol'], #why is it called timesteps (old codebase)?
+                                        num_layers_mol=net_params['L2_layers_mol'],
                                         dropout=net_params['dropout'],
                                         out_dim=net_params['L2_hidden_dim'],
                                         regressor=False
@@ -111,8 +110,6 @@ class FragmentChannel(nn.Module):
         )
 
     def forward(self, batch):
-        #batch.x = self.embedding_node_lin(batch.x.float())
-        #batch.edge_attr = self.embedding_edge_lin(batch.edge_attr.float())
         frag_heads_out = [frag_block(batch) for frag_block in self.fragment_heads]
         graph_frag = self.frag_attend(torch.cat(frag_heads_out, dim=-1))
         return graph_frag
@@ -136,8 +133,7 @@ class SingleHeadJunctionLayer(nn.Module):
         data.x = self.project_motif(data.x)
         d = Data(data.x, data.edge_index, data.edge_attr, data.batch)
         d.batch = data.batch
-        motif_graph_features, alphas  = self.AttentiveEmbedding(d, return_lats = True) #alphas
-        #graph_features, attention_weights = global_add_pool(node_features, data.batch), None  # Adjust if you get attention weights
+        motif_graph_features, alphas  = self.AttentiveEmbedding(d, return_lats = True)
         return motif_graph_features, alphas
 
 class JT_Channel(nn.Module):
@@ -163,7 +159,7 @@ class JT_Channel(nn.Module):
         junction_graph_heads_out = []
         junction_attention_heads_out = []
         for single_head in self.junction_heads:
-            single_head_new_graph, single_head_attention_weight  = single_head(batch) #single_head_attention_weight
+            single_head_new_graph, single_head_attention_weight  = single_head(batch)
             junction_graph_heads_out.append(single_head_new_graph)
             junction_attention_heads_out.append(single_head_attention_weight[1]) #the AFP layer returns also the edge_index when computing the alphas
         super_new_graph = torch.relu(torch.mean(torch.stack(junction_graph_heads_out, dim=1), dim=1))
@@ -216,14 +212,13 @@ class GCGAT_v4pro(nn.Module):
         #sum features for motif graph (akin to dgl.sum_nodes)
         num_mols = len(junction_data.batch.unique(dim=0,))
         frag_res = torch.zeros(num_mols, self.frag_res_dim) #vector that will contain the sums of the frags embedding of each mol
-        index = junction_data.batch.unsqueeze(1).expand(-1, 133)
+        index = junction_data.batch.unsqueeze(1).expand(-1, self.frag_res_dim)
         frag_res = frag_res.scatter_add_(0, index, graph_frag)
 
         #motifs_series = global_add_pool(junction_data.x, junction_data.batch) if get_attention else torch.zeros((graph_frag.x.size(0), 0), device=graph_frag.x.device)
         # 2. concat the output from different channels
 
         concat_features = torch.cat([graph_origin, frag_res, super_new_graph], dim=-1) #, motifs_series
-        #descriptors = self.linear_predict1(concat_features)
         descriptors = self.linear_predict1(concat_features)
         output = self.linear_predict2(descriptors)
         
