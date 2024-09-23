@@ -19,6 +19,7 @@ __all__ = [
     'EarlyStopping',
     'reset_weights',
     'train_model',
+    'train_model_jit',
     'train_epoch',
     'val_epoch',
     'test_model',
@@ -106,11 +107,6 @@ def reset_weights(model: Module):
             for child in model.children():
                 reset_weights(child)
 
-
-def batch_with_frag(data_list):
-    print("batch with frag collate called")
-    batch = Batch.from_data_list(data_list)
-    return batch
 
 def batch_implicit_with_frag(data_list):
     """
@@ -273,6 +269,264 @@ def train_model(model: torch.nn.Module, loss_func: Union[Callable,str], optimize
                 early_stopper(val_loss=loss_val, model=model)
                 if early_stopper.stop:
                     early_stopper.stop_epoch = i-early_stopper.patience
+                    if tuning:
+                        pass
+                    else:
+                        break
+
+            pbar.update(1)
+        if early_stopper and not early_stopper.stop and model_name:
+            torch.save(model.state_dict(), model_name)
+            print(f'Model saved at: {model_name}')
+
+    return train_loss, val_loss
+
+
+##############################################################################################################
+################ Train loop with only jit-friendly operations ################################################
+##############################################################################################################
+
+import torch
+import torch.nn.functional as F
+from torch.optim import Optimizer, lr_scheduler
+from torch.utils.data import DataLoader
+from typing import Union, Callable, List
+import numpy as np
+from tqdm import tqdm
+from torch_geometric.data import Data, DataLoader, Batch
+
+def train_model_jit(
+    model: torch.nn.Module,
+    loss_func: Union[Callable, str],
+    optimizer: Optimizer,
+    train_data_loader: Union[List[Data], DataLoader],
+    val_data_loader: Union[List[Data], DataLoader],
+    device: str = None,
+    epochs: int = 50,
+    batch_size: int = 32,
+    early_stopper=None,
+    scheduler: lr_scheduler._LRScheduler = None,
+    tuning: bool = False,
+    model_name: str = None,
+    model_needs_frag: bool = False,
+    net_params: dict = None,
+) -> tuple[List[float], List[float]]:
+    """
+    Training function adapted for the JIT-compiled model, which requires individual tensors as input.
+    """
+    loss_functions = {
+        'mse': F.mse_loss,
+        'mae': F.l1_loss
+    }
+
+    if isinstance(loss_func, str):
+        loss_func = loss_functions[loss_func]
+
+    device = torch.device('cpu') if device is None else torch.device(device)
+
+    exclude_keys = None
+    # Exclude fragmentation keys if the model doesn't need them
+    if not model_needs_frag:
+        if hasattr(train_data_loader, "fragmentation"):
+            if train_data_loader.fragmentation is not None:
+                exclude_keys = ["frag_graphs", "motif_graphs"]
+
+    if not isinstance(train_data_loader, DataLoader):
+        train_data_loader = DataLoader(
+            train_data_loader, batch_size=batch_size, exclude_keys=exclude_keys
+        )
+
+    if not isinstance(val_data_loader, DataLoader):
+        val_data_loader = DataLoader(
+            val_data_loader, batch_size=batch_size, exclude_keys=exclude_keys
+        )
+
+    model.train()
+    train_loss = []
+    val_loss = []
+
+    def handle_heterogenous_sizes(y, out):
+        if not isinstance(out, torch.Tensor):
+            return out
+        if y.dim() == out.dim():
+            return out
+        return out.squeeze()  # Needed for some models
+
+    with tqdm(total=epochs) as pbar:
+        for epoch in range(epochs):
+            temp = np.zeros(len(train_data_loader))
+            for idx, batch in enumerate(train_data_loader):
+                optimizer.zero_grad()
+                # Extract tensors from batch (same as above)
+                data_x = batch.x.to(device)
+                data_edge_index = batch.edge_index.to(device)
+                data_edge_attr = batch.edge_attr.to(device)
+                data_batch = batch.batch.to(device)
+
+                # Fragment graphs
+                frag_graphs = batch.frag_graphs  # List[Data]
+                frag_batch_list = []
+                frag_x_list = []
+                frag_edge_index_list = []
+                frag_edge_attr_list = []
+                node_offset = 0
+                for i, frag in enumerate(frag_graphs):
+                    num_nodes = frag.num_nodes
+                    frag_batch_list.append(torch.full((num_nodes,), i, dtype=torch.long, device=device))
+                    frag_x_list.append(frag.x.to(device))
+                    adjusted_edge_index = frag.edge_index + node_offset
+                    frag_edge_index_list.append(adjusted_edge_index.to(device))
+                    frag_edge_attr_list.append(frag.edge_attr.to(device))
+                    node_offset += num_nodes
+
+                frag_x = torch.cat(frag_x_list, dim=0)
+                frag_edge_index = torch.cat(frag_edge_index_list, dim=1)
+                frag_edge_attr = torch.cat(frag_edge_attr_list, dim=0)
+                #frag_batch_1 = torch.cat(frag_batch_list, dim=0)
+                frag_batch = Batch.from_data_list(batch.frag_graphs).batch #moved this computation to training loop
+                motif_nodes = Batch.from_data_list(batch.frag_graphs).x
+                # Adjusted code:
+                junction_graphs = batch.motif_graphs  # List[Data]
+                junction_batch_list = []
+                junction_x_list = []
+                junction_edge_index_list = []
+                junction_edge_attr_list = []
+                node_offset = 0
+                for i, motif in enumerate(junction_graphs):
+                    num_nodes = motif.num_nodes
+                    junction_batch_list.append(torch.full((num_nodes,), i, dtype=torch.long, device=device))
+                    junction_x_list.append(motif.x.to(device))
+                    adjusted_edge_index = motif.edge_index + node_offset
+                    junction_edge_index_list.append(adjusted_edge_index.to(device))
+                    junction_edge_attr_list.append(motif.edge_attr.to(device))
+                    node_offset += num_nodes
+
+                junction_x = torch.cat(junction_x_list, dim=0)
+                junction_edge_index = torch.cat(junction_edge_index_list, dim=1)
+                junction_edge_attr = torch.cat(junction_edge_attr_list, dim=0)
+                junction_batch = torch.cat(junction_batch_list, dim=0)
+
+                out = model(
+                    data_x,
+                    data_edge_index,
+                    data_edge_attr,
+                    data_batch,
+                    frag_x,
+                    frag_edge_index,
+                    frag_edge_attr,
+                    frag_batch,
+                    junction_x,
+                    junction_edge_index,
+                    junction_edge_attr,
+                    junction_batch,
+                    motif_nodes,
+                )
+
+                out = handle_heterogenous_sizes(batch.y.to(device), out)
+
+                loss_train = loss_func(batch.y.to(device), out)
+
+                temp[idx] = loss_train.detach().cpu().numpy()
+
+                loss_train.backward()
+                optimizer.step()
+
+            loss_train = np.mean(temp)
+            train_loss.append(loss_train)
+
+            # Validation loop
+            model.eval()
+            temp = np.zeros(len(val_data_loader))
+            with torch.no_grad():
+                for idx, batch in enumerate(val_data_loader):
+                    # Extract tensors from batch (same as above)
+                    data_x = batch.x.to(device)
+                    data_edge_index = batch.edge_index.to(device)
+                    data_edge_attr = batch.edge_attr.to(device)
+                    data_batch = batch.batch.to(device)
+
+                    # Fragment graphs
+                    frag_graphs = batch.frag_graphs  # List[Data]
+                    frag_batch_list = []
+                    frag_x_list = []
+                    frag_edge_index_list = []
+                    frag_edge_attr_list = []
+                    node_offset = 0
+                    for i, frag in enumerate(frag_graphs):
+                        num_nodes = frag.num_nodes
+                        frag_batch_list.append(torch.full((num_nodes,), i, dtype=torch.long, device=device))
+                        frag_x_list.append(frag.x.to(device))
+                        adjusted_edge_index = frag.edge_index + node_offset
+                        frag_edge_index_list.append(adjusted_edge_index.to(device))
+                        frag_edge_attr_list.append(frag.edge_attr.to(device))
+                        node_offset += num_nodes
+
+                    frag_x = torch.cat(frag_x_list, dim=0)
+                    frag_edge_index = torch.cat(frag_edge_index_list, dim=1)
+                    frag_edge_attr = torch.cat(frag_edge_attr_list, dim=0)
+                    frag_batch = torch.cat(frag_batch_list, dim=0)
+
+                    # Junction graphs (motif graphs)
+                    motif_graphs = batch.motif_graphs  # List[Data]
+                    junction_batch_list = []
+                    junction_x_list = []
+                    junction_edge_index_list = []
+                    junction_edge_attr_list = []
+                    # Remove motif_nodes_list if motif_nodes is not available
+                    # motif_nodes_list = []
+                    node_offset = 0
+                    for i, motif in enumerate(motif_graphs):
+                        num_nodes = motif.num_nodes
+                        junction_batch_list.append(torch.full((num_nodes,), i, dtype=torch.long, device=device))
+                        junction_x_list.append(motif.x.to(device))
+                        adjusted_edge_index = motif.edge_index + node_offset
+                        junction_edge_index_list.append(adjusted_edge_index.to(device))
+                        junction_edge_attr_list.append(motif.edge_attr.to(device))
+                        # If motif_nodes is not available, you can skip this
+                        # motif_nodes_list.append(motif.motif_nodes.to(device))
+                        node_offset += num_nodes
+
+                    junction_x = torch.cat(junction_x_list, dim=0)
+                    junction_edge_index = torch.cat(junction_edge_index_list, dim=1)
+                    junction_edge_attr = torch.cat(junction_edge_attr_list, dim=0)
+                    junction_batch = torch.cat(junction_batch_list, dim=0)
+                    # If motif_nodes is not available, create a placeholder or adjust the model accordingly
+                    motif_nodes = torch.zeros(junction_x.size(0), net_params['frag_dim']).to(device)
+
+                    # Forward pass
+                    out = model(
+                        data_x,
+                        data_edge_index,
+                        data_edge_attr,
+                        data_batch,
+                        frag_x,
+                        frag_edge_index,
+                        frag_edge_attr,
+                        frag_batch,
+                        junction_x,
+                        junction_edge_index,
+                        junction_edge_attr,
+                        junction_batch,
+                        motif_nodes
+                    )
+
+                    out = handle_heterogenous_sizes(batch.y.to(device), out)
+                    temp[idx] = loss_func(batch.y.to(device), out).detach().cpu().numpy()
+
+            loss_val = np.mean(temp)
+            val_loss.append(loss_val)
+            model.train()  # Switch back to training mode
+
+            if epoch % 2 == 0:
+                pbar.set_description(f"Epoch {epoch}, Training Loss: {loss_train:.3f}, Validation Loss: {loss_val:.3f}")
+
+            if scheduler is not None:
+                scheduler.step(loss_val)
+
+            if early_stopper is not None:
+                early_stopper(val_loss=loss_val, model=model)
+                if early_stopper.stop:
+                    early_stopper.stop_epoch = epoch - early_stopper.patience
                     if tuning:
                         pass
                     else:

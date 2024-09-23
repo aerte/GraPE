@@ -1,6 +1,6 @@
 
 from grape_chem.models import GroupGAT_jittable
-from grape_chem.utils import DataSet, train_model, EarlyStopping, split_data, test_model, pred_metric, return_hidden_layers, set_seed, JT_SubGraph, FragmentGraphDataSet
+from grape_chem.utils import DataSet, train_model_jit, EarlyStopping, split_data, test_model, pred_metric, return_hidden_layers, set_seed, JT_SubGraph, FragmentGraphDataSet
 from grape_chem.datasets import FreeSolv 
 from torch.optim import lr_scheduler
 import numpy as np
@@ -12,6 +12,7 @@ from tqdm import tqdm
 from typing import Union, List
 from torch import Tensor
 import os
+
 ## Install GraPE with: pip install "git+https://github.com/aerte/GraPE.git#subdirectory=python"
 
 def standardize(x, mean, std):
@@ -48,7 +49,7 @@ tags = df['Tag'].to_numpy()
 unique_tags = np.unique(tags)
 tag_to_int = {'Train': 0, 'Val': 1, 'Test': 2}
 custom_split = np.array([tag_to_int[tag] for tag in tags])
-breakpoint()
+
 ### Global feature from sheet, uncomment
 #global_feats = df['Global Feats'].to_numpy()
 
@@ -127,7 +128,7 @@ net_params = {
               "L2_hidden_dim": 133,
               "L3_hidden_dim": 36,
               }
-model = GroupGAT.GCGAT_v4pro(net_params)
+model = GroupGAT_jittable.GCGAT_v4pro_jit(net_params)
 
 optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
 early_Stopper = EarlyStopping(patience=patience, model_name='random', skip_save=True)
@@ -139,7 +140,7 @@ loss_func = torch.nn.functional.l1_loss
 model.to(device)
 
 # Define model filename
-model_filename = 'gcgat_latest.pth'
+model_filename = 'gcgat_jitted_latest.pth'
 
 # Check if the model file exists
 if os.path.exists(model_filename):
@@ -150,8 +151,8 @@ if os.path.exists(model_filename):
 else:
     print(f"No trained model found at '{model_filename}'. Proceeding to train the model.")
     # Train the model
-    train_model(model=model, loss_func=loss_func, optimizer=optimizer, train_data_loader=train,
-                val_data_loader=val, epochs=epochs, device=device, batch_size=batch_size, scheduler=scheduler, model_needs_frag=True)
+    train_model_jit(model=model, loss_func=loss_func, optimizer=optimizer, train_data_loader=train,
+                val_data_loader=val, epochs=epochs, device=device, batch_size=batch_size, scheduler=scheduler, model_needs_frag=True, net_params=net_params)
     # Save the trained model
     torch.save(model.state_dict(), model_filename)
     print(f"Model saved to '{model_filename}'.")
