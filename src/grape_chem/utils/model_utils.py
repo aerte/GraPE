@@ -1,4 +1,4 @@
-from typing import Callable, Union
+from typing import Callable, Union, List, Tuple, Optional
 import torch
 from torch import Tensor
 from torch.utils.data import DataLoader as TorchDataloader
@@ -26,7 +26,8 @@ __all__ = [
     'pred_metric',
     'return_hidden_layers',
     'set_seed',
-    'rescale_arrays'
+    'rescale_arrays',
+    'test_model_jit'
 ]
 
 # import grape_chem.models
@@ -483,15 +484,17 @@ def train_model_jit(
                         junction_edge_index_list.append(adjusted_edge_index.to(device))
                         junction_edge_attr_list.append(motif.edge_attr.to(device))
                         # If motif_nodes is not available, you can skip this
-                        # motif_nodes_list.append(motif.motif_nodes.to(device))
                         node_offset += num_nodes
+
+                    frag_batch = Batch.from_data_list(batch.frag_graphs).batch #moved this computation to training loop
+                    motif_nodes = Batch.from_data_list(batch.frag_graphs).x
 
                     junction_x = torch.cat(junction_x_list, dim=0)
                     junction_edge_index = torch.cat(junction_edge_index_list, dim=1)
                     junction_edge_attr = torch.cat(junction_edge_attr_list, dim=0)
                     junction_batch = torch.cat(junction_batch_list, dim=0)
                     # If motif_nodes is not available, create a placeholder or adjust the model accordingly
-                    motif_nodes = torch.zeros(junction_x.size(0), net_params['frag_dim']).to(device)
+                    #motif_nodes = torch.zeros(junction_x.size(0), net_params['frag_dim']).to(device)
 
                     # Forward pass
                     out = model(
@@ -507,7 +510,7 @@ def train_model_jit(
                         junction_edge_index,
                         junction_edge_attr,
                         junction_batch,
-                        motif_nodes
+                        motif_nodes,
                     )
 
                     out = handle_heterogenous_sizes(batch.y.to(device), out)
@@ -657,7 +660,170 @@ def test_model(model: torch.nn.Module, test_data_loader: Union[list, Data, DataL
         return preds, latents
     return preds
 
+##############################################################################################################
+################################# JIttable Model Testing #####################################################
+##############################################################################################################
 
+
+def test_model_jit(
+    model: torch.nn.Module,
+    test_data_loader: Union[List, Data, DataLoader],
+    device: str = None,
+    batch_size: int = 32,
+    return_latents: bool = False,
+    model_needs_frag: bool = False,
+    net_params: dict = None,
+) -> Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]:
+    """
+    Auxiliary function to test a trained JIT-compiled model and return the predictions as well as the latent node
+    representations. Can initialize DataLoaders if only a list of Data objects is given.
+
+    Notes
+    -----
+    This function is designed for JIT-compiled models that require individual tensors as input.
+
+    Parameters
+    ----------
+    model : torch.nn.Module
+        The JIT-compiled model to be tested.
+    test_data_loader : list of Data or DataLoader
+        A list of Data objects or the DataLoader directly to be used as the test graphs.
+    device : str, optional
+        Torch device to be used ('cpu', 'cuda', or 'mps'). Default is 'cpu'.
+    batch_size : int, optional
+        Batch size of the DataLoader if not given directly. Default is 32.
+    return_latents : bool, optional
+        Determines if the latents should be returned. **If used, the model must include `return_lats` parameter**.
+        Default is False.
+    model_needs_frag : bool, optional
+        Whether the model needs fragment graphs or not. Default is False.
+    net_params : dict, optional
+        A dictionary containing network parameters, used for dimension matching if necessary.
+
+    Returns
+    -------
+    Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]
+        Predictions, and optionally latents if `return_latents` is True.
+    """
+    device = torch.device('cpu') if device is None else torch.device(device)
+
+    # Exclude fragmentation keys if the model doesn't need them
+    exclude_keys = None
+    if not model_needs_frag:
+        exclude_keys = ["frag_graphs", "motif_graphs"]
+
+    if not isinstance(test_data_loader, DataLoader):
+        test_data_loader = DataLoader([data for data in test_data_loader], batch_size = batch_size)
+
+    model.eval()
+
+    with torch.no_grad():
+        with tqdm(total=len(test_data_loader)) as pbar:
+            preds_list = []
+            if return_latents:
+                latents_list = []
+            for idx, batch in enumerate(test_data_loader):
+                # Extract tensors from batch
+                data_x = batch.x.to(device)
+                data_edge_index = batch.edge_index.to(device)
+                data_edge_attr = batch.edge_attr.to(device)
+                data_batch = batch.batch.to(device)
+
+                # Fragment graphs
+                frag_graphs = batch.frag_graphs  # List[Data]
+                frag_batch_list = []
+                frag_x_list = []
+                frag_edge_index_list = []
+                frag_edge_attr_list = []
+                node_offset = 0
+                for i, frag in enumerate(frag_graphs):
+                    num_nodes = frag.num_nodes
+                    frag_batch_list.append(torch.full((num_nodes,), i, dtype=torch.long, device=device))
+                    frag_x_list.append(frag.x.to(device))
+                    adjusted_edge_index = frag.edge_index + node_offset
+                    frag_edge_index_list.append(adjusted_edge_index.to(device))
+                    frag_edge_attr_list.append(frag.edge_attr.to(device))
+                    node_offset += num_nodes
+
+                frag_x = torch.cat(frag_x_list, dim=0)
+                frag_edge_index = torch.cat(frag_edge_index_list, dim=1)
+                frag_edge_attr = torch.cat(frag_edge_attr_list, dim=0)
+                frag_batch = torch.cat(frag_batch_list, dim=0)
+
+                # Junction graphs (motif graphs)
+                motif_graphs = batch.motif_graphs  # List[Data]
+                junction_batch_list = []
+                junction_x_list = []
+                junction_edge_index_list = []
+                junction_edge_attr_list = []
+                node_offset = 0
+                for i, motif in enumerate(motif_graphs):
+                    num_nodes = motif.num_nodes
+                    junction_batch_list.append(torch.full((num_nodes,), i, dtype=torch.long, device=device))
+                    junction_x_list.append(motif.x.to(device))
+                    adjusted_edge_index = motif.edge_index + node_offset
+                    junction_edge_index_list.append(adjusted_edge_index.to(device))
+                    junction_edge_attr_list.append(motif.edge_attr.to(device))
+                    node_offset += num_nodes
+
+                junction_x = torch.cat(junction_x_list, dim=0)
+                junction_edge_index = torch.cat(junction_edge_index_list, dim=1)
+                junction_edge_attr = torch.cat(junction_edge_attr_list, dim=0)
+                junction_batch = torch.cat(junction_batch_list, dim=0)
+
+                frag_batch = Batch.from_data_list(batch.frag_graphs).batch #moved this computation to training loop
+                motif_nodes = Batch.from_data_list(batch.frag_graphs).x
+
+                # Forward pass
+                if return_latents:
+                    # Assuming the model's forward method supports `return_lats` parameter
+                    out, lat = model(
+                        data_x,
+                        data_edge_index,
+                        data_edge_attr,
+                        data_batch,
+                        frag_x,
+                        frag_edge_index,
+                        frag_edge_attr,
+                        frag_batch,
+                        junction_x,
+                        junction_edge_index,
+                        junction_edge_attr,
+                        junction_batch,
+                        motif_nodes
+                    )
+                    lat = lat.detach().cpu()
+                    latents_list.append(lat)
+                else:
+                    out = model(
+                        data_x,
+                        data_edge_index,
+                        data_edge_attr,
+                        data_batch,
+                        frag_x,
+                        frag_edge_index,
+                        frag_edge_attr,
+                        frag_batch,
+                        junction_x,
+                        junction_edge_index,
+                        junction_edge_attr,
+                        junction_batch,
+                        motif_nodes
+                    )
+
+                out = out.detach().cpu()
+                preds_list.append(out)
+
+                pbar.update(1)
+
+    # Concatenate predictions and latents
+    preds = torch.cat(preds_list, dim=0)
+    if return_latents:
+        latents = torch.cat(latents_list, dim=0)
+        return preds, latents
+    else:
+        return preds
+    
 ##########################################################################
 ########### Prediction Metrics ###########################################
 ##########################################################################

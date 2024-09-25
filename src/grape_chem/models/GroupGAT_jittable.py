@@ -68,7 +68,6 @@ class SingleHeadFragmentLayer(nn.Module):
                                     )
 
     def forward(self, x, edge_index, edge_attr, batch):
-        print("fragment attention called:")
         return self.AttentiveEmbedding(x, edge_index, edge_attr, batch, return_lats=True)
 
 class FragmentChannel(nn.Module):
@@ -201,12 +200,11 @@ class GCGAT_v4pro_jit(nn.Module):
         index = junction_batch.unsqueeze(1).expand(-1, self.frag_res_dim)
         frag_res = frag_res.scatter_add_(0, index, graph_frag)
 
-        # Use `frag_res` to compute `motif_nodes`
-
+        motif_nodes = junction_x
+        junction_x = graph_frag
         # Junction Module
-        breakpoint()
         super_new_graph = self.junction_module(
-            graph_frag, junction_edge_index, junction_edge_attr, junction_batch, motif_nodes
+            junction_x, junction_edge_index, junction_edge_attr, junction_batch, motif_nodes
         )
 
         # Concatenate features
