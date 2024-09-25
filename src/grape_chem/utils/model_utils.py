@@ -226,6 +226,9 @@ def train_model(model: torch.nn.Module, loss_func: Union[Callable,str], optimize
         'mae': torch.nn.functional.l1_loss
     }
 
+    if batch_size is None:
+        batch_size = len(train_data_loader)
+
     if isinstance(loss_func, str):
         loss_func = loss_functions[loss_func]
 
@@ -255,7 +258,7 @@ def train_model(model: torch.nn.Module, loss_func: Union[Callable,str], optimize
                 loss_train.backward()
                 optimizer.step()
                 # Log training loss for this epoch
-                mlflow.log_metric("train_loss", loss_train, step=i)
+                #mlflow.log_metric("train_loss", loss_train, step=i)
 
             loss_train = np.mean(temp)
             train_loss.append(loss_train)
@@ -268,7 +271,7 @@ def train_model(model: torch.nn.Module, loss_func: Union[Callable,str], optimize
             loss_val = np.mean(temp)
             val_loss.append(loss_val)
             # Log validation loss for this epoch
-            mlflow.log_metric("val_loss", loss_val, step=i)
+            #mlflow.log_metric("val_loss", loss_val, step=i)
 
             if i%2 == 0:
                 pbar.set_description(f"epoch={i}, training loss= {loss_train:.3f}, validation loss= {loss_val:.3f}")
@@ -432,8 +435,8 @@ def test_model(model: torch.nn.Module, test_data_loader: Union[list, Data, DataL
 
             pbar.update(1)
 
-    log_preds = torch.cat(all_preds)
-    log_targets = torch.cat(all_targets)
+    log_preds = torch.cat(all_preds).detach()
+    log_targets = torch.cat(all_targets).detach()
 
     # Log the final test metrics
     test_mse = mean_squared_error(log_targets.cpu().numpy(), log_preds.cpu().numpy())
