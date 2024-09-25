@@ -15,6 +15,9 @@ from itertools import product
 
 ## Start server with: mlflow server --backend-store-uri sqlite:///mlflow.db --default-artifact-root ./mlruns --host 0.0.0.0 --port 5000
 
+# Absolute path of the current script
+current_dir = os.path.dirname(os.path.abspath(__file__))
+
 def run_inference(config: Dict):
     mlflow.set_experiment(config['experiment_name'])
     with mlflow.start_run(run_name=config['run_name']):
@@ -61,7 +64,7 @@ def main():
     configs = {
         'experiment_name': ["Molecular Property Prediction Inference"],
         'run_name': ["AFP Model Inference"],
-        'model_path': ['C:\\Users\\Thoma\\code\\GraPE\\models\\AFP\\18-09-2024-10_afp.pt', 'C:\\Users\\Thoma\\code\\GraPE\\models\\DMPNN\\18-09-2024-10_dmpnn.pt'],
+        'model_path': [os.path.join(current_dir, '../models', 'AFP', '18-09-2024-10_afp.pt'), os.path.join(current_dir, '../models', 'DMPNN', '18-09-2024-10_dmpnn.pt')],
         'model_class': ['AFP', 'DMPNN'],
         'input_smiles': [
             ['CC', 'CCc1ccccn1', 'C=C(C)C#C', 'CC(C)CCCC']
