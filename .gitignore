@@ -216,3 +216,6 @@ mlflow.db
 
 #Data folder
 data/
+
+# Results folder
+ray_results/
