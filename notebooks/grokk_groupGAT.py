@@ -185,142 +185,171 @@ val_mae = pred_metric(prediction=val_preds, target=val.y, metrics='mae', print_o
 #overall_mae = (train_mae+val_mae+test_mae)/3 * std_target + mean_target
 #print(f'Rescaled overall MAE {overall_mae:.3f}')
 
-# Modify the test_model function to return both predictions and targets
-def test_model_with_parity(model: torch.nn.Module, test_data_loader: Union[list, Data],
-               device: str = None, batch_size: int = 32, return_latents: bool = False, model_needs_frag: bool = False) -> (
-        Union[Tensor, tuple[Tensor, Tensor], tuple[Tensor, Tensor, Tensor]]):
-    """Auxiliary function to test a trained model and return the predictions as well as the targets and optional latent node
-    representations. If a loss function is specified, then it will also return a list containing the testing losses.
-    Can initialize DataLoaders if only list of Data objects are given.
+##############################################################################################################
+################ Train loop with grokking   ##################################################################
+##############################################################################################################
+
+
+from data_files.grokfast import gradfilter_ma, gradfilter_ema
+
+def train_model_grokkfast(model: torch.nn.Module, loss_func: Union[Callable,str], optimizer: torch.optim.Optimizer,
+                    train_data_loader: Union[list, Data, DataLoader], val_data_loader: Union[list, Data, DataLoader],
+                    device: str = None, epochs: int = 50, batch_size: int = 32,
+                    early_stopper: EarlyStopping = None, scheduler: lr_scheduler = None,
+                    tuning: bool = False, model_name:str = None, model_needs_frag : bool = False,
+                    grokfast_type: str = 'ema', alpha: float = 0.9, lamb: float = 0.1, window_size: int = 10,) -> tuple[list,list]:
+    """Auxiliary function to train and test a given model using Grokfast and return the (training, test) losses.
+    Can initialize DataLoaders if only lists of Data objects are given.
 
     Parameters
-    ------------
+    -------------
     model: torch.nn.Module
-        Model that will be tested. Has to be a torch Module.
-    test_data_loader: list of Data or DataLoader
-        A list of Data objects or the DataLoader directly to be used as the test graphs.
+        Model that will be trained and tested. Has to be a torch Module.
+    loss_func: Callable or str
+        Loss function like F.mse_loss that will be used as a loss. Or a string that can be one of
+        [``mse``,``mae``]
+    optimizer: torch.optim.Optimizer
+        Torch optimization algorithm like Adam or SDG.
+    train_data_loader: list of Data or DataLoader
+        A list of Data objects or the DataLoader directly to be used as the training graphs.
+    val_data_loader: list of Data or DataLoader
+        A list of Data objects or the DataLoader directly to be used as the validation graphs.
     device: str
         Torch device to be used ('cpu','cuda' or 'mps'). Default: 'cpu'
+    epochs: int
+        Training epochs. Default: 50
     batch_size: int
         Batch size of the DataLoader if not given directly. Default: 32
-    return_latents: bool
-        Decides if the latents should be returned. **If used, the model must include return_latent statement**. Default:
-        False
-    model_needs_frag: bool
-        Indicates whether the model requires fragment information.
+    early_stopper: EarlyStopping
+        Optional EarlyStopping class that will apply the defined early stopping method. Default: None
+    scheduler: lr_scheduler
+        Optional learning rate scheduler that will take a step after validation. Default: None
+    tuning: bool
+        Will turn off the early stopping, meant for hyperparameter optimization.
+    model_name:str
+        If given, it will be used to save it if early stopping did not set in. Default: None
+    model_needs_frag : bool
+        Whether the model needs fragmentation data or not.
+    grokfast_type: str
+        Type of Grokfast to use, either 'ema' or 'ma'. Default: 'ema'
+    alpha: float
+        Alpha parameter for gradfilter_ema. Default: 0.9
+    lamb: float
+        Lambda parameter for gradfilter functions. Default: 0.1
+    window_size: int
+        Window size parameter for gradfilter_ma. Default: 10
 
     Returns
     ---------
-    Tuple[Tensor, Tensor] or Tuple[Tensor, Tensor, Tensor]
-        Returns predictions and targets, and optionally latents if return_latents is True.
+    tuple
+        Training and test loss arrays.
+
     """
+    loss_functions = {
+        'mse': torch.nn.functional.mse_loss,
+        'mae': torch.nn.functional.l1_loss
+    }
+
+    if isinstance(loss_func, str):
+        loss_func = loss_functions[loss_func]
 
     device = torch.device('cpu') if device is None else device
 
-    if not isinstance(test_data_loader, DataLoader):
-        test_data_loader = DataLoader([data for data in test_data_loader], batch_size = batch_size)
+    exclude_keys = None
+    # In some cases, this DataLoader shouldn't batch the graphs that result from fragmentations with the rest
+    if not model_needs_frag:
+        if hasattr(train_data_loader, "fragmentation"):
+            if train_data_loader.fragmentation is not None:
+                exclude_keys = ["frag_graphs", "motif_graphs"]
+    
+    if not isinstance(train_data_loader, DataLoader):
+        train_data_loader = DataLoader(train_data_loader, batch_size=batch_size, exclude_keys=exclude_keys)
 
-    model.eval()
+    if not isinstance(val_data_loader, DataLoader):
+        val_data_loader = DataLoader(val_data_loader, batch_size=batch_size, exclude_keys=exclude_keys)
 
-    with tqdm(total=len(test_data_loader)) as pbar:
+    model.train()
+    grads = None  # Initialize grads for Grokfast
+    train_loss = []
+    val_loss = []
 
-        for idx, batch in enumerate(test_data_loader):
-            batch = batch.to(device)
-            # Handling models that require fragment information
-            if model_needs_frag:
-                if return_latents:
-                    out, lat = model(batch, return_lats=True)
+    def handle_heterogenous_sizes(y, out):
+        """
+        Adjusts the output to match the target size if necessary.
+        """
+        if not isinstance(out, torch.Tensor):
+            return out
+        if y.dim() == out.dim():
+            return out
+        return out.squeeze()  # Needed for some models
+
+    def move_to_device(data, device):
+        """
+        Moves data to the specified device, handling nested structures.
+        """
+        if isinstance(data, torch.Tensor):
+            return data.to(device)
+        elif isinstance(data, list):
+            return [move_to_device(item, device) for item in data]
+        elif isinstance(data, dict):
+            return {key: move_to_device(value, device) for key, value in data.items()}
+        else:
+            return data
+
+    with tqdm(total=epochs) as pbar:
+        for i in range(epochs):
+            temp = np.zeros(len(train_data_loader))
+            for idx, batch in enumerate(train_data_loader):
+                optimizer.zero_grad()
+
+                out = model(move_to_device(batch, device))
+                out = handle_heterogenous_sizes(batch.y, out)
+
+                loss_train = loss_func(batch.y, out)
+                temp[idx] = loss_train.detach().cpu().numpy()
+
+                loss_train.backward()
+
+                # Apply Grokfast gradient filtering
+                if grokfast_type == 'ema':
+                    grads = gradfilter_ema(model, grads=grads, alpha=alpha, lamb=lamb)
+                elif grokfast_type == 'ma':
+                    grads = gradfilter_ma(model, grads=grads, window_size=window_size, lamb=lamb)
                 else:
-                    out = model(batch)
-            else:
-                if return_latents:
-                    out, lat = model(batch, return_lats=True)
-                else:
-                    out = model(batch)
+                    raise ValueError(f"Unknown grokfast_type: {grokfast_type}")
 
-            # Collect targets
-            target = batch.y
+                optimizer.step()
 
-            # Concatenate predictions, targets, and latents
-            if idx == 0:
-                preds = out
-                targets = target
-                if return_latents:
-                    latents = lat
-            else:
-                preds = torch.cat([preds, out], dim=0)
-                targets = torch.cat([targets, target], dim=0)
-                if return_latents:
-                    latents = torch.cat([latents, lat], dim=0)
+            loss_train = np.mean(temp)
+            train_loss.append(loss_train)
+
+            temp = np.zeros(len(val_data_loader))
+            for idx, batch in enumerate(val_data_loader):
+                out = model(move_to_device(batch, device))
+                out = handle_heterogenous_sizes(batch.y, out)
+                temp[idx] = loss_func(batch.y, out).detach().cpu().numpy()
+
+            loss_val = np.mean(temp)
+            val_loss.append(loss_val)
+
+            if i % 2 == 0:
+                pbar.set_description(f"epoch={i}, training loss= {loss_train:.3f}, validation loss= {loss_val:.3f}")
+
+            if scheduler is not None:
+                scheduler.step(loss_val)
+
+            if early_stopper is not None:
+                early_stopper(val_loss=loss_val, model=model)
+                if early_stopper.stop:
+                    early_stopper.stop_epoch = i - early_stopper.patience
+                    if tuning:
+                        pass
+                    else:
+                        break
 
             pbar.update(1)
+        if early_stopper and not early_stopper.stop and model_name:
+            torch.save(model.state_dict(), model_name)
+            print(f'Model saved at: {model_name}')
 
-    if return_latents:
-        return preds, targets, latents
-    return preds, targets
-
-####### Generating predictions and targets for all datasets #########
-
-# Obtain predictions and targets for train, val, and test sets
-train_preds, train_targets = test_model_with_parity(model=model, test_data_loader=train, device=device,
-                                        batch_size=batch_size, model_needs_frag=True)
-val_preds, val_targets = test_model_with_parity(model=model, test_data_loader=val, device=device,
-                                    batch_size=batch_size, model_needs_frag=True)
-test_preds, test_targets = test_model_with_parity(model=model, test_data_loader=test, device=device,
-                                      batch_size=batch_size, model_needs_frag=True)
-
-####### Calculating Metrics #########
-
-train_mae = pred_metric(prediction=train_preds, target=train_targets, metrics='mae', print_out=False)['mae']
-val_mae = pred_metric(prediction=val_preds, target=val_targets, metrics='mae', print_out=False)['mae']
-test_mae = pred_metric(prediction=test_preds, target=test_targets, metrics='mae', print_out=False)['mae']
-
-overall_mae = (train_mae + val_mae + test_mae) / 3  # Assuming targets are not scaled
-print(f'Overall MAE {overall_mae:.3f}')
-
-####### Creating Parity Plot #########
-
-# Convert tensors to numpy arrays
-train_preds_np = train_preds.cpu().detach().numpy()
-train_targets_np = train_targets.cpu().detach().numpy()
-val_preds_np = val_preds.cpu().detach().numpy()
-val_targets_np = val_targets.cpu().detach().numpy()
-test_preds_np = test_preds.cpu().detach().numpy()
-test_targets_np = test_targets.cpu().detach().numpy()
-
-# Concatenate predictions and targets
-all_preds = np.concatenate([train_preds_np, val_preds_np, test_preds_np])
-all_targets = np.concatenate([train_targets_np, val_targets_np, test_targets_np])
-
-# Create labels
-train_labels = np.array(['Train'] * len(train_preds_np))
-val_labels = np.array(['Validation'] * len(val_preds_np))
-test_labels = np.array(['Test'] * len(test_preds_np))
-all_labels = np.concatenate([train_labels, val_labels, test_labels])
-
-# Create a color map
-colors = {'Train': 'blue', 'Validation': 'green', 'Test': 'red'}
-color_list = [colors[label] for label in all_labels]
-
-# Create parity plot
-plt.figure(figsize=(8, 8))
-plt.scatter(all_targets, all_preds, c=color_list, alpha=0.6)
-
-# Plot y=x line
-min_val = min(all_targets.min(), all_preds.min())
-max_val = max(all_targets.max(), all_preds.max())
-plt.plot([min_val, max_val], [min_val, max_val], 'k--')
-
-# Set limits with buffer
-buffer = (max_val - min_val) * 0.05
-plt.xlim([min_val - buffer, max_val + buffer])
-plt.ylim([min_val - buffer, max_val + buffer])
-
-# Labels and title
-plt.xlabel('Actual')
-plt.ylabel('Predicted')
-plt.title('Parity Plot')
-plt.legend(handles=[plt.Line2D([], [], marker='o', color='w', label='Train', markerfacecolor='blue', markersize=10),
-                    plt.Line2D([], [], marker='o', color='w', label='Validation', markerfacecolor='green', markersize=10),
-                    plt.Line2D([], [], marker='o', color='w', label='Test', markerfacecolor='red', markersize=10)])
-plt.show()
+    return train_loss, val_loss
