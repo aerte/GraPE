@@ -36,6 +36,7 @@ from typing import Dict
 RDLogger.DisableLog('rdApp.*')
 
 __all__ = ['filter_smiles',
+           'is_multidimensional',
            'construct_dataset',
            'DataLoad',
            'DataSet',
@@ -82,7 +83,13 @@ def filter_smiles(smiles: list[str], target: Union[list[str], list[float], ndarr
 
     if global_feats is not None:
         # New implementation to handle nD global features
-        if global_feats.ndim > 1:
+        print("##########################################################################################")
+        print("Multidimensional global features: ", is_multidimensional(global_feats), "type: ", type(global_feats))	
+        #print("Global features shape: ", len(global_feats), len(global_feats[0]))
+        print("global_feats: ", global_feats)
+        print("##########################################################################################")
+
+        if is_multidimensional(global_feats):
             # Column name for each global feature
             n_features = global_feats.shape[1]
             global_feat_columns = [f'global_feat_{i}' for i in range(n_features)]
@@ -156,6 +163,9 @@ def filter_smiles(smiles: list[str], target: Union[list[str], list[float], ndarr
             return np.array(df.smiles), np.array(df.target), np.array(df[global_feat_columns])
         return np.array(df.smiles), np.array(df.target), np.array(df.global_feat)
     return np.array(df.smiles), np.array(df.target), None
+
+def is_multidimensional(lst):
+    return any(isinstance(i, list) for i in lst)
 
 
 ##########################################################################
@@ -947,12 +957,16 @@ def load_data_from_csv(config: Dict, return_dataset:bool = False, limit:int = No
     else:
         is_dmpnn = False
 
-
-    global_features = []
     if len(global_features_names) > 0:
-        global_features = [df[feature] for feature in global_features_names]
-    #global_features.append(smiles.apply(calculate_molecular_weight))
-    global_features = np.array(global_features).T
+        # Fetch the features from the dataframe
+        features = [df[feature].values for feature in global_features_names]
+
+    # Check the length of features
+    if len(features) == 1:
+        global_features = features[0]  # Keep it as a 1D array if only one feature
+    else:
+        global_features = np.array(features)  # Convert to a 2D array if multiple features
+        
     #print("Global features shape: ", global_features.shape, "global features names: ", global_features_names, "global features: ", global_features)
 
     data = DataSet(smiles=smiles, target=target, global_features=global_features, 
@@ -960,6 +974,7 @@ def load_data_from_csv(config: Dict, return_dataset:bool = False, limit:int = No
                     atom_feature_list=config['atom_feature_list'], 
                     bond_feature_list=config['bond_feature_list'], 
                     log=False, only_organic=False, filter=True, allow_dupes=True)
+    
     smile = data.smiles[0]
     atom = data[0].x
     bond = data[0].edge_attr
@@ -985,8 +1000,8 @@ def load_data_from_csv(config: Dict, return_dataset:bool = False, limit:int = No
             "dataset_length": len(data),
             "train_size": len(train_set),
             "val_size": len(val_set),
-            "test_size": len(test_set),
-            "number of global features": len(global_features)
+            "test_size": len(test_set)
+            #"number of global features": len(global_features)
         })
 
     if return_dataset:
@@ -999,12 +1014,21 @@ def load_data_from_csv(config: Dict, return_dataset:bool = False, limit:int = No
 ###########  Handle paths ################################################
 ##########################################################################
 def get_path(*args):
+    ''' Cross platform path join '''
     return os.path.normpath(os.path.join(*args))
 
-def get_model_dir(model_name, current_dir):
+def get_model_dir(path, model_name):
+    ''' Get the model directory based on the model name 
+    Args:
+        model_name: str: The name of the model
+        current_dir: str: The current directory
+
+    Returns:
+        str: The model directory
+    ''' 
     model_dirs = {
-        'afp': get_path(current_dir, '../models', 'AFP'),
-        'dmpnn': get_path(current_dir, '../models', 'DMPNN')
+        'afp': get_path(path, '../models', 'AFP'),
+        'dmpnn': get_path(path, '../models', 'DMPNN')
     }
 
     model_type = next((k for k in model_dirs.keys() if k in model_name.lower()), None)

@@ -197,6 +197,7 @@ def load_model_from_data(data, config, device):
     sample = data[50]  # Get a sample from the dataset
     node_in_dim = sample.x.shape[1]  # Number of input features for nodes
     edge_in_dim = sample.edge_attr.shape[1]  # Number of input features for edges
+    num_global_feats = len(config['global_features'])
 
 
     
@@ -204,6 +205,7 @@ def load_model_from_data(data, config, device):
     mlp = return_hidden_layers(config['mlp_layers'])
     
     # Prepare a dataset dictionary for additional model context
+    # This needs to be added to the model to later load when performing predictions
     dataset_dict = {
         'allowed_atoms': data.allowed_atoms, 
         'atom_feature_list': data.atom_feature_list, 
@@ -218,11 +220,11 @@ def load_model_from_data(data, config, device):
         from grape_chem.models import DMPNN
         model = DMPNN(node_in_dim=node_in_dim, edge_in_dim=edge_in_dim, 
                       node_hidden_dim=config['hidden_dim'], dropout=config['dropout'], 
-                      mlp_out_hidden=mlp, dataset_dict=dataset_dict)
+                      mlp_out_hidden=mlp, num_global_feats=num_global_feats, dataset_dict=dataset_dict)
     elif 'afp' in config['model_name'].lower():
         from grape_chem.models import AFP
         model = AFP(node_in_dim=node_in_dim, edge_in_dim=edge_in_dim, 
-                    out_dim=1, dataset_dict=dataset_dict)
+                    out_dim=1, num_global_feats=num_global_feats, dataset_dict=dataset_dict)
     else:
         raise ValueError(f"Unsupported model name: {config['model_name']}")
     
