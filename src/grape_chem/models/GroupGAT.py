@@ -211,7 +211,7 @@ class GCGAT_v4pro(nn.Module):
 
         #sum features for motif graph (akin to dgl.sum_nodes)
         num_mols = len(junction_data.batch.unique(dim=0,))
-        frag_res = torch.zeros(num_mols, self.frag_res_dim) #vector that will contain the sums of the frags embedding of each mol
+        frag_res = torch.zeros(num_mols, self.frag_res_dim, device=device) #vector that will contain the sums of the frags embedding of each mol
         index = junction_data.batch.unsqueeze(1).expand(-1, self.frag_res_dim)
         frag_res = frag_res.scatter_add_(0, index, graph_frag)
 
