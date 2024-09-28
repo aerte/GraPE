@@ -214,6 +214,13 @@ mlflow.db
 # Ignore json files
 *.json
 
+# Ignore png and svg files
+*.png
+*.svg
+
+# Ignore config files
+*.yaml
+
 #Data folder
 data/
 
