@@ -29,6 +29,9 @@ from grape_chem.utils.feature_func import mol_weight
 
 from sklearn.preprocessing import StandardScaler
 
+import mlflow
+from typing import Dict
+
 
 RDLogger.DisableLog('rdApp.*')
 
@@ -37,7 +40,8 @@ __all__ = ['filter_smiles',
            'DataLoad',
            'DataSet',
            'GraphDataSet',
-           'load_dataset_from_excel']
+           'load_dataset_from_excel',
+           'load_data_from_csv']
 
 
 ##########################################################################
@@ -908,3 +912,102 @@ def load_dataset_from_excel(file_path: str, dataset:str, is_dmpnn=False, return_
         return train_set, val_set, test_set, data
 
     return train_set, val_set, test_set
+
+def load_data_from_csv(config: Dict, return_dataset:bool = False, limit:int = None):
+    from grape_chem.utils.split_utils import RevIndexedSubSet
+    if config['data_path'] is None:
+        raise ValueError("File path not provided")
+    encodings = ['latin', 'utf-8']  # List of encodings to try
+    df = None
+    smiles = None
+    target = None
+    global_features_names = None
+    print("config['data_path']: ", config['data_path'])
+    for encoding in encodings:
+        try:
+            df = pd.read_csv(config['data_path'], sep=';', encoding=encoding)
+            if limit is not None:
+                df = df[:limit]  # Limit to reduce the size of the dataset
+            print("########################################################################",df.head())
+            smiles = df['SMILES'] 
+            target = df[config['target']]
+            global_features_names = config['global_features']
+            print("df set with encoding: ", encoding)
+            break  # Break if successful
+        except Exception as e:
+            print(f"Failed to read file with encoding {encoding}. Error: {e}")
+            continue
+
+    if df is None:
+        raise ValueError("Failed to read file with any encoding")
+    
+
+    if 'dmpnn' in str(config['model_name']).lower():
+        is_dmpnn = True
+    else:
+        is_dmpnn = False
+
+
+    global_features = []
+    if len(global_features_names) > 0:
+        global_features = [df[feature] for feature in global_features_names]
+    #global_features.append(smiles.apply(calculate_molecular_weight))
+    global_features = np.array(global_features).T
+    #print("Global features shape: ", global_features.shape, "global features names: ", global_features_names, "global features: ", global_features)
+
+    data = DataSet(smiles=smiles, target=target, global_features=global_features, 
+                    allowed_atoms=config['allowed_atoms'], 
+                    atom_feature_list=config['atom_feature_list'], 
+                    bond_feature_list=config['bond_feature_list'], 
+                    log=False, only_organic=False, filter=True, allow_dupes=True)
+    smile = data.smiles[0]
+    atom = data[0].x
+    bond = data[0].edge_attr
+    if mlflow.active_run():
+        mlflow.log_param("smile_example", smile)
+        mlflow.log_param("atom_example", atom)
+        mlflow.log_param("bond_example", bond)
+
+
+    print("######################### model seed: ", config['model_seed'])
+    train_set, val_set, test_set = data.split_and_scale(
+            split_frac=[0.8, 0.1, 0.1], scale=True, seed=config['model_seed'], 
+            is_dmpnn=is_dmpnn, split_type='random'
+        )
+
+    # In case graphs for DMPNN has to be loaded:
+    if is_dmpnn == True:
+        train_set, val_set, test_set = RevIndexedSubSet(train_set), RevIndexedSubSet(val_set), RevIndexedSubSet(
+            test_set)
+    
+    if mlflow.active_run():
+        mlflow.log_params({
+            "dataset_length": len(data),
+            "train_size": len(train_set),
+            "val_size": len(val_set),
+            "test_size": len(test_set),
+            "number of global features": len(global_features)
+        })
+
+    if return_dataset:
+        return train_set, val_set, test_set, data
+    
+        
+    return train_set, val_set, test_set
+
+##########################################################################
+###########  Handle paths ################################################
+##########################################################################
+def get_path(*args):
+    return os.path.normpath(os.path.join(*args))
+
+def get_model_dir(model_name, current_dir):
+    model_dirs = {
+        'afp': get_path(current_dir, '../models', 'AFP'),
+        'dmpnn': get_path(current_dir, '../models', 'DMPNN')
+    }
+
+    model_type = next((k for k in model_dirs.keys() if k in model_name.lower()), None)
+    if model_type is None:
+        raise ValueError(f"Model name {model_name} not recognized")
+    return model_dirs[model_type]
