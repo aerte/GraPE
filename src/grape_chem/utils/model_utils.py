@@ -19,6 +19,7 @@ __all__ = [
     'EarlyStopping',
     'reset_weights',
     'load_model',
+    'load_model_from_data',
     'train_model',
     'train_epoch',
     'val_epoch',
@@ -173,6 +174,74 @@ def load_model(model_class, model_path, device=None):
     except Exception as e:
         print(f"An error occurred while loading the model: {e}")
         return None, None
+    
+def load_model_from_data(data, config, device):
+    """
+    Load and initialize the model based on the provided data and configuration.
+
+    Parameters
+    ----------
+    data : Data
+        A data object containing the input features and relevant properties for the model.
+    config : dict
+        A configuration dictionary containing model specifications such as hidden dimensions, model name, and layer information.
+    device : str
+        The device on which the model should be loaded (e.g., 'cpu' or 'cuda').
+    Returns
+    -------
+    model : torch.nn.Module
+        The initialized model based on the specified configuration.
+    """
+
+    # Extract node and edge input dimensions from the sample data
+    sample = data[50]  # Get a sample from the dataset
+    node_in_dim = sample.x.shape[1]  # Number of input features for nodes
+    edge_in_dim = sample.edge_attr.shape[1]  # Number of input features for edges
+
+
+    
+    # Get MLP hidden layers from configuration
+    mlp = return_hidden_layers(config['mlp_layers'])
+    
+    # Prepare a dataset dictionary for additional model context
+    dataset_dict = {
+        'allowed_atoms': data.allowed_atoms, 
+        'atom_feature_list': data.atom_feature_list, 
+        'bond_feature_list': data.bond_feature_list, 
+        'data_mean': data.mean, 
+        'data_std': data.std, 
+        'data_name': data.data_name
+    }
+    
+    # Initialize model based on the specified model name
+    if 'dmpnn' in config['model_name'].lower():
+        from grape_chem.models import DMPNN
+        model = DMPNN(node_in_dim=node_in_dim, edge_in_dim=edge_in_dim, 
+                      node_hidden_dim=config['hidden_dim'], dropout=config['dropout'], 
+                      mlp_out_hidden=mlp, dataset_dict=dataset_dict)
+    elif 'afp' in config['model_name'].lower():
+        from grape_chem.models import AFP
+        model = AFP(node_in_dim=node_in_dim, edge_in_dim=edge_in_dim, 
+                    out_dim=1, dataset_dict=dataset_dict)
+    else:
+        raise ValueError(f"Unsupported model name: {config['model_name']}")
+    
+    # Log model parameters to MLflow if mlflow is active
+    if mlflow.active_run():
+        mlflow.log_params({
+            "node_in_dim": node_in_dim,
+            "edge_in_dim": edge_in_dim,
+            "out_dim": 1
+        })
+        
+        # Count and log the number of learnable parameters in the model
+        num_learnable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+        mlflow.log_param("num_learnable_params", num_learnable_params)
+    
+    # Move model to the specified device (CPU or GPU)
+    model = model.to(device)
+
+    return model
 
 ##########################################################################
 ########### Training and Testing functions ###############################
@@ -257,8 +326,6 @@ def train_model(model: torch.nn.Module, loss_func: Union[Callable,str], optimize
 
                 loss_train.backward()
                 optimizer.step()
-                # Log training loss for this epoch
-                #mlflow.log_metric("train_loss", loss_train, step=i)
 
             loss_train = np.mean(temp)
             train_loss.append(loss_train)
@@ -270,8 +337,10 @@ def train_model(model: torch.nn.Module, loss_func: Union[Callable,str], optimize
 
             loss_val = np.mean(temp)
             val_loss.append(loss_val)
-            # Log validation loss for this epoch
-            #mlflow.log_metric("val_loss", loss_val, step=i)
+
+            if mlflow.active_run():
+                mlflow.log_metric("train_loss_inside_train_model", loss_train, step=i)
+                mlflow.log_metric("val_loss_inside_train_model", loss_val, step=i)
 
             if i%2 == 0:
                 pbar.set_description(f"epoch={i}, training loss= {loss_train:.3f}, validation loss= {loss_val:.3f}")
@@ -336,9 +405,6 @@ def train_epoch(model: torch.nn.Module, loss_func: Callable, optimizer: torch.op
         optimizer.step()
 
     avg_loss = loss/it
-    # Log training loss per epoch
-    mlflow.log_metric("train_loss_epoch", avg_loss, step=epoch_num)
-
     return avg_loss
 
 
@@ -357,9 +423,6 @@ def val_epoch(model: torch.nn.Module, loss_func: Callable, val_loader, device: s
         it += 1.
 
     avg_loss = loss / it
-
-    # Log validation loss per epoch
-    mlflow.log_metric("val_loss_epoch", avg_loss, step=epoch_num)
 
     return avg_loss
 
@@ -399,7 +462,7 @@ def test_model(model: torch.nn.Module, test_data_loader: Union[list, Data, DataL
     Returns
     ---------
     float
-        Mean test loss over the test set batches.
+        Predictions of the model. If return_latents is True, then it will return a tuple of predictions and latents.
 
     """
 
@@ -438,15 +501,13 @@ def test_model(model: torch.nn.Module, test_data_loader: Union[list, Data, DataL
     log_preds = torch.cat(all_preds).detach()
     log_targets = torch.cat(all_targets).detach()
 
-    # Log the final test metrics
-    test_mse = mean_squared_error(log_targets.cpu().numpy(), log_preds.cpu().numpy())
-    test_mae = mean_absolute_error(log_targets.cpu().numpy(), log_preds.cpu().numpy())
-    test_r2 = r2_score(log_targets.cpu().numpy(), log_preds.cpu().numpy())
-
-    mlflow.log_metric("test_mse", test_mse)
-    mlflow.log_metric("test_mae", test_mae)
-    mlflow.log_metric("test_r2", test_r2)
-
+    if mlflow.active_run():
+        metrics = pred_metric(log_preds, log_targets, metrics='all', print_out=False)
+        print("############## METRICS ##########################################",metrics, type(metrics))
+        # Already logging them in pred_metric
+        # metrics =  {'mse': 0.21034354, 'rmse': 0.45863226, 'sse': 10.517177, 'mae': 0.36576897, 'r2': 0.7754248380661011, 'mre': 1.2537103, 'mdape': 46.80940508842468}
+        #mlflow.log_metrics(metrics)
+        
     if return_latents:
         return preds, latents
     return preds
@@ -554,32 +615,30 @@ def pred_metric(prediction: Union[Tensor, ndarray], target: Union[Tensor, ndarra
     for metric_ in metrics:
         if metric_ == 'mse':
             results['mse'] = mean_squared_error(target, prediction)
-            mlflow.log_metric("mse", results['mse'])
             prints.append(f'MSE: {results["mse"]:.3f}')
         elif metric_ == 'rmse':
             results['rmse'] = np.sqrt(mean_squared_error(target, prediction))
-            mlflow.log_metric("rmse", results['rmse'])
             prints.append(f'RMSE: {results["rmse"]:.3f}')
         elif metric_ == 'mae':
             results['mae'] = mean_absolute_error(target, prediction)
-            mlflow.log_metric("mae", results['mae'])
             prints.append(f'MAE: {results["mae"]:.3f}')
         elif metric_ == 'r2':
             results['r2'] = r2_score(target, prediction)
-            mlflow.log_metric("r2", results['r2'])
             prints.append(f'R2: {results["r2"]:.3f}')
         elif metric_ == 'sse':
             results['sse'] = np.sum(np.square(target-prediction))
-            mlflow.log_metric("sse", results['sse'])
             prints.append(f'SSE: {results["sse"]:.3f}')
         elif metric_ == 'mre':
             results['mre'] = np.mean(np.abs((target - prediction) / target))
-            mlflow.log_metric("mre", results['mre'])
             prints.append(f'MRE: {results["mre"]:.3f}')
         elif metric_ == 'mdape':
             results['mdape'] = np.median(np.abs((target - prediction) / target)) * 100
-            mlflow.log_metric("mdape", results['mdape'])
             prints.append(f'MDAPE: {results["mdape"]:.3f}')
+
+    # Log all relevant metrics to MLFlow if running
+    if mlflow.active_run():
+        for key, value in results.items():
+            mlflow.log_metric(key, value)
 
     if print_out:
         for out in prints:
