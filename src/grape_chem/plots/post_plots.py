@@ -9,11 +9,13 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 from grape_chem.utils.data import DataSet
+import mlflow
 
 
 __all__ = [
     'loss_plot',
     'parity_plot',
+    'parity_plot_mlflow',
     'residual_plot',
     'residual_density_plot'
 ]
@@ -135,8 +137,26 @@ def parity_plot(prediction: Union[Tensor, ndarray], target:  Union[Tensor, ndarr
 
     if path_to_export is not None:
         fig.savefig(fname=f'{path_to_export}/parity_plot.svg', format='svg')
+    
+    if mlflow.active_run():
+        mlflow.log_artifact(f'{path_to_export}/parity_plot.svg')
 
     return ax
+
+def parity_plot_mlflow(plot_name, true_vals, predicted_vals, path):
+    plt.figure(figsize=(8, 8))
+    plt.scatter(true_vals, predicted_vals, alpha=0.5)
+    plt.plot([min(true_vals), max(true_vals)], [min(true_vals), max(true_vals)], 'r--') 
+    plt.xlabel("True Values")
+    plt.ylabel("Predicted Values")
+    plt.title("Parity Plot")
+    plt.grid(True)
+    
+    # CHANGE THIS TO SAVE_PATH FROM CONFIG
+    plt_path = os.path.join(path, f"{plot_name}.png")
+    plt.savefig(plt_path)
+    print(f"Parity plot saved as {plt_path}")
+    return plt_path
 
 
 def residual_plot(prediction: Union[Tensor, ndarray], target: Union[Tensor, ndarray], fig_size: tuple = (10,5),
