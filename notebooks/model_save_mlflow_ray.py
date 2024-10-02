@@ -1,7 +1,10 @@
 import torch
-import pandas as pd
 import datetime
-from grape_chem.utils import train_model, test_model
+
+# new functions
+# load_model_from_data, load_data_from_csv, parity_plot_mlflow, setup_mlflow, 
+# log_latents, load_config, get_path, get_model_dir, hyperparameter_tuning
+from grape_chem.utils import train_model, test_model, pred_metric
 from grape_chem.utils.data import load_data_from_csv, get_path, get_model_dir
 from grape_chem.utils.model_utils import set_seed, create_checkpoint, load_model_from_data
 from grape_chem.plots.post_plots import parity_plot, parity_plot_mlflow
@@ -10,8 +13,6 @@ from grape_chem.logging.hyperparameter_tuning import hyperparameter_tuning
 from grape_chem.logging.mlflow_logging import setup_mlflow, log_latents
 from grape_chem.logging.config import load_config
 
-# new functions
-# load_model_from_data, load_data_from_csv, parity_plot_mlflow
 from torch.optim import lr_scheduler
 from rdkit import Chem
 from rdkit.Chem import Descriptors
@@ -25,10 +26,6 @@ from typing import Dict
 # Ray Tune imports
 from ray import train
 from ray import tune
-from ray.tune.schedulers import ASHAScheduler
-# Needed for config file
-import yaml
-
 ## Start server with: mlflow server --backend-store-uri sqlite:///mlflow.db --default-artifact-root ./mlruns --host 0.0.0.0 --port 5000
 
 # Absolute path of the current script
@@ -39,22 +36,26 @@ def calculate_molecular_weight(smiles):
     return Descriptors.MolWt(mol)
 
 def train_model_experiment(config: Dict):
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    model_dir = get_model_dir(current_dir, config['model_name'])
+
+    config['save_path'] = model_dir
     with setup_mlflow(config):
+        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        print(f"Device: {device}")
         mlflow.log_params(config)
         # Setting seed and data_setup
         set_seed(config['model_seed'])
         # Set limit to 1000 for testing purposes
-        #train_data, val_data, test_data, data = load_data_from_csv(config, return_dataset=True, limit = 1000)
-        train_data, val_data, test_data, data = load_data_from_csv(config, return_dataset=True)
+        train_data, val_data, test_data, data = load_data_from_csv(config, return_dataset=True, limit = 1000)
+        #train_data, val_data, test_data, data = load_data_from_csv(config, return_dataset=True)
         # Load the model
         model = load_model_from_data(data, config, device)
         mlflow.pytorch.log_model(model, artifact_path="model")
         
         # Train the model
         optimizer = torch.optim.Adam(model.parameters(), lr=config['learning_rate'], weight_decay=config['weight_decay'])
-        early_stopper = EarlyStopping(patience=config['patience'], model_name=config['model_name'])
-        scheduler = lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.9999, min_lr=0.0000000000001,
+        early_stopper = EarlyStopping(patience=config['patience'], model_name=config['model_name'], save_path=config['save_path'])
+        scheduler = lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.7, min_lr=0.0000000000001,
                                                    patience=config['patience_scheduler'])
         
         loss_func = torch.nn.functional.l1_loss
@@ -69,7 +70,7 @@ def train_model_experiment(config: Dict):
         mlflow.log_param("val_loss_after_train", val_loss)
 
         # mlflow boolean to log mlflow metrics
-        pred, latents = test_model(model=model, test_data_loader=test_data, device=device, batch_size=len(test_data), return_latents=True)
+        pred, latents = test_model(model=model, test_data_loader=test_data, device=device, batch_size=len(test_data), return_latents=True, mlflow_log=True)
         test_targets = [data.y for data in test_data]
         
         targets = torch.cat(test_targets, dim=0).to(device)
@@ -84,15 +85,14 @@ def train_model_experiment(config: Dict):
         metrics = {"val_loss": best_val_loss}
         mlflow.log_metric("best_val_loss", best_val_loss)
 
-        train.report(metrics)
         # RAYTUNE ### Report the best validation loss to Ray Tune ###
+        train.report(metrics)
 
         # Log the final trained model
         mlflow.pytorch.log_model(model, "model", pip_requirements=config['pip_requirements'])
         
         # Save model locally
-
-        model_dir = get_model_dir(current_dir, config['model_name'])
+        model_dir = config['save_path']
         print(f"Model saved in {model_dir}")
         model_path = os.path.join(model_dir, f"{config['model_name']}_final.pt")
         torch.save(create_checkpoint(model), model_path)
@@ -118,23 +118,23 @@ def main():
     # Define configurations for Ray Tune
     time = datetime.datetime.now().strftime("%d-%m-%Y-%H")
     search_space = {
-        'epochs': tune.choice([50, 100, 300]),
-        'batch_size': tune.choice([64,128,256,1048]), # None for full dataset
+        'epochs': tune.choice([300]),
+        'batch_size': tune.choice([4192]),#tune.choice([1048,4192,8384]), # None for full dataset
+        'model_name': tune.choice([f'DMPNN_{time}']), #,}'
         'hidden_dim': tune.choice([300]),
         'dropout': tune.uniform(0.0, 0.1),
-        'patience': tune.choice([20]),
-        'patience_scheduler': tune.choice([5]),
-        'learning_rate': tune.loguniform(1e-4, 1e-2),
+        'patience': tune.choice([50]),
+        'patience_scheduler': tune.choice([10]),
+        'learning_rate': tune.loguniform(1e-3, 1e-2),
         'weight_decay': tune.loguniform(1e-5, 1e-3),
         'model_seed': tune.choice([42]),
         'mlp_layers': tune.choice([4]),
-        'model_name': tune.choice([f'AFP_{time}', f'DMPNN_{time}']),
+        #'model_name': tune.choice([f'DMPNN_{time}']),
         'run_name': f"Model Training - {time}"
     }
-
     config = {**base_config, **search_space}
 
-    hyperparameter_tuning(train_model_experiment, config, num_samples=10, storage_path=get_path(current_dir, '../ray_results'))
+    hyperparameter_tuning(train_model_experiment, config, num_samples=1, storage_path=get_path(current_dir, '../ray_results'))
 
 if __name__ == "__main__":
     main()
