@@ -5,8 +5,46 @@ from grape_chem.models import AFP, DMPNN
 from torch_geometric.data import Data
 from grape_chem.utils import train_model, test_model, pred_metric, EarlyStopping
 from grape_chem.utils.model_utils import set_seed
+from grape_chem.plots.ensemble_plots import calculate_nll, calculate_calibrated_nll, calculate_mca, calculate_spearman_rank
 from sklearn.utils import resample
 import numpy as np
+
+from matplotlib import pyplot as plt
+
+import mlflow
+
+import seaborn as sns
+import os
+
+def print_averages(metrics, technique):
+    avg_metrics = {k: sum(d[k] for d in metrics) / len(metrics) for k in metrics[0]}
+    print(f"""Average Metrics for Ensemble Models using {technique}:
+    MSE: {avg_metrics['mse']:.6f}
+    RMSE: {avg_metrics['rmse']:.6f}
+    SSE: {avg_metrics['sse']:.6f}
+    MAE: {avg_metrics['mae']:.6f}
+    R2: {avg_metrics['r2']:.6f}
+    MRE: {avg_metrics['mre']:.6f}
+    MDAPE: {avg_metrics['mdape']:.6f}
+    """)
+
+def calculate_std_metrics(metrics_dict, technique):
+    metrics = np.array([
+        [metric['mse'], metric['rmse'], metric['sse'], metric['mae'], 
+         metric['r2'], metric['mre'], metric['mdape']]
+        for metric in metrics_dict
+    ])
+    std_metrics = {
+        f'{technique} mse std': np.std(metrics[:, 0]),
+        f'{technique} rmse std': np.std(metrics[:, 1]),
+        f'{technique} sse std': np.std(metrics[:, 2]),
+        f'{technique} mae std': np.std(metrics[:, 3]),
+        f'{technique} r2 std': np.std(metrics[:, 4]),
+        f'{technique} mre std': np.std(metrics[:, 5]),
+        f'{technique} mdape std': np.std(metrics[:, 6])
+    }
+    mlflow.log_metrics(std_metrics)
+
 
 class Ensemble:
     def __init__(self, train_data, val_data, test_data, node_in_dim, edge_in_dim, device, hyperparams):
@@ -17,20 +55,44 @@ class Ensemble:
         self.edge_in_dim = edge_in_dim
         self.device = device
         self.hyperparams = hyperparams
+        self.technique = self.__class__.__name__
+        self.UQ_metrics = {
+                                'nll': [],
+                                'calibrated_nll': [],
+                                'mca': [],
+                                'spearman_corr': []
+                            }
 
-    def predict_ensemble(self, models):
-        predictions = []
-        metrics = []
+    
+    def log_and_plot_ensemble_uq_metrics(self, predictions, targets):
+        """Log and plot UQ metrics of the entire ensemble to MLflow."""
+        # Plot NLL and Calibrated NLL distribution
+        calculate_nll(self, predictions, targets)
+        calculate_calibrated_nll(self, predictions, targets)
+        calculate_mca(self, predictions, targets)
+        calculate_spearman_rank(self, predictions, targets)
+
+        metrics = pred_metric(predictions, targets, metrics='all', print_out=False)
+        # Update the metrics keys
+        updated_metrics = {f'{self.technique}_{key}': value for key, value in metrics.items()}
+        mlflow.log_metrics(updated_metrics)
+
+    def get_preds_and_targets_ensemble(self, models):
+        metrics, predictions, targets = [], [], []
         for model in models:
             model.to(self.device)
             pred = test_model(model=model, test_data_loader=self.test_data, device=self.device, batch_size=len(self.test_data))
-            predictions.append(pred)
+            
             test_targets = [data.y for data in self.test_data]
-            targets = torch.cat(test_targets, dim=0).to(self.device)
-            metric_results = pred_metric(prediction=pred, target=targets, metrics='all', print_out=False)
-            metrics.append(metric_results)
-        return metrics
+            trgts = torch.cat(test_targets, dim=0).to(self.device)
 
+            predictions.append(pred)
+            targets.append(trgts)
+
+            metrics.append(pred_metric(pred, trgts, metrics='all', print_out=False))
+        return metrics, predictions, targets
+    
+    ## Training functions
     def create_model(self):
         if self.hyperparams['model'] == 'afp':
             return AFP(node_in_dim=self.node_in_dim, edge_in_dim=self.edge_in_dim, out_dim=1).to(self.device)
@@ -55,14 +117,20 @@ class Ensemble:
         model.load_state_dict(torch.load('best_model.pt'))
         return model
 
+    ## Main ensemble function that runs the ensemble technique and all its helper functions
     def run(self):
         train_samples, val_samples = self.create_samples()
         models = []
         for i in range(self.hyperparams['n_models']):
             model = self.train_single_model(train_samples[i], val_samples[i], i)
             models.append(model)
-        metrics = self.predict_ensemble(models)
-        return metrics
+
+        metrics, predictions, targets = self.get_preds_and_targets_ensemble(models) 
+        calculate_std_metrics(metrics, self.technique)
+        targets = torch.cat([data.y for data in self.test_data], dim=0).to(self.device)
+
+        average_predictions = torch.stack(predictions).mean(dim=0)
+        self.log_and_plot_ensemble_uq_metrics(average_predictions.cpu().detach(), targets.cpu().detach())
 
     def create_samples(self):
         raise NotImplementedError("Subclasses should implement this method")
@@ -82,6 +150,12 @@ class Bagging(Ensemble):
         return train_samples, val_samples
 
 class RandomWeightInitialization(Ensemble):
+    import os
+    # Set the CUBLAS_WORKSPACE_CONFIG environment variable to ensure deterministic behavior when using GPU operations.
+    # This setting is necessary because certain operations in CuBLAS (CUDA's GPU-accelerated library) are non-deterministic by default,
+    # which can cause results to vary between runs even with the same inputs.
+    # Setting this value (either ":4096:8" or ":16:8") configures the workspace size to guarantee reproducibility, avoiding non-deterministic behavior.
+    os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
     def create_samples(self):
         train_samples = [self.train_data] * self.hyperparams['n_models']
         val_samples = [self.val_data] * self.hyperparams['n_models']
