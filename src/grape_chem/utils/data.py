@@ -924,7 +924,6 @@ def load_dataset_from_excel(file_path: str, dataset:str, is_dmpnn=False, return_
     return train_set, val_set, test_set
 
 def load_data_from_csv(config: Dict, return_dataset:bool = False, limit:int = None):
-    from grape_chem.utils.split_utils import RevIndexedSubSet
     if config['data_path'] is None:
         raise ValueError("File path not provided")
     encodings = ['latin', 'utf-8']  # List of encodings to try
@@ -932,6 +931,7 @@ def load_data_from_csv(config: Dict, return_dataset:bool = False, limit:int = No
     smiles = None
     target = None
     global_features_names = None
+    features = None
     print("config['data_path']: ", config['data_path'])
     for encoding in encodings:
         try:
@@ -962,23 +962,32 @@ def load_data_from_csv(config: Dict, return_dataset:bool = False, limit:int = No
         features = [df[feature].values for feature in global_features_names]
 
     # Check the length of features
-    if len(features) == 1:
+    if features and len(features) == 1:
         global_features = features[0]  # Keep it as a 1D array if only one feature
-    else:
+    elif features:
         global_features = np.array(features)  # Convert to a 2D array if multiple features
+    else:
+        global_features = None
         
     #print("Global features shape: ", global_features.shape, "global features names: ", global_features_names, "global features: ", global_features)
-
-    data = DataSet(smiles=smiles, target=target, global_features=global_features, 
-                    allowed_atoms=config['allowed_atoms'], 
-                    atom_feature_list=config['atom_feature_list'], 
-                    bond_feature_list=config['bond_feature_list'], 
-                    log=False, only_organic=False, filter=True, allow_dupes=True)
+    if 'allowed_atoms' in config and config['allowed_atoms'] is not None:
+        data = DataSet(smiles=smiles, target=target, global_features=global_features, 
+                        allowed_atoms=config['allowed_atoms'], 
+                        atom_feature_list=config['atom_feature_list'], 
+                        bond_feature_list=config['bond_feature_list'], 
+                        log=False, only_organic=False, filter=True, allow_dupes=True)
+    else:
+        data = DataSet(smiles=smiles, target=target, global_features=global_features,
+                       log=False, only_organic=False, filter=True, allow_dupes=True)
     
     smile = data.smiles[0]
     atom = data[0].x
     bond = data[0].edge_attr
     if mlflow.active_run():
+        mlflow.log_param("data_path", config['data_path'])
+        mlflow.log_param("Target", config['target'])
+        mlflow.log_param("Global Features", global_features_names)
+        mlflow.log_param("Learning Rate", config['learning_rate'])
         mlflow.log_param("smile_example", smile)
         mlflow.log_param("atom_example", atom)
         mlflow.log_param("bond_example", bond)
@@ -992,9 +1001,11 @@ def load_data_from_csv(config: Dict, return_dataset:bool = False, limit:int = No
 
     # In case graphs for DMPNN has to be loaded:
     if is_dmpnn == True:
+        from grape_chem.utils.split_utils import RevIndexedSubSet
         train_set, val_set, test_set = RevIndexedSubSet(train_set), RevIndexedSubSet(val_set), RevIndexedSubSet(
             test_set)
     
+
     if mlflow.active_run():
         mlflow.log_params({
             "dataset_length": len(data),
