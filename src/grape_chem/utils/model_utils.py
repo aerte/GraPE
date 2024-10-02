@@ -384,7 +384,7 @@ def train_model_jit(
                 frag_edge_index = torch.cat(frag_edge_index_list, dim=1)
                 frag_edge_attr = torch.cat(frag_edge_attr_list, dim=0)
                 #frag_batch_1 = torch.cat(frag_batch_list, dim=0)
-                frag_batch = Batch.from_data_list(batch.frag_graphs).batch #moved this computation to training loop
+                frag_batch = Batch.from_data_list(batch.frag_graphs).to(device).batch #moved this computation to training loop
                 motif_nodes = Batch.from_data_list(batch.frag_graphs).x
                 # Adjusted code:
                 junction_graphs = batch.motif_graphs  # List[Data]
@@ -465,7 +465,7 @@ def train_model_jit(
                     frag_x = torch.cat(frag_x_list, dim=0)
                     frag_edge_index = torch.cat(frag_edge_index_list, dim=1)
                     frag_edge_attr = torch.cat(frag_edge_attr_list, dim=0)
-                    frag_batch = torch.cat(frag_batch_list, dim=0)
+                    #frag_batch = torch.cat(frag_batch_list, dim=0)
 
                     # Junction graphs (motif graphs)
                     motif_graphs = batch.motif_graphs  # List[Data]
@@ -486,8 +486,8 @@ def train_model_jit(
                         # If motif_nodes is not available, you can skip this
                         node_offset += num_nodes
 
-                    frag_batch = Batch.from_data_list(batch.frag_graphs).batch #moved this computation to training loop
-                    motif_nodes = Batch.from_data_list(batch.frag_graphs).x
+                    frag_batch = Batch.from_data_list(batch.frag_graphs).to(device).batch #moved this computation to training loop
+                    motif_nodes = Batch.from_data_list(batch.frag_graphs).to(device).x
 
                     junction_x = torch.cat(junction_x_list, dim=0)
                     junction_edge_index = torch.cat(junction_edge_index_list, dim=1)
@@ -529,6 +529,7 @@ def train_model_jit(
             if early_stopper is not None:
                 early_stopper(val_loss=loss_val, model=model)
                 if early_stopper.stop:
+                    print("Early stopping reached with best validation loss: {:.4f}".format(early_stopper.best_score))
                     early_stopper.stop_epoch = epoch - early_stopper.patience
                     if tuning:
                         pass
@@ -771,8 +772,8 @@ def test_model_jit(
                 junction_edge_attr = torch.cat(junction_edge_attr_list, dim=0)
                 junction_batch = torch.cat(junction_batch_list, dim=0)
 
-                frag_batch = Batch.from_data_list(batch.frag_graphs).batch #moved this computation to training loop
-                motif_nodes = Batch.from_data_list(batch.frag_graphs).x
+                frag_batch = Batch.from_data_list(batch.frag_graphs).to(device).batch #moved this computation to training loop
+                motif_nodes = Batch.from_data_list(batch.frag_graphs).to(device).x
 
                 # Forward pass
                 if return_latents:
