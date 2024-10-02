@@ -1,18 +1,29 @@
 import mlflow
 from typing import Dict
 import pandas as pd
+import os
 
 
 def setup_run_name(config: Dict):
-    run_name = config['run_name']
-    model_name = config['model_name']
-    print(f"Model name: {model_name}")
-    if 'dmpnn' in model_name.lower():
-        config['run_name'] = f"DMPNN_{run_name}"
-        print(f"Run name: {config['run_name']}")
-    elif 'afp' in model_name.lower():
-        config['run_name'] = f"AFP_{run_name}"
-        print(f"Run name: {config['run_name']}")
+    run_name = config.get('run_name', '')
+
+    # Add data name to run_name if 'data_path' exists
+    data_name = os.path.splitext(os.path.basename(config.get('data_path', '')))[0]
+    if data_name:
+        run_name = f"{data_name}_{run_name}"
+
+    # Determine model name
+    model_name = config.get('model_name') or config.get('model_class', '').lower()
+
+    # Update the run_name based on the model type
+    if 'dmpnn' in model_name:
+        run_name = f"DMPNN_{run_name}"
+    elif 'afp' in model_name:
+        run_name = f"AFP_{run_name}"
+
+    # Update and print run_name in config
+    config['run_name'] = run_name
+
 
 def setup_mlflow(config:Dict):
     # Very important to set the tracking URI to the server's URI inside the function where the expertiment is set. 

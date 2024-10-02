@@ -59,7 +59,7 @@ class EarlyStopping:
 
     """
 
-    def __init__(self, patience: int = 15, min_delta: float = 1e-3, model_name = 'best_model', skip_save: bool = False):
+    def __init__(self, patience: int = 15, min_delta: float = 1e-3, model_name = 'best_model', skip_save: bool = False, save_path: str = None):
         self.patience = patience
         self.min_delta = min_delta
         self.model_name = model_name
@@ -69,6 +69,7 @@ class EarlyStopping:
         self.model_name = model_name + '.pt'
         self.stop_epoch = 0
         self.skip_save = skip_save
+        self.save_path = save_path
 
     def __call__(self, val_loss: Tensor, model: Module):
         if val_loss < self.best_score + self.min_delta:
@@ -92,13 +93,14 @@ class EarlyStopping:
         self.stop = False
 
     def save_checkpoint(self, model: Module):
-        print("Saving model with checkpoint: ", self.model_name)
-        if model.dataset_dict is not None:
+        model_name = self.model_name
+        if self.save_path is not None:
+            model_name = os.path.join(self.save_path, model_name)
+        if hasattr(model, 'dataset_dict') and model.dataset_dict is not None:
             checkpoint = create_checkpoint(model)
-            torch.save(checkpoint, self.model_name)
+            torch.save(checkpoint, model_name)
         else:
-            torch.save(model.state_dict(), self.model_name)
-        
+            torch.save(model.state_dict(), model_name)
 
 
 def reset_weights(model: Module):
@@ -217,14 +219,19 @@ def load_model_from_data(data, config, device):
     
     # Initialize model based on the specified model name
     if 'dmpnn' in config['model_name'].lower():
-        from grape_chem.models import DMPNN
+        from grape_chem.models import DMPNN, originalDMPNN
         model = DMPNN(node_in_dim=node_in_dim, edge_in_dim=edge_in_dim, 
                       node_hidden_dim=config['hidden_dim'], dropout=config['dropout'], 
                       mlp_out_hidden=mlp, num_global_feats=num_global_feats, dataset_dict=dataset_dict)
+        # model = originalDMPNN(node_in_dim=node_in_dim, edge_in_dim=edge_in_dim, 
+        #             node_hidden_dim=config['hidden_dim'], dropout=config['dropout'], 
+        #             mlp_out_hidden=mlp, num_global_feats=num_global_feats)
+
+    
     elif 'afp' in config['model_name'].lower():
         from grape_chem.models import AFP
         model = AFP(node_in_dim=node_in_dim, edge_in_dim=edge_in_dim, 
-                    out_dim=1, num_global_feats=num_global_feats, dataset_dict=dataset_dict)
+                    out_dim=1, mlp_out_hidden=mlp, num_global_feats=num_global_feats, dataset_dict=dataset_dict)
     else:
         raise ValueError(f"Unsupported model name: {config['model_name']}")
     
@@ -366,17 +373,14 @@ def train_model(model: torch.nn.Module, loss_func: Union[Callable,str], optimize
 #DataSet(smiles=smiles, target=target, global_features=global_features, allowed_atoms=allowed_atoms, atom_feature_list=atom_feature_list, bond_feature_list=bond_feature_list, log=False, only_organic=False, filter=True, allow_dupes=True)
     
         if early_stopper is not None:
-            print("Early stopper: ", early_stopper)
             if early_stopper.stop is False and model_name is not None:
                 print("Early stopping did not set in, saving model.")
-                early_stopper.save_checkpoint(model, model_name)
-                print(f'Model saved at: {model_name}')
+                early_stopper.save_checkpoint(model)
     
         else:
             if model_name is not None:
-                print("Early stopping did not set in, saving model.")
-                early_stopper.save_checkpoint(model, model_name)
-                print(f'Model saved at: {model_name}')
+                print("Early stopping did not set in, saving model.")    
+                early_stopper.save_checkpoint(model)
 
     return train_loss, val_loss
 
@@ -436,7 +440,7 @@ def val_epoch(model: torch.nn.Module, loss_func: Callable, val_loader, device: s
 
 
 def test_model(model: torch.nn.Module, test_data_loader: Union[list, Data, DataLoader],
-                device: str = None, batch_size: int = 32, return_latents: bool = False) -> (
+                device: str = None, batch_size: int = 32, return_latents: bool = False, mlflow_log: bool = False) -> (
         Union[Tensor, tuple[Tensor,Tensor], tuple[Tensor, Tensor, list]]):
     """Auxiliary function to test a trained model and return the predictions as well as the latent node
     representations. If a loss function is specified, then it will also return a list containing the testing losses.
@@ -503,12 +507,10 @@ def test_model(model: torch.nn.Module, test_data_loader: Union[list, Data, DataL
     log_preds = torch.cat(all_preds).detach()
     log_targets = torch.cat(all_targets).detach()
 
-    if mlflow.active_run():
+    if mlflow_log == True:
         metrics = pred_metric(log_preds, log_targets, metrics='all', print_out=False)
-        print("############## METRICS ##########################################",metrics, type(metrics))
-        # Already logging them in pred_metric
-        # metrics =  {'mse': 0.21034354, 'rmse': 0.45863226, 'sse': 10.517177, 'mae': 0.36576897, 'r2': 0.7754248380661011, 'mre': 1.2537103, 'mdape': 46.80940508842468}
-        #mlflow.log_metrics(metrics)
+        #print("############## METRICS ##########################################",metrics, type(metrics))
+        mlflow.log_metrics(metrics)
         
     if return_latents:
         return preds, latents
@@ -637,10 +639,10 @@ def pred_metric(prediction: Union[Tensor, ndarray], target: Union[Tensor, ndarra
             results['mdape'] = np.median(np.abs((target - prediction) / target)) * 100
             prints.append(f'MDAPE: {results["mdape"]:.3f}')
 
-    # Log all relevant metrics to MLFlow if running
-    if mlflow.active_run():
-        for key, value in results.items():
-            mlflow.log_metric(key, value)
+    # # Log all relevant metrics to MLFlow if running
+    # if mlflow.active_run():
+    #     for key, value in results.items():
+    #         mlflow.log_metric(key, value)
 
     if print_out:
         for out in prints:
