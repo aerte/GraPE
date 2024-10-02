@@ -43,7 +43,7 @@ __all__ = ['filter_smiles',
 
 def filter_smiles(smiles: list[str], target: Union[list[str], list[float], ndarray], allowed_atoms: list[str] = None,
                   only_organic: bool = True, allow_dupes: bool = False, log: bool = False,
-                  global_feats = None) -> Union[list,list]:
+                  global_feats = None, custom_split=None) -> Union[list,list]:
     """Filters a list of smiles based on the allowed atom symbols.
 
     Parameters
@@ -62,12 +62,13 @@ def filter_smiles(smiles: list[str], target: Union[list[str], list[float], ndarr
         Determines if there should be print-out statements to indicate why mols were filtered out. Default: False
     allow_dupes: bool
         Decides if duplicate smiles should be allowed. Default: False
-
+    custom_split: list (optional)
+        The custom split array calculated on the dataset before filtering. Default: None
     Returns
     ----------
     list[str]
         A list of filtered smiles strings.
-
+    list[int] or list[float] or ndarray
     """
 
     if allowed_atoms is None:
@@ -76,7 +77,10 @@ def filter_smiles(smiles: list[str], target: Union[list[str], list[float], ndarr
     if global_feats is not None:
         df = pd.DataFrame({'smiles': smiles, 'target': target, 'global_feat': global_feats})
     else:
-        df = pd.DataFrame({'smiles': smiles, 'target': target})
+        df = pd.DataFrame({'smiles': smiles, 'target': target,})
+
+    if custom_split is not None:
+        df['split'] = custom_split
 
     indices_to_drop = []
 
@@ -113,7 +117,6 @@ def filter_smiles(smiles: list[str], target: Union[list[str], list[float], ndarr
                         print(f'SMILES {element} in index {list(df.smiles).index(element)} does not contain at least one'
                             f' carbon and will be ignored.')
 
-
     df.drop(indices_to_drop, inplace=True)
     df.reset_index(drop=True, inplace=True)
 
@@ -124,9 +127,23 @@ def filter_smiles(smiles: list[str], target: Union[list[str], list[float], ndarr
     if not allow_dupes:
         df.drop_duplicates(subset='smiles', inplace=True)
 
-    if global_feats is not None:
-        return np.array(df.smiles), np.array(df.target), np.array(df.global_feat)
-    return np.array(df.smiles), np.array(df.target), None
+    #TODO: refactor
+    smiles = np.array(df.smiles)
+    target = np.array(df.target)
+    
+    global_feat = np.array(df.global_feat) if global_feats is not None else None
+    split = np.array(df.split) if custom_split is not None else None
+
+    return smiles, target, global_feat, split
+
+    # if global_feats is not None:
+    #     if custom_split is not None:
+    #         return np.array(df.smiles), np.array(df.target), np.array(df.global_feat), np.array(df.split)
+    #     return np.array(df.smiles), np.array(df.target), np.array(df.global_feat), None
+    
+    # if custom_split is not None:
+    #         return np.array(df.smiles), np.array(df.target), None, np.array(df.split)
+    # return np.array(df.smiles), np.array(df.target), None, None
 
 
 ##########################################################################
@@ -252,14 +269,17 @@ class DataSet(DataLoad):
         List of features that will be applied. Default: All implemented features.
     log: bool
         Decides if the filtering output and other outputs will be shown.
-    fragmentation: for now, a function that performs fragmentation
-
+    fragmentation: instance of grape_chem.utils.junction_tree_utils.Fragmentation
+        for now, a function that performs fragmentation
+    custom_split: list (optional)
+        The custom split array calculated on the dataset before filtering. Default: None
+        it's passed in here to avoid recomputing the split after filtering.
 
     """
     def __init__(self, file_path: str = None, smiles: list[str] = None, target: Union[list[int], list[float],
     ndarray] = None, global_features:Union[list[float], ndarray] = None, filter: bool=True,allowed_atoms:list[str] = None,
     only_organic: bool = True, atom_feature_list: list[str] = None, bond_feature_list: list[str] = None,
-    log: bool = False, root: str = None, indices:list[int] = None, fragmentation=None):
+    log: bool = False, root: str = None, indices:list[int] = None, fragmentation=None, custom_split=None):
         print("fragmentation in  call to DataSet: ", fragmentation)
         assert (file_path is not None) or (smiles is not None and target is not None),'path or (smiles and target) must given.'
 
@@ -280,10 +300,10 @@ class DataSet(DataLoad):
 
         else:
             if filter:
-                self.smiles, self.raw_target, self.global_features = filter_smiles(smiles, target,
+                self.smiles, self.raw_target, self.global_features, self.custom_split = filter_smiles(smiles, target,
                                                                                    allowed_atoms= allowed_atoms,
                                                                                     only_organic=only_organic, log=log,
-                                                                                   global_feats=global_features)
+                                                                                   global_feats=global_features, custom_split=custom_split)
 
             else:
                 self.smiles, self.raw_target = np.array(smiles), np.array(target)
@@ -315,7 +335,6 @@ class DataSet(DataLoad):
             self.mol_weights[i] = mol_weight(Chem.MolFromSmiles(self.smiles[i]))
 
         if fragmentation is not None:
-            print("made it into here with frag not none")
             self.fragmentation = fragmentation
             self._prepare_frag_data()
 
