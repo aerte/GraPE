@@ -36,7 +36,7 @@ mol_layers = 3
 
 
 # Change to your own specifications
-root = './env/Vc_cace.xlsx'
+root = './env/Vc_cace_corrected.xlsx'
 sheet_name = 'Melting Point'
 
 df = pd.read_excel(root,)#.iloc[:25] 

@@ -31,14 +31,14 @@ patience = 30
 hidden_dim = 47
 learning_rate = 0.00126
 weight_decay = 1e-4
-mlp_layers = 2
+mlp_layers = 4
 atom_layers = 3
 mol_layers = 3
 
 
 # Change to your own specifications
-root = './env/Vc_cace_corrected.xlsx'
-sheet_name = 'Melting Point'
+root = './env/pka_dataset.xlsx'
+sheet_name = ''
 
 df = pd.read_excel(root,)#.iloc[:25] 
 smiles = df['SMILES'].to_numpy()
@@ -76,11 +76,14 @@ print("done.")
 ########################################################################################
 
 ######################## QM9 / testing /excel ##########################################
-data = DataSet(smiles=smiles, target=target, global_features=None, filter=True, fragmentation=fragmentation)
+print("calling DataSet with :", len(smiles), len(target), len(global_feats), custom_split)
+data = DataSet(smiles=smiles, target=target, global_features=None, filter=True, fragmentation=fragmentation, custom_split=custom_split)
+custom_split = data.custom_split #messy but it gets recomputed in this way
 ########################################################################################
 
 
 #train_set, val_set, _ = data.split_and_scale(scale=True, split_type='random')
+breakpoint()
 train, val, test = split_data(data, split_type='custom', custom_split=custom_split,)
 ############################################################################################
 ############################################################################################
@@ -112,29 +115,29 @@ net_params = {
               "num_layers_atom": atom_layers, 
               "num_layers_mol": mol_layers,
             # for channels:
-              "L1_layers_atom": 4, #L1_layers
-              "L1_layers_mol": 1,  #L1_depth
+              "L1_layers_atom": 3, #L1_layers
+              "L1_layers_mol": 3,  #L1_depth
               "L1_dropout": 0.142,
 
-              "L2_layers_atom": 2, #L2_layers
-              "L2_layers_mol": 3,  #2_depth
+              "L2_layers_atom": 3, #L2_layers
+              "L2_layers_mol": 2,  #2_depth
               "L2_dropout": 0.255,
 
               "L3_layers_atom": 1, #L3_layers
               "L3_layers_mol": 4,  #L3_depth
               "L3_dropout": 0.026,
 
-              "L1_hidden_dim": 247,
-              "L2_hidden_dim": 141,
-              "L3_hidden_dim": 47,
+              "L1_hidden_dim": 125,
+              "L2_hidden_dim": 155,
+              "L3_hidden_dim": 64,
               }
 model = torch.jit.script(GroupGAT_jittable.GCGAT_v4pro_jit(net_params))
 #model = GroupGAT_jittable.GCGAT_v4pro_jit(net_params)
 
 optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
-early_Stopper = EarlyStopping(patience=50, model_name='random', skip_save=True)
-scheduler = lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.9, min_lr=1e-09,
-                                           patience=15)
+early_Stopper = EarlyStopping(patience=100, model_name='random', skip_save=True)
+scheduler = lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.7, min_lr=0.001054627,
+                                           patience=30)
 
 loss_func = torch.nn.functional.l1_loss
 
@@ -473,6 +476,17 @@ plt.legend(handles=[
     plt.Line2D([], [], marker='o', color='w', label='Test', markerfacecolor='red', markersize=10)
 ])
 plt.show()
+
+# first run :
+# MSE: 0.006
+# RMSE: 0.078
+# SSE: 1278.019
+# MAE: 0.067
+# R2: 0.994
+# MRE: 5204.053%
+# Mean relative error is large, here is the median relative error:132.780%
+# MDAPE: 132.780%
+
 
 if False:
     ####### Generating predictions and targets for all datasets #########
