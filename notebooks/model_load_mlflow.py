@@ -4,6 +4,7 @@ import numpy as np
 from grape_chem.models import DMPNN, AFP
 from grape_chem.utils import DataSet
 from grape_chem.utils.model_utils import load_model
+from grape_chem.logging.mlflow_logging import setup_mlflow
 
 import mlflow
 import mlflow.pytorch
@@ -19,8 +20,7 @@ from itertools import product
 current_dir = os.path.dirname(os.path.abspath(__file__))
 
 def run_inference(config: Dict):
-    mlflow.set_experiment(config['experiment_name'])
-    with mlflow.start_run(run_name=config['run_name']):
+    with setup_mlflow(config):
         mlflow.log_params(config)
         
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -58,14 +58,13 @@ def run_inference(config: Dict):
         os.remove(predictions_file)
 
 def main():
-    mlflow.set_tracking_uri('http://localhost:5000')
     
     # Define configurations
     configs = {
-        'experiment_name': ["Molecular Property Prediction Inference"],
+        'experiment_name': ["Ray Molecular Property Prediction Inference"],
         'run_name': ["AFP Model Inference"],
-        'model_path': [os.path.join(current_dir, '../models', 'AFP', '18-09-2024-10_afp.pt'), os.path.join(current_dir, '../models', 'DMPNN', '18-09-2024-10_dmpnn.pt')],
-        'model_class': ['AFP', 'DMPNN'],
+        'model_path': [os.path.join(current_dir, '../models', 'AFP', 'AFP_29-09-2024-10_final.pt')],
+        'model_class': ['AFP'],
         'input_smiles': [
             ['CC', 'CCc1ccccn1', 'C=C(C)C#C', 'CC(C)CCCC']
         ]
