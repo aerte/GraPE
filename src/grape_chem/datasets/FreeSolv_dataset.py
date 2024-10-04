@@ -76,7 +76,6 @@ class FreeSolv(GraphDataSet):
 
         SMILES = data.smiles
         TARGET = data.y[:,0]
-        print("fragmentation in call to FreeSolv: ", fragmentation)
         super().__init__(smiles = SMILES, target = TARGET, global_features=global_features,
                          allowed_atoms = allowed_atoms, only_organic=only_organic,
                          atom_feature_list = atom_feature_list,
