@@ -926,6 +926,9 @@ def pred_metric(prediction: Union[Tensor, ndarray], target: Union[Tensor, ndarra
     delta = 1e-12
     target = target+delta
 
+    target_flat = target.flatten()
+    prediction_flat = prediction.flatten()
+
     for metric_ in metrics:
         if metric_ == 'mse':
             results['mse'] = mean_squared_error(target, prediction)
@@ -939,9 +942,14 @@ def pred_metric(prediction: Union[Tensor, ndarray], target: Union[Tensor, ndarra
         elif metric_ ==  'mae':
             results['mae'] = mean_absolute_error(target, prediction)
             prints.append(f'MAE: {mean_absolute_error(target, prediction):.3f}')
-        elif metric_ ==  'r2':
-            results['r2'] = r2_score(target, prediction)
-            prints.append(f'R2: {r2_score(target, prediction):.3f}')
+        # elif metric_ ==  'r2':
+        #     results['r2'] = r2_score(target, prediction)
+        #     prints.append(f'R2: {r2_score(target, prediction):.3f}')
+        elif metric_ == 'r2':
+            # Compute Pearson correlation coefficient
+            pearson_corr = np.corrcoef(target_flat, prediction_flat)[0, 1]
+            results['r2'] = pearson_corr
+            prints.append(f'Pearson Correlation Coefficient: {pearson_corr:.3f}')
         elif metric_ ==  'mre':
             results['mre'] = np.mean(np.abs((target-prediction)/target))*100
             prints.append(f'MRE: {np.mean(np.abs((target - prediction) / target)) * 100:.3f}%')

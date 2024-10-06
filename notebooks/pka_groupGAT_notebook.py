@@ -24,18 +24,6 @@ def standardize(x, mean, std):
 
 set_seed(42)
 
-# Hyperparameters
-epochs = 1000
-batch_size = 700
-patience = 30
-hidden_dim = 47
-learning_rate = 0.00126
-weight_decay = 1e-4
-mlp_layers = 4
-atom_layers = 3
-mol_layers = 3
-
-
 # Change to your own specifications
 root = './env/pka_dataset.xlsx'
 sheet_name = ''
@@ -76,14 +64,13 @@ print("done.")
 ########################################################################################
 
 ######################## QM9 / testing /excel ##########################################
-print("calling DataSet with :", len(smiles), len(target), len(global_feats), custom_split)
 data = DataSet(smiles=smiles, target=target, global_features=None, filter=True, fragmentation=fragmentation, custom_split=custom_split)
 custom_split = data.custom_split #messy but it gets recomputed in this way
 ########################################################################################
 
 
 #train_set, val_set, _ = data.split_and_scale(scale=True, split_type='random')
-breakpoint()
+
 train, val, test = split_data(data, split_type='custom', custom_split=custom_split,)
 ############################################################################################
 ############################################################################################
@@ -94,20 +81,32 @@ if torch.cuda.is_available():
 else:
     device = torch.device('cpu')
 
+
+# Hyperparameters
+epochs = 600
+batch_size = 700
+patience = 30
+hidden_dim = 47
+learning_rate = 0.00126
+weight_decay = 0.003250012
+mlp_layers = 4
+atom_layers = 3
+mol_layers = 3
+
 # num_global_feats is the dimension of global features per observation
 mlp = return_hidden_layers(mlp_layers)
 net_params = {
               "device": device, #shouldn't be passed in in this way, but best we have for now  
-              "num_atom_type": 44, # == node_in_dim TODO: check matches with featurizer or read from featurizer
+              "num_atom_type": 39, # == node_in_dim TODO: check matches with featurizer or read from featurizer
               "num_bond_type": 12, # == edge_in_dim
               "dropout": 0.0,
               "MLP_layers":mlp_layers,
               "frag_dim": frag_dim,
-              "final_dropout": 0.119,
+              "final_dropout": 0.257507,
             # for origins:
               "num_heads": 1,
             # for AFP:
-              "node_in_dim": 44, 
+              "node_in_dim": 39, 
               "edge_in_dim": 12, 
               "num_global_feats":1, 
               "hidden_dim": hidden_dim, #Important: check matches with `L1_hidden_dim`
@@ -117,47 +116,42 @@ net_params = {
             # for channels:
               "L1_layers_atom": 3, #L1_layers
               "L1_layers_mol": 3,  #L1_depth
-              "L1_dropout": 0.142,
+              "L1_dropout": 0.370796,
 
               "L2_layers_atom": 3, #L2_layers
               "L2_layers_mol": 2,  #2_depth
-              "L2_dropout": 0.255,
+              "L2_dropout": 0.056907,
 
               "L3_layers_atom": 1, #L3_layers
               "L3_layers_mol": 4,  #L3_depth
-              "L3_dropout": 0.026,
+              "L3_dropout": 0.137254,
 
               "L1_hidden_dim": 125,
               "L2_hidden_dim": 155,
               "L3_hidden_dim": 64,
               }
 model = torch.jit.script(GroupGAT_jittable.GCGAT_v4pro_jit(net_params))
-#model = GroupGAT_jittable.GCGAT_v4pro_jit(net_params)
 
 optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
 early_Stopper = EarlyStopping(patience=100, model_name='random', skip_save=True)
-scheduler = lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.7, min_lr=0.001054627,
+scheduler = lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.7, min_lr=1e-9,
                                            patience=30)
 
-loss_func = torch.nn.functional.l1_loss
+loss_func = torch.nn.functional.mse_loss
 
 model.to(device)
 
-# Define model filename
 model_filename = 'gcgat_jitted_latest.pth'
 
-# Check if the model file exists
 if os.path.exists(model_filename):
     print(f"Model file '{model_filename}' found. Loading the trained model.")
-    # Load the model state dict
     model.load_state_dict(torch.load(model_filename, map_location=device))
     model.eval()
 else:
     print(f"No trained model found at '{model_filename}'. Proceeding to train the model.")
-    # Train the model
     train_model_jit(model=model, loss_func=loss_func, optimizer=optimizer, train_data_loader=train,
-                val_data_loader=val, epochs=epochs, device=device, batch_size=batch_size, scheduler=scheduler, model_needs_frag=True, net_params=net_params)
-    # Save the trained model
+                val_data_loader=val, epochs=epochs, device=device, batch_size=batch_size, scheduler=scheduler, early_stopper=early_Stopper, model_needs_frag=True, net_params=net_params)
+
     torch.save(model.state_dict(), model_filename)
     print(f"Model saved to '{model_filename}'.")
 
@@ -266,7 +260,7 @@ def test_model_with_parity(model: torch.nn.Module, test_data_loader: Union[list,
 
 def test_model_jit_with_parity(
     model: torch.nn.Module,
-    test_data_loader: Union[List, DataLoader],
+    test_data_loader: Union[List,], #Union[List, DataLoader],
     device: str = None,
     batch_size: int = 32,
     return_latents: bool = False,
@@ -303,7 +297,6 @@ def test_model_jit_with_parity(
     """
 
     device = torch.device('cpu') if device is None else torch.device(device)
-    breakpoint()
     if not isinstance(test_data_loader, DataLoader):
         test_data_loader = DataLoader([data for data in test_data_loader], batch_size=batch_size)
 

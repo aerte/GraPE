@@ -29,8 +29,8 @@ epochs = 1000
 batch_size = 700
 patience = 30
 hidden_dim = 47
-learning_rate = 0.00126
-weight_decay = 1e-4
+learning_rate = 0.001054627
+weight_decay = 1e-4 
 mlp_layers = 2
 atom_layers = 3
 mol_layers = 3
@@ -133,7 +133,7 @@ model = torch.jit.script(GroupGAT_jittable.GCGAT_v4pro_jit(net_params))
 
 optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
 early_Stopper = EarlyStopping(patience=50, model_name='random', skip_save=True)
-scheduler = lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.9, min_lr=1e-09,
+scheduler = lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.7, min_lr=1.00E-09,
                                            patience=15)
 
 loss_func = torch.nn.functional.l1_loss

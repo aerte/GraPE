@@ -864,7 +864,6 @@ class GraphDataSet(DataSet):
     allowed_atoms:list[str] = None, only_organic: bool = True, atom_feature_list:list[str] = None,
     bond_feature_list:list[str] = None, split: bool = True, split_type:str = None, split_frac:list[float, float, float]
     = None, custom_split: list[int] = None, log: bool = False, seed:int = None, indices:list[int] = None, fragmentation = None):
-        print("fragmentation in call to GraphDataSet: ", fragmentation)
         super().__init__(file_path=file_path, smiles=smiles, target=target, global_features=global_features,
                          allowed_atoms=allowed_atoms, only_organic=only_organic,
                          atom_feature_list=atom_feature_list,
