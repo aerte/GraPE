@@ -128,8 +128,8 @@ net_params = {
               "L2_hidden_dim": 141,
               "L3_hidden_dim": 47,
               }
-model = torch.jit.script(GroupGAT_jittable.GCGAT_v4pro_jit(net_params))
-#model = GroupGAT_jittable.GCGAT_v4pro_jit(net_params)
+#model = torch.jit.script(GroupGAT_jittable.GCGAT_v4pro_jit(net_params))
+model = GroupGAT_jittable.GCGAT_v4pro_jit(net_params)
 
 optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
 early_Stopper = EarlyStopping(patience=50, model_name='random', skip_save=True)

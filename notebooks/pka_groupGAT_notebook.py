@@ -97,7 +97,7 @@ mol_layers = 3
 mlp = return_hidden_layers(mlp_layers)
 net_params = {
               "device": device, #shouldn't be passed in in this way, but best we have for now  
-              "num_atom_type": 39, # == node_in_dim TODO: check matches with featurizer or read from featurizer
+              "num_atom_type": 44, # == node_in_dim TODO: check matches with featurizer or read from featurizer
               "num_bond_type": 12, # == edge_in_dim
               "dropout": 0.0,
               "MLP_layers":mlp_layers,
@@ -106,7 +106,7 @@ net_params = {
             # for origins:
               "num_heads": 1,
             # for AFP:
-              "node_in_dim": 39, 
+              "node_in_dim": 44, 
               "edge_in_dim": 12, 
               "num_global_feats":1, 
               "hidden_dim": hidden_dim, #Important: check matches with `L1_hidden_dim`

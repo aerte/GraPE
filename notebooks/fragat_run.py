@@ -151,7 +151,7 @@ else:
     print(f"No trained model found at '{model_filename}'. Proceeding to train the model.")
     # Train the model
     train_model(model=model, loss_func=loss_func, optimizer=optimizer, train_data_loader=train,
-                val_data_loader=val, epochs=epochs, device=device, batch_size=batch_size, scheduler=scheduler, model_needs_frag=True)
+                val_data_loader=val, epochs=epochs, device=device, batch_size=batch_size, scheduler=scheduler, model_needs_frag=True, global_feats=global_feats)
     # Save the trained model
     torch.save(model.state_dict(), model_filename)
     print(f"Model saved to '{model_filename}'.")
