@@ -73,7 +73,7 @@ if torch.cuda.is_available():
 else:
     device = torch.device('cpu')
 
-#device = torch.device('cuda')
+
 
 optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
 early_Stopper = EarlyStopping(patience=patience, model_name='random', skip_save=True)
@@ -107,8 +107,8 @@ print(f'Rescaled MAE for the test set {test_mae_rescaled:.3f}')
 
 ####### Example for overall evaluation of the MAE #########
 
-train_preds = test_model(model=model, test_data_loader=train, device=device) #TODO
-val_preds = test_model(model=model, test_data_loader=val, device=device)
+train_preds = test_model(model=model, loss_func=None, test_data_loader=train)
+val_preds = test_model(model=model, loss_func=None, test_data_loader=val)
 
 train_mae = pred_metric(prediction=train_preds, target=train.y, metrics='mae', print_out=False)['mae']
 val_mae = pred_metric(prediction=val_preds, target=val.y, metrics='mae', print_out=False)['mae']
