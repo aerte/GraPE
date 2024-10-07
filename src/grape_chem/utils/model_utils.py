@@ -10,7 +10,7 @@ from torch_geometric.loader import DataLoader
 from torch_geometric.data import Data
 from torch_geometric.data import Batch
 from tqdm import tqdm
-from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score, root_mean_squared_error
+from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score, root_mean_squared_error, mean_absolute_percentage_error
 from grape_chem.utils import DataSet
 import os
 import dgl
@@ -897,7 +897,7 @@ def pred_metric(prediction: Union[Tensor, ndarray], target: Union[Tensor, ndarra
         The target array or tensor corresponding to the prediction.
     metrics: str or list[str]
         A string or a list of strings specifying what metrics should be returned. The options are:
-        [``mse``, ``rmse``, ``sse``, ``mae``, ``r2``, ``mre``, ``mdape``] or 'all' for every option. Default: 'mse'
+        [``mse``, ``rmse``, ``sse``, ``mae``, ``r2``, ``mre``, ``mdape``, ``pearson``] or 'all' for every option. Default: 'mse'
     print_out: bool
         Will print out formatted results if True. Default: True
 
@@ -919,7 +919,7 @@ def pred_metric(prediction: Union[Tensor, ndarray], target: Union[Tensor, ndarra
         target = rescale_data.rescale_data(target)
 
     if metrics == 'all':
-        metrics = ['mse','rmse','sse','mae','r2','mre', 'mdape']
+        metrics = ['mse','rmse','sse','mae','r2','mre', 'mdape','mape', 'pearson']
 
     results = dict()
     prints = []
@@ -942,14 +942,16 @@ def pred_metric(prediction: Union[Tensor, ndarray], target: Union[Tensor, ndarra
         elif metric_ ==  'mae':
             results['mae'] = mean_absolute_error(target, prediction)
             prints.append(f'MAE: {mean_absolute_error(target, prediction):.3f}')
-        # elif metric_ ==  'r2':
-        #     results['r2'] = r2_score(target, prediction)
-        #     prints.append(f'R2: {r2_score(target, prediction):.3f}')
-        elif metric_ == 'r2':
-            # Compute Pearson correlation coefficient
+        elif metric_ ==  'r2':
+            results['r2'] = r2_score(target, prediction)
+            prints.append(f'R2: {r2_score(target, prediction):.3f}')
+        elif metric_ == 'pearson':
             pearson_corr = np.corrcoef(target_flat, prediction_flat)[0, 1]
             results['r2'] = pearson_corr
-            prints.append(f'Pearson Correlation Coefficient: {pearson_corr:.3f}')
+            prints.append(f'Pearson Corr Coeff: {pearson_corr:.3f}')
+        elif metric_ == 'mape':
+            results['mape'] = mean_absolute_percentage_error(target, prediction)
+            prints.append(f"MAPE: {results['mape']:.3f}%")
         elif metric_ ==  'mre':
             results['mre'] = np.mean(np.abs((target-prediction)/target))*100
             prints.append(f'MRE: {np.mean(np.abs((target - prediction) / target)) * 100:.3f}%')

@@ -177,6 +177,8 @@ class GCGAT_v4pro(nn.Module):
         # assuming net_params includes dimensions for concatenated outputs (does it?)
         concat_dim = net_params['L1_hidden_dim'] + net_params['L2_hidden_dim'] + net_params['L3_hidden_dim']
         concat_dim_debug = net_params['L3_hidden_dim']
+        if net_params['global_features']:
+            concat_dim += 1
         self.linear_predict1 = nn.Sequential(
             nn.Dropout(net_params['final_dropout']),
             nn.Linear(concat_dim, int(concat_dim / 2), bias=True),
@@ -192,7 +194,7 @@ class GCGAT_v4pro(nn.Module):
         self.linear_predict2.append(nn.Linear(mid_dim, 1, bias=True))
         #self.linear_predict2.append(nn.LeakyReLU(negative_slope=0.001))
 
-    def forward(self, data, get_attention=False, get_descriptors=False):
+    def forward(self, data, get_attention=False, get_descriptors=False, global_feature=None):
         # Approach:
         # 1. extract graph-level features from different channels
         device = self.parameters().__next__().device
@@ -219,6 +221,9 @@ class GCGAT_v4pro(nn.Module):
         # 2. concat the output from different channels
 
         concat_features = torch.cat([graph_origin, frag_res, super_new_graph], dim=-1) #, motifs_series
+        if data.global_feats is not None:
+            global_feats = data.global_feats.to(concat_features.device).unsqueeze(-1)
+            concat_features = torch.cat([concat_features, global_feats], dim=-1)
         descriptors = self.linear_predict1(concat_features)
         output = self.linear_predict2(descriptors)
         

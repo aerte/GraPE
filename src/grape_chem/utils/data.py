@@ -136,15 +136,6 @@ def filter_smiles(smiles: list[str], target: Union[list[str], list[float], ndarr
 
     return smiles, target, global_feat, split
 
-    # if global_feats is not None:
-    #     if custom_split is not None:
-    #         return np.array(df.smiles), np.array(df.target), np.array(df.global_feat), np.array(df.split)
-    #     return np.array(df.smiles), np.array(df.target), np.array(df.global_feat), None
-    
-    # if custom_split is not None:
-    #         return np.array(df.smiles), np.array(df.target), None, np.array(df.split)
-    # return np.array(df.smiles), np.array(df.target), None, None
-
 
 ##########################################################################
 ########### constructing a dataset #######################################
@@ -280,10 +271,10 @@ class DataSet(DataLoad):
     ndarray] = None, global_features:Union[list[float], ndarray] = None, filter: bool=True,allowed_atoms:list[str] = None,
     only_organic: bool = True, atom_feature_list: list[str] = None, bond_feature_list: list[str] = None,
     log: bool = False, root: str = None, indices:list[int] = None, fragmentation=None, custom_split=None):
-        print("fragmentation in  call to DataSet: ", fragmentation)
         assert (file_path is not None) or (smiles is not None and target is not None),'path or (smiles and target) must given.'
-
         super().__int__(root)
+
+        allow_dupes = global_features is not None #in the case of global featuers, there will be multiple observations for the same molecule
 
         if file_path is not None:
             with open(file_path, 'rb') as handle:
@@ -303,7 +294,8 @@ class DataSet(DataLoad):
                 self.smiles, self.raw_target, self.global_features, self.custom_split = filter_smiles(smiles, target,
                                                                                    allowed_atoms= allowed_atoms,
                                                                                     only_organic=only_organic, log=log,
-                                                                                   global_feats=global_features, custom_split=custom_split)
+                                                                                   global_feats=global_features, custom_split=custom_split,
+                                                                                   allow_dupes=allow_dupes)
 
             else:
                 self.smiles, self.raw_target = np.array(smiles), np.array(target)
@@ -448,7 +440,7 @@ class DataSet(DataLoad):
 
         return list(map(lambda x: MolFromSmiles(x), self.smiles))
 
-    def _prepare_frag_data(self, log_progress=True, log_every=1):
+    def _prepare_frag_data(self, log_progress=True, log_every=100):
         """
         return a list of frag_graphs and motif_graphs based on the fragmentation
         passed-in when initializing the datatset
@@ -467,6 +459,7 @@ class DataSet(DataLoad):
             if frag_graphs is not None:
                 self.graphs[i].frag_graphs = Batch.from_data_list(frag_graphs) #empty lists could cause issues. consider replacing with None in case list empty
                 self.graphs[i].motif_graphs = motif_graph
+            
 
     def indices(self):
         return range(len(self.graphs)) if self._indices is None else self._indices
