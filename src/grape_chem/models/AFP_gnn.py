@@ -4,6 +4,7 @@ from torch_geometric.nn import AttentiveFP
 from torch.nn import Module
 from torch import nn
 import torch
+from grape_chem.models.AttentiveFP_alphas import AttentiveFP_alphas
 
 __all__ = ['AFP']
 
@@ -64,6 +65,11 @@ class AFP(Module):
         The probability of dropping a node from the embedding representation. Default: 0.0.
     num_global_feats: int
         The number of global features that are passed to the model. Default:0
+    return_super_nodes: bool
+        if True, a modified version of the AttentiveFP model will be called, which also returns the
+        attention coefficients (alphas) of an intermediate step in the computation. For models like
+        FraGAT and groupGAT this allows keeping track of which fragment groups were responsible for
+        which parts of the attention.
 
     ______
 
@@ -81,11 +87,12 @@ class AFP(Module):
     def __init__(self, node_in_dim: int, edge_in_dim:int, out_dim:int=None, hidden_dim:int=128,
                  num_layers_atom:int = 3, num_layers_mol:int = 3, dropout:float=0.0,
                  regressor:bool=True, mlp_out_hidden:Union[int,list]=512, rep_dropout:float=0.0,
-                 num_global_feats:int = 0):
+                 num_global_feats:int = 0, return_super_nodes:bool = False):
         super(AFP, self).__init__()
 
         self.regressor = regressor
         self.num_global_feats = num_global_feats
+        self.return_super_nodes = return_super_nodes
 
         self.rep_dropout = nn.Dropout(rep_dropout)
 
@@ -96,8 +103,11 @@ class AFP(Module):
             else:
                 out_dim = mlp_out_hidden[0]
 
+        Attentive_FP = AttentiveFP
+        if self.return_super_nodes:
+            Attentive_FP = AttentiveFP_alphas #overwrite it with our own that returns alphas
 
-        self.AFP_layers = AttentiveFP(
+        self.AFP_layers = Attentive_FP(
             in_channels=node_in_dim,
             edge_dim= edge_in_dim,
             hidden_channels=hidden_dim,
@@ -132,7 +142,7 @@ class AFP(Module):
             self.mlp_out = lambda x: x
 
     def reset_parameters(self):
-        from grape.utils import reset_weights
+        from grape_chem.utils import reset_weights
         self.AFP_layers.reset_parameters()
         if self.regressor:
             reset_weights(self.mlp_out)
@@ -140,9 +150,15 @@ class AFP(Module):
 
     def forward(self, data, return_lats:bool=False):
         x, edge_index, edge_attr, batch = data.x, data.edge_index, data.edge_attr, data.batch
-        out = self.AFP_layers(x, edge_index, edge_attr, batch)
+        # change back to also handle normal case:
+        if self.return_super_nodes:
+            out, alphas = self.AFP_layers(x, edge_index, edge_attr, batch)
+        else:
+            out = self.AFP_layers(x, edge_index, edge_attr, batch)
 
         if return_lats:
+            if self.return_super_nodes:
+                return out, alphas
             return out
 
         # Dropout

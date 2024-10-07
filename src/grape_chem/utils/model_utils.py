@@ -1,14 +1,16 @@
-from typing import Callable, Union
+from typing import Callable, Union, List, Tuple, Optional
 import torch
 from torch import Tensor
+from torch.utils.data import DataLoader as TorchDataloader
 from torch.nn import Module, Sequential
 from torch.optim import lr_scheduler
 from numpy import ndarray
 import numpy as np
 from torch_geometric.loader import DataLoader
 from torch_geometric.data import Data
+from torch_geometric.data import Batch
 from tqdm import tqdm
-from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score, root_mean_squared_error
+from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score, root_mean_squared_error, mean_absolute_percentage_error
 from grape_chem.utils import DataSet
 import os
 import dgl
@@ -17,13 +19,15 @@ __all__ = [
     'EarlyStopping',
     'reset_weights',
     'train_model',
+    'train_model_jit',
     'train_epoch',
     'val_epoch',
     'test_model',
     'pred_metric',
     'return_hidden_layers',
     'set_seed',
-    'rescale_arrays'
+    'rescale_arrays',
+    'test_model_jit'
 ]
 
 # import grape_chem.models
@@ -105,6 +109,23 @@ def reset_weights(model: Module):
                 reset_weights(child)
 
 
+def batch_implicit_with_frag(data_list):
+    """
+    implicit because we're not actually naming the attributes of the batch
+    only works when there IS fragmentation for now, else fails
+    """
+    # Handle the graphs, fragments, and motifs separately if necessary
+    graphs = [item[0] for item in data_list]
+    frag_graphs = [item[1] for item in data_list]
+    motif_graphs = [item[2] for item in data_list]
+
+    # Use PyTorch Geometric's batching function for each part
+    batched_graph = Batch.from_data_list(graphs)
+    batched_frag = Batch.from_data_list(frag_graphs) if frag_graphs else None
+    batched_motif = Batch.from_data_list(motif_graphs) if motif_graphs else None
+
+    return batched_graph, batched_frag, batched_motif
+
 ##########################################################################
 ########### Training and Testing functions ###############################
 ##########################################################################
@@ -114,7 +135,7 @@ def train_model(model: torch.nn.Module, loss_func: Union[Callable,str], optimize
                 train_data_loader: Union[list, Data, DataLoader], val_data_loader: Union[list, Data, DataLoader],
                 device: str = None, epochs: int = 50, batch_size: int = 32,
                 early_stopper: EarlyStopping = None, scheduler: lr_scheduler = None,
-                tuning: bool = False, model_name:str = None) -> tuple[list,list]:
+                tuning: bool = False, model_name:str = None, model_needs_frag : bool = False,) -> tuple[list,list]:
     """Auxiliary function to train and test a given model and return the (training, test) losses.
     Can initialize DataLoaders if only lists of Data objects are given.
 
@@ -163,22 +184,61 @@ def train_model(model: torch.nn.Module, loss_func: Union[Callable,str], optimize
 
     device = torch.device('cpu') if device is None else device
 
+    exclude_keys = None
+    #in some cases this dataloader shouldn't batch the graphs that result from fragmentations with the rest
+    if not model_needs_frag:
+        if hasattr(train_data_loader, "fragmentation"):
+            if train_data_loader.fragmentation is not None:
+                exclude_keys = ["frag_graphs", "motif_graphs"]
+    
+
     if not isinstance(train_data_loader, DataLoader):
-        train_data_loader = DataLoader(train_data_loader, batch_size = batch_size)
+        train_data_loader = DataLoader(train_data_loader, batch_size = batch_size, exclude_keys=exclude_keys,)
 
     if not isinstance(val_data_loader, DataLoader):
-        val_data_loader = DataLoader(val_data_loader, batch_size = batch_size)
+        val_data_loader = DataLoader(val_data_loader, batch_size = batch_size, exclude_keys=exclude_keys,)
 
     model.train()
     train_loss = []
     val_loss = []
+
+    def handle_heterogenous_sizes(y, out):
+        """
+        Unfortunate function due to the fact that we don't
+        have a standard return type for all our models.
+
+        Ideally we should have different training loops or 
+        standardized model outputs but this will do for now.
+        """
+        if not isinstance(out, torch.Tensor):
+            return out
+        if y.dim() == out.dim():
+            return out
+        return out.squeeze() #needed for some models
+
+    def move_to_device(data, device):
+        """
+        a wrapper for all the calls to properly move 
+        nested and batched PyG Data to a cuda device
+        """
+        if isinstance(data, torch.Tensor):
+            return data.to(device)
+        elif isinstance(data, list):
+            return [move_to_device(item, device) for item in data]
+        elif isinstance(data, dict):
+            return {key: move_to_device(value, device) for key, value in data.items()}
+        else:
+            return data
 
     with tqdm(total = epochs) as pbar:
         for i in range(epochs):
             temp = np.zeros(len(train_data_loader))
             for idx, batch in enumerate(train_data_loader):
                 optimizer.zero_grad()
-                out = model(batch.to(device))
+
+                out = model(move_to_device(batch, device),)
+                out = handle_heterogenous_sizes(batch.y, out)
+
                 loss_train = loss_func(batch.y, out)
 
                 temp[idx] = loss_train.detach().cpu().numpy()
@@ -192,7 +252,8 @@ def train_model(model: torch.nn.Module, loss_func: Union[Callable,str], optimize
 
             temp = np.zeros(len(val_data_loader))
             for idx, batch in enumerate(val_data_loader):
-                out = model(batch.to(device))
+                out = model(move_to_device(batch, device),)
+                out = handle_heterogenous_sizes(batch.y, out)
                 temp[idx] = loss_func(batch.y, out).detach().cpu().numpy()
 
             loss_val = np.mean(temp)
@@ -215,7 +276,268 @@ def train_model(model: torch.nn.Module, loss_func: Union[Callable,str], optimize
                         break
 
             pbar.update(1)
-        if early_stopper.stop is False and model_name is not None:
+        if early_stopper and not early_stopper.stop and model_name:
+            torch.save(model.state_dict(), model_name)
+            print(f'Model saved at: {model_name}')
+
+    return train_loss, val_loss
+
+
+##############################################################################################################
+################ Train loop with only jit-friendly operations ################################################
+##############################################################################################################
+
+import torch
+import torch.nn.functional as F
+from torch.optim import Optimizer, lr_scheduler
+from torch.utils.data import DataLoader
+from typing import Union, Callable, List
+import numpy as np
+from tqdm import tqdm
+from torch_geometric.data import Data, DataLoader, Batch
+
+def train_model_jit(
+    model: torch.nn.Module,
+    loss_func: Union[Callable, str],
+    optimizer: Optimizer,
+    train_data_loader: Union[List[Data], DataLoader],
+    val_data_loader: Union[List[Data], DataLoader],
+    device: str = None,
+    epochs: int = 50,
+    batch_size: int = 32,
+    early_stopper=None,
+    scheduler: lr_scheduler._LRScheduler = None,
+    tuning: bool = False,
+    model_name: str = None,
+    model_needs_frag: bool = False,
+    net_params: dict = None,
+) -> tuple[List[float], List[float]]:
+    """
+    Training function adapted for the JIT-compiled model, which requires individual tensors as input.
+    """
+    loss_functions = {
+        'mse': F.mse_loss,
+        'mae': F.l1_loss
+    }
+
+    if isinstance(loss_func, str):
+        loss_func = loss_functions[loss_func]
+
+    device = torch.device('cpu') if device is None else torch.device(device)
+
+    exclude_keys = None
+    # Exclude fragmentation keys if the model doesn't need them
+    if not model_needs_frag:
+        if hasattr(train_data_loader, "fragmentation"):
+            if train_data_loader.fragmentation is not None:
+                exclude_keys = ["frag_graphs", "motif_graphs"]
+
+    if not isinstance(train_data_loader, DataLoader):
+        train_data_loader = DataLoader(
+            train_data_loader, batch_size=batch_size, exclude_keys=exclude_keys
+        )
+
+    if not isinstance(val_data_loader, DataLoader):
+        val_data_loader = DataLoader(
+            val_data_loader, batch_size=batch_size, exclude_keys=exclude_keys
+        )
+
+    model.train()
+    train_loss = []
+    val_loss = []
+
+    def handle_heterogenous_sizes(y, out):
+        if not isinstance(out, torch.Tensor):
+            return out
+        if y.dim() == out.dim():
+            return out
+        return out.squeeze()  # Needed for some models
+
+    with tqdm(total=epochs) as pbar:
+        for epoch in range(epochs):
+            temp = np.zeros(len(train_data_loader))
+            for idx, batch in enumerate(train_data_loader):
+                optimizer.zero_grad()
+                # Extract tensors from batch (same as above)
+                data_x = batch.x.to(device)
+                data_edge_index = batch.edge_index.to(device)
+                data_edge_attr = batch.edge_attr.to(device)
+                data_batch = batch.batch.to(device)
+
+                # Fragment graphs
+                frag_graphs = batch.frag_graphs  # List[Data]
+                frag_batch_list = []
+                frag_x_list = []
+                frag_edge_index_list = []
+                frag_edge_attr_list = []
+                node_offset = 0
+                for i, frag in enumerate(frag_graphs):
+                    num_nodes = frag.num_nodes
+                    frag_batch_list.append(torch.full((num_nodes,), i, dtype=torch.long, device=device))
+                    frag_x_list.append(frag.x.to(device))
+                    adjusted_edge_index = frag.edge_index + node_offset
+                    frag_edge_index_list.append(adjusted_edge_index.to(device))
+                    frag_edge_attr_list.append(frag.edge_attr.to(device))
+                    node_offset += num_nodes
+
+                frag_x = torch.cat(frag_x_list, dim=0)
+                frag_edge_index = torch.cat(frag_edge_index_list, dim=1)
+                frag_edge_attr = torch.cat(frag_edge_attr_list, dim=0)
+                #frag_batch_1 = torch.cat(frag_batch_list, dim=0)
+                frag_batch = Batch.from_data_list(batch.frag_graphs).to(device).batch #moved this computation to training loop
+                motif_nodes = Batch.from_data_list(batch.frag_graphs).x
+                # Adjusted code:
+                junction_graphs = batch.motif_graphs  # List[Data]
+                junction_batch_list = []
+                junction_x_list = []
+                junction_edge_index_list = []
+                junction_edge_attr_list = []
+                node_offset = 0
+                for i, motif in enumerate(junction_graphs):
+                    num_nodes = motif.num_nodes
+                    junction_batch_list.append(torch.full((num_nodes,), i, dtype=torch.long, device=device))
+                    junction_x_list.append(motif.x.to(device))
+                    adjusted_edge_index = motif.edge_index + node_offset
+                    junction_edge_index_list.append(adjusted_edge_index.to(device))
+                    junction_edge_attr_list.append(motif.edge_attr.to(device))
+                    node_offset += num_nodes
+
+                junction_x = torch.cat(junction_x_list, dim=0)
+                junction_edge_index = torch.cat(junction_edge_index_list, dim=1)
+                junction_edge_attr = torch.cat(junction_edge_attr_list, dim=0)
+                junction_batch = torch.cat(junction_batch_list, dim=0)
+
+                out = model(
+                    data_x,
+                    data_edge_index,
+                    data_edge_attr,
+                    data_batch,
+                    frag_x,
+                    frag_edge_index,
+                    frag_edge_attr,
+                    frag_batch,
+                    junction_x,
+                    junction_edge_index,
+                    junction_edge_attr,
+                    junction_batch,
+                    motif_nodes,
+                )
+
+                out = handle_heterogenous_sizes(batch.y.to(device), out)
+
+                loss_train = loss_func(batch.y.to(device), out)
+
+                temp[idx] = loss_train.detach().cpu().numpy()
+
+                loss_train.backward()
+                optimizer.step()
+
+            loss_train = np.mean(temp)
+            train_loss.append(loss_train)
+
+            # Validation loop
+            model.eval()
+            temp = np.zeros(len(val_data_loader))
+            with torch.no_grad():
+                for idx, batch in enumerate(val_data_loader):
+                    # Extract tensors from batch (same as above)
+                    data_x = batch.x.to(device)
+                    data_edge_index = batch.edge_index.to(device)
+                    data_edge_attr = batch.edge_attr.to(device)
+                    data_batch = batch.batch.to(device)
+
+                    # Fragment graphs
+                    frag_graphs = batch.frag_graphs  # List[Data]
+                    frag_batch_list = []
+                    frag_x_list = []
+                    frag_edge_index_list = []
+                    frag_edge_attr_list = []
+                    node_offset = 0
+                    for i, frag in enumerate(frag_graphs):
+                        num_nodes = frag.num_nodes
+                        frag_batch_list.append(torch.full((num_nodes,), i, dtype=torch.long, device=device))
+                        frag_x_list.append(frag.x.to(device))
+                        adjusted_edge_index = frag.edge_index + node_offset
+                        frag_edge_index_list.append(adjusted_edge_index.to(device))
+                        frag_edge_attr_list.append(frag.edge_attr.to(device))
+                        node_offset += num_nodes
+
+                    frag_x = torch.cat(frag_x_list, dim=0)
+                    frag_edge_index = torch.cat(frag_edge_index_list, dim=1)
+                    frag_edge_attr = torch.cat(frag_edge_attr_list, dim=0)
+                    #frag_batch = torch.cat(frag_batch_list, dim=0)
+
+                    # Junction graphs (motif graphs)
+                    motif_graphs = batch.motif_graphs  # List[Data]
+                    junction_batch_list = []
+                    junction_x_list = []
+                    junction_edge_index_list = []
+                    junction_edge_attr_list = []
+                    # Remove motif_nodes_list if motif_nodes is not available
+                    # motif_nodes_list = []
+                    node_offset = 0
+                    for i, motif in enumerate(motif_graphs):
+                        num_nodes = motif.num_nodes
+                        junction_batch_list.append(torch.full((num_nodes,), i, dtype=torch.long, device=device))
+                        junction_x_list.append(motif.x.to(device))
+                        adjusted_edge_index = motif.edge_index + node_offset
+                        junction_edge_index_list.append(adjusted_edge_index.to(device))
+                        junction_edge_attr_list.append(motif.edge_attr.to(device))
+                        # If motif_nodes is not available, you can skip this
+                        node_offset += num_nodes
+
+                    frag_batch = Batch.from_data_list(batch.frag_graphs).to(device).batch #moved this computation to training loop
+                    motif_nodes = Batch.from_data_list(batch.frag_graphs).to(device).x
+
+                    junction_x = torch.cat(junction_x_list, dim=0)
+                    junction_edge_index = torch.cat(junction_edge_index_list, dim=1)
+                    junction_edge_attr = torch.cat(junction_edge_attr_list, dim=0)
+                    junction_batch = torch.cat(junction_batch_list, dim=0)
+                    # If motif_nodes is not available, create a placeholder or adjust the model accordingly
+                    #motif_nodes = torch.zeros(junction_x.size(0), net_params['frag_dim']).to(device)
+
+                    # Forward pass
+                    out = model(
+                        data_x,
+                        data_edge_index,
+                        data_edge_attr,
+                        data_batch,
+                        frag_x,
+                        frag_edge_index,
+                        frag_edge_attr,
+                        frag_batch,
+                        junction_x,
+                        junction_edge_index,
+                        junction_edge_attr,
+                        junction_batch,
+                        motif_nodes,
+                    )
+
+                    out = handle_heterogenous_sizes(batch.y.to(device), out)
+                    temp[idx] = loss_func(batch.y.to(device), out).detach().cpu().numpy()
+
+            loss_val = np.mean(temp)
+            val_loss.append(loss_val)
+            model.train()  # Switch back to training mode
+
+            if epoch % 2 == 0:
+                pbar.set_description(f"Epoch {epoch}, Training Loss: {loss_train:.3f}, Validation Loss: {loss_val:.3f}")
+
+            if scheduler is not None:
+                scheduler.step(loss_val)
+
+            if early_stopper is not None:
+                early_stopper(val_loss=loss_val, model=model)
+                if early_stopper.stop:
+                    print("Early stopping reached with best validation loss: {:.4f}".format(early_stopper.best_score))
+                    early_stopper.stop_epoch = epoch - early_stopper.patience
+                    if tuning:
+                        pass
+                    else:
+                        break
+
+            pbar.update(1)
+        if early_stopper and not early_stopper.stop and model_name:
             torch.save(model.state_dict(), model_name)
             print(f'Model saved at: {model_name}')
 
@@ -311,7 +633,7 @@ def test_model(model: torch.nn.Module, test_data_loader: Union[list, Data, DataL
     device = torch.device('cpu') if device is None else device
 
     if not isinstance(test_data_loader, DataLoader):
-        test_data_loader = DataLoader(test_data_loader, batch_size = batch_size)
+        test_data_loader = DataLoader([data for data in test_data_loader], batch_size = batch_size)
 
     model.eval()
 
@@ -339,7 +661,170 @@ def test_model(model: torch.nn.Module, test_data_loader: Union[list, Data, DataL
         return preds, latents
     return preds
 
+##############################################################################################################
+################################# JIttable Model Testing #####################################################
+##############################################################################################################
 
+
+def test_model_jit(
+    model: torch.nn.Module,
+    test_data_loader: Union[List, Data, DataLoader],
+    device: str = None,
+    batch_size: int = 32,
+    return_latents: bool = False,
+    model_needs_frag: bool = False,
+    net_params: dict = None,
+) -> Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]:
+    """
+    Auxiliary function to test a trained JIT-compiled model and return the predictions as well as the latent node
+    representations. Can initialize DataLoaders if only a list of Data objects is given.
+
+    Notes
+    -----
+    This function is designed for JIT-compiled models that require individual tensors as input.
+
+    Parameters
+    ----------
+    model : torch.nn.Module
+        The JIT-compiled model to be tested.
+    test_data_loader : list of Data or DataLoader
+        A list of Data objects or the DataLoader directly to be used as the test graphs.
+    device : str, optional
+        Torch device to be used ('cpu', 'cuda', or 'mps'). Default is 'cpu'.
+    batch_size : int, optional
+        Batch size of the DataLoader if not given directly. Default is 32.
+    return_latents : bool, optional
+        Determines if the latents should be returned. **If used, the model must include `return_lats` parameter**.
+        Default is False.
+    model_needs_frag : bool, optional
+        Whether the model needs fragment graphs or not. Default is False.
+    net_params : dict, optional
+        A dictionary containing network parameters, used for dimension matching if necessary.
+
+    Returns
+    -------
+    Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]
+        Predictions, and optionally latents if `return_latents` is True.
+    """
+    device = torch.device('cpu') if device is None else torch.device(device)
+
+    # Exclude fragmentation keys if the model doesn't need them
+    exclude_keys = None
+    if not model_needs_frag:
+        exclude_keys = ["frag_graphs", "motif_graphs"]
+
+    if not isinstance(test_data_loader, DataLoader):
+        test_data_loader = DataLoader([data for data in test_data_loader], batch_size = batch_size)
+
+    model.eval()
+
+    with torch.no_grad():
+        with tqdm(total=len(test_data_loader)) as pbar:
+            preds_list = []
+            if return_latents:
+                latents_list = []
+            for idx, batch in enumerate(test_data_loader):
+                # Extract tensors from batch
+                data_x = batch.x.to(device)
+                data_edge_index = batch.edge_index.to(device)
+                data_edge_attr = batch.edge_attr.to(device)
+                data_batch = batch.batch.to(device)
+
+                # Fragment graphs
+                frag_graphs = batch.frag_graphs  # List[Data]
+                frag_batch_list = []
+                frag_x_list = []
+                frag_edge_index_list = []
+                frag_edge_attr_list = []
+                node_offset = 0
+                for i, frag in enumerate(frag_graphs):
+                    num_nodes = frag.num_nodes
+                    frag_batch_list.append(torch.full((num_nodes,), i, dtype=torch.long, device=device))
+                    frag_x_list.append(frag.x.to(device))
+                    adjusted_edge_index = frag.edge_index + node_offset
+                    frag_edge_index_list.append(adjusted_edge_index.to(device))
+                    frag_edge_attr_list.append(frag.edge_attr.to(device))
+                    node_offset += num_nodes
+
+                frag_x = torch.cat(frag_x_list, dim=0)
+                frag_edge_index = torch.cat(frag_edge_index_list, dim=1)
+                frag_edge_attr = torch.cat(frag_edge_attr_list, dim=0)
+                frag_batch = torch.cat(frag_batch_list, dim=0)
+
+                # Junction graphs (motif graphs)
+                motif_graphs = batch.motif_graphs  # List[Data]
+                junction_batch_list = []
+                junction_x_list = []
+                junction_edge_index_list = []
+                junction_edge_attr_list = []
+                node_offset = 0
+                for i, motif in enumerate(motif_graphs):
+                    num_nodes = motif.num_nodes
+                    junction_batch_list.append(torch.full((num_nodes,), i, dtype=torch.long, device=device))
+                    junction_x_list.append(motif.x.to(device))
+                    adjusted_edge_index = motif.edge_index + node_offset
+                    junction_edge_index_list.append(adjusted_edge_index.to(device))
+                    junction_edge_attr_list.append(motif.edge_attr.to(device))
+                    node_offset += num_nodes
+
+                junction_x = torch.cat(junction_x_list, dim=0)
+                junction_edge_index = torch.cat(junction_edge_index_list, dim=1)
+                junction_edge_attr = torch.cat(junction_edge_attr_list, dim=0)
+                junction_batch = torch.cat(junction_batch_list, dim=0)
+
+                frag_batch = Batch.from_data_list(batch.frag_graphs).to(device).batch #moved this computation to training loop
+                motif_nodes = Batch.from_data_list(batch.frag_graphs).to(device).x
+
+                # Forward pass
+                if return_latents:
+                    # Assuming the model's forward method supports `return_lats` parameter
+                    out, lat = model(
+                        data_x,
+                        data_edge_index,
+                        data_edge_attr,
+                        data_batch,
+                        frag_x,
+                        frag_edge_index,
+                        frag_edge_attr,
+                        frag_batch,
+                        junction_x,
+                        junction_edge_index,
+                        junction_edge_attr,
+                        junction_batch,
+                        motif_nodes
+                    )
+                    lat = lat.detach().cpu()
+                    latents_list.append(lat)
+                else:
+                    out = model(
+                        data_x,
+                        data_edge_index,
+                        data_edge_attr,
+                        data_batch,
+                        frag_x,
+                        frag_edge_index,
+                        frag_edge_attr,
+                        frag_batch,
+                        junction_x,
+                        junction_edge_index,
+                        junction_edge_attr,
+                        junction_batch,
+                        motif_nodes
+                    )
+
+                out = out.detach().cpu()
+                preds_list.append(out)
+
+                pbar.update(1)
+
+    # Concatenate predictions and latents
+    preds = torch.cat(preds_list, dim=0)
+    if return_latents:
+        latents = torch.cat(latents_list, dim=0)
+        return preds, latents
+    else:
+        return preds
+    
 ##########################################################################
 ########### Prediction Metrics ###########################################
 ##########################################################################
@@ -412,7 +897,7 @@ def pred_metric(prediction: Union[Tensor, ndarray], target: Union[Tensor, ndarra
         The target array or tensor corresponding to the prediction.
     metrics: str or list[str]
         A string or a list of strings specifying what metrics should be returned. The options are:
-        [``mse``, ``rmse``, ``sse``, ``mae``, ``r2``, ``mre``, ``mdape``] or 'all' for every option. Default: 'mse'
+        [``mse``, ``rmse``, ``sse``, ``mae``, ``r2``, ``mre``, ``mdape``, ``pearson``] or 'all' for every option. Default: 'mse'
     print_out: bool
         Will print out formatted results if True. Default: True
 
@@ -434,12 +919,15 @@ def pred_metric(prediction: Union[Tensor, ndarray], target: Union[Tensor, ndarra
         target = rescale_data.rescale_data(target)
 
     if metrics == 'all':
-        metrics = ['mse','rmse','sse','mae','r2','mre', 'mdape']
+        metrics = ['mse','rmse','sse','mae','r2','mre', 'mdape','mape', 'pearson']
 
     results = dict()
     prints = []
     delta = 1e-12
     target = target+delta
+
+    target_flat = target.flatten()
+    prediction_flat = prediction.flatten()
 
     for metric_ in metrics:
         if metric_ == 'mse':
@@ -457,6 +945,13 @@ def pred_metric(prediction: Union[Tensor, ndarray], target: Union[Tensor, ndarra
         elif metric_ ==  'r2':
             results['r2'] = r2_score(target, prediction)
             prints.append(f'R2: {r2_score(target, prediction):.3f}')
+        elif metric_ == 'pearson':
+            pearson_corr = np.corrcoef(target_flat, prediction_flat)[0, 1]
+            results['r2'] = pearson_corr
+            prints.append(f'Pearson Corr Coeff: {pearson_corr:.3f}')
+        elif metric_ == 'mape':
+            results['mape'] = mean_absolute_percentage_error(target, prediction)
+            prints.append(f"MAPE: {results['mape']:.3f}%")
         elif metric_ ==  'mre':
             results['mre'] = np.mean(np.abs((target-prediction)/target))*100
             prints.append(f'MRE: {np.mean(np.abs((target - prediction) / target)) * 100:.3f}%')

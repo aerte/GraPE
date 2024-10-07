@@ -66,8 +66,14 @@ class SubSet:
 
     def __getitem__(self, item):
         if isinstance(item, list):
-            return self.dataset[[self.indices[i] for i in item]]
-        return self.dataset[self.indices[item]]
+            # Handle list of indices by concatenating Data objects
+            data_list = [self.dataset[self.indices[i]] for i in item]
+            # Optionally, merge data_list into a single Data object
+            # depending on your application's needs
+            # For now, let's return the list
+            return data_list  # Be aware that this returns a list
+        else:
+            return self.dataset[self.indices[item]]
 
     def __iter__(self):
         """
@@ -321,5 +327,4 @@ def split_data(data, split_type: str = None, split_frac: list[float] = None, cus
                                                                        **kwargs))
     if is_dmpnn:
         train, val, test = RevIndexedSubSet(train), RevIndexedSubSet(val), RevIndexedSubSet(test)
-
     return train, val, test
