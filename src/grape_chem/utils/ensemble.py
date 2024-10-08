@@ -4,6 +4,7 @@ from torch.nn import MSELoss
 from grape_chem.models import AFP, DMPNN
 from torch_geometric.data import Data
 from grape_chem.utils import train_model, test_model, pred_metric, EarlyStopping
+from grape_chem.utils.data import DataSet
 from grape_chem.utils.model_utils import set_seed
 from grape_chem.plots.ensemble_plots import calculate_nll, calculate_calibrated_nll, calculate_mca, calculate_spearman_rank
 from sklearn.utils import resample
@@ -78,7 +79,7 @@ class Ensemble:
         mlflow.log_metrics(updated_metrics)
 
     def get_preds_and_targets_ensemble(self, models):
-        metrics, predictions, targets = [], [], []
+        predictions, targets = [], []
         for model in models:
             model.to(self.device)
             pred = test_model(model=model, test_data_loader=self.test_data, device=self.device, batch_size=len(self.test_data))
@@ -89,8 +90,7 @@ class Ensemble:
             predictions.append(pred)
             targets.append(trgts)
 
-            metrics.append(pred_metric(pred, trgts, metrics='all', print_out=False))
-        return metrics, predictions, targets
+        return predictions, targets
     
     ## Training functions
     def create_model(self):
@@ -118,19 +118,27 @@ class Ensemble:
         return model
 
     ## Main ensemble function that runs the ensemble technique and all its helper functions
-    def run(self):
+    def run(self, dataset: DataSet):
         train_samples, val_samples = self.create_samples()
         models = []
         for i in range(self.hyperparams['n_models']):
             model = self.train_single_model(train_samples[i], val_samples[i], i)
             models.append(model)
-
-        metrics, predictions, targets = self.get_preds_and_targets_ensemble(models) 
+        
+        prediction_list, target_list = self.get_preds_and_targets_ensemble(models) 
+        # Rescale predictions and targets using list comprehensions
+        preds = [dataset.rescale_data(prediction) for prediction in prediction_list]
+        targts = [dataset.rescale_data(target) for target in target_list]
+        metrics = []
+        for prediction, target in zip(preds, targts):
+            metrics.append(pred_metric(prediction, target, metrics='all', print_out=False))
         calculate_std_metrics(metrics, self.technique)
-        targets = torch.cat([data.y for data in self.test_data], dim=0).to(self.device)
-
-        average_predictions = torch.stack(predictions).mean(dim=0)
-        self.log_and_plot_ensemble_uq_metrics(average_predictions.cpu().detach(), targets.cpu().detach())
+        
+        # Take one sample of the targets
+        targets = targts[0]
+        # Calc the average predictions
+        avg_predictions = torch.mean(torch.stack(preds), dim=0)
+        self.log_and_plot_ensemble_uq_metrics(avg_predictions.cpu().detach(), targets.cpu().detach())
 
     def create_samples(self):
         raise NotImplementedError("Subclasses should implement this method")
