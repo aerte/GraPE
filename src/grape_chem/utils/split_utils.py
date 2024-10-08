@@ -319,7 +319,8 @@ def split_data(data, split_type: str = None, split_frac: list[float] = None, cus
     train, val, test = mult_subset_to_SubSets(split_func[split_type].train_val_test_split(data, frac_train=split_frac[0],
                                                                        frac_test=split_frac[1], frac_val=split_frac[2],
                                                                        **kwargs))
+
     if is_dmpnn:
         train, val, test = RevIndexedSubSet(train), RevIndexedSubSet(val), RevIndexedSubSet(test)
-
+       
     return train, val, test

@@ -13,13 +13,17 @@ def setup_run_name(config: Dict):
         run_name = f"{data_name}_{run_name}"
 
     # Determine model name
-    model_name = config.get('model_name') or config.get('model_class', '').lower()
+    model_name = config['model_name'].lower()
 
     # Update the run_name based on the model type
-    if 'dmpnn' in model_name:
+    if 'originaldmpnn' in model_name:
+        run_name = f"OriginalDMPNN_{run_name}"
+    elif 'dmpnn' in model_name:
         run_name = f"DMPNN_{run_name}"
     elif 'afp' in model_name:
         run_name = f"AFP_{run_name}"
+    else:
+        run_name = f"Custom_{run_name}"
 
     # Update and print run_name in config
     config['run_name'] = run_name

@@ -216,19 +216,21 @@ def load_model_from_data(data, config, device):
         'data_std': data.std, 
         'data_name': data.data_name
     }
-    
     # Initialize model based on the specified model name
-    if 'dmpnn' in config['model_name'].lower():
-        from grape_chem.models import DMPNN, originalDMPNN
+    if 'original' in config['model_name'].lower():
+        print("################# Original DMPNN #################")
+        from grape_chem.models import originalDMPNN
+        model = originalDMPNN(node_in_dim=node_in_dim, edge_in_dim=edge_in_dim, 
+                    node_hidden_dim=config['hidden_dim'], dropout=config['dropout'], 
+                    mlp_out_hidden=mlp, num_global_feats=num_global_feats)
+    elif 'dmpnn' in config['model_name'].lower():
+        print("################## DMPNN ##################")
+        from grape_chem.models import DMPNN
         model = DMPNN(node_in_dim=node_in_dim, edge_in_dim=edge_in_dim, 
                       node_hidden_dim=config['hidden_dim'], dropout=config['dropout'], 
                       mlp_out_hidden=mlp, num_global_feats=num_global_feats, dataset_dict=dataset_dict)
-        # model = originalDMPNN(node_in_dim=node_in_dim, edge_in_dim=edge_in_dim, 
-        #             node_hidden_dim=config['hidden_dim'], dropout=config['dropout'], 
-        #             mlp_out_hidden=mlp, num_global_feats=num_global_feats)
-
-    
     elif 'afp' in config['model_name'].lower():
+        print("################## AFP ##################")
         from grape_chem.models import AFP
         model = AFP(node_in_dim=node_in_dim, edge_in_dim=edge_in_dim, 
                     out_dim=1, mlp_out_hidden=mlp, num_global_feats=num_global_feats, dataset_dict=dataset_dict)
@@ -437,8 +439,6 @@ def val_epoch(model: torch.nn.Module, loss_func: Callable, val_loader, device: s
 ################################# Model testing ##############################################################s
 ##############################################################################################################
 
-
-
 def test_model(model: torch.nn.Module, test_data_loader: Union[list, Data, DataLoader],
                 device: str = None, batch_size: int = 32, return_latents: bool = False, mlflow_log: bool = False) -> (
         Union[Tensor, tuple[Tensor,Tensor], tuple[Tensor, Tensor, list]]):
@@ -502,18 +502,11 @@ def test_model(model: torch.nn.Module, test_data_loader: Union[list, Data, DataL
                 if return_latents:
                     latents = torch.concat((latents, lat), dim=0)
 
-            pbar.update(1)
-
-    log_preds = torch.cat(all_preds).detach()
-    log_targets = torch.cat(all_targets).detach()
-
-    if mlflow_log == True:
-        metrics = pred_metric(log_preds, log_targets, metrics='all', print_out=False)
-        #print("############## METRICS ##########################################",metrics, type(metrics))
-        mlflow.log_metrics(metrics)
+            pbar.update(1)    
         
     if return_latents:
         return preds, latents
+    
     return preds
 
 
