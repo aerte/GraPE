@@ -97,7 +97,8 @@ def filter_smiles(smiles: list[str], target: Union[list[str], list[float], ndarr
                 if log:
                     print(f'SMILES {element} in index {list(df.smiles).index(element)} consists of less than 2 heavy atoms'
                         f' and will be ignored.')
-                indices_to_drop.append(list(df.smiles).index(element))
+                #TODO: fix index issue, it does not handle cases where there are duplicates of the same mol which fits this condition
+                indices_to_drop.append(list(df.smiles).index(element)) 
 
             else:
                 carbon_count = 0
