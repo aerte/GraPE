@@ -86,7 +86,7 @@ def filter_smiles(smiles: list[str], target: Union[list[str], list[float], ndarr
         print("##########################################################################################")
         print("Multidimensional global features: ", is_multidimensional(global_feats), "type: ", type(global_feats))	
         #print("Global features shape: ", len(global_feats), len(global_feats[0]))
-        print("global_feats: ", global_feats)
+        #print("global_feats: ", global_feats)
         print("##########################################################################################")
 
         if is_multidimensional(global_feats):
@@ -874,9 +874,57 @@ class GraphDataSet(DataSet):
             self.train, self.val, self.test = split_data(data = self, split_type = self.split_type,
                                                         split_frac = self.split_frac, custom_split = self.custom_split,
                                                          seed=seed)
+        
 
+def extract_data_from_dataframe(config: Dict, encodings = None, limit: int = None):
+    if encodings is None:
+        encodings = ['latin', 'utf-8', 'utf-8-sig', 'iso-8859-1', 'unicode_escape', 'cp1252']  # Default encodings
+    
+    df = None
+    smiles = None
+    target = None
+    global_features = None
+    global_features_names = None
+    features = None
+    
+    print("config['data_path']: ", config['data_path'])
+    for encoding in encodings:
+        try:
+            df = pd.read_csv(config['data_path'], sep=';', encoding=encoding)
+            if limit is not None:
+                df = df[:limit]  # Limit to reduce the size of the dataset
+            print("########################################################################", df.head())
 
+            # Drop rows where the target column has NaN values
+            df[config['target']] = pd.to_numeric(df[config['target']], errors='coerce')
+            df.dropna(subset=[config['target']], inplace=True)
 
+            # Extract 'SMILES' and 'target' from the cleaned DataFrame
+            smiles = df['SMILES']
+            target = df[config['target']]
+
+            global_features_names = config['global_features']
+            print("df set with encoding: ", encoding)
+            break  # Break if successful
+        except Exception as e:
+            print(f"Failed to read file with encoding {encoding}. Error: {e}")
+            continue
+
+    if df is None:
+        raise ValueError("Failed to read file with any encoding")
+
+    # Extract global features if they exist in the DataFrame
+    if global_features_names and len(global_features_names) > 0:
+        # Fetch the features from the dataframe
+        features = [df[feature].values for feature in global_features_names]
+
+    # Check the length of features and convert to the appropriate format
+    if features and len(features) == 1:
+        global_features = features[0]  # Keep it as a 1D array if only one feature
+    elif features:
+        global_features = np.array(features)  # Convert to a 2D array if multiple features
+
+    return df, smiles, target, global_features
 
 def load_dataset_from_excel(file_path: str, dataset:str, is_dmpnn=False, return_dataset:bool = False):
     """ A convenience function to load a dataset from an excel file and a specific sheet there-in. The
@@ -923,51 +971,17 @@ def load_dataset_from_excel(file_path: str, dataset:str, is_dmpnn=False, return_
 
     return train_set, val_set, test_set
 
-def load_data_from_csv(config: Dict, return_dataset:bool = False, limit:int = None):
+def load_data_from_csv(config: Dict, return_dataset: bool = False, return_df: bool = False, limit: int = None, encodings = None, save_splits: bool = False):
     if config['data_path'] is None:
         raise ValueError("File path not provided")
-    encodings = ['latin', 'utf-8']  # List of encodings to try
-    df = None
-    smiles = None
-    target = None
-    global_features_names = None
-    features = None
-    print("config['data_path']: ", config['data_path'])
-    for encoding in encodings:
-        try:
-            df = pd.read_csv(config['data_path'], sep=';', encoding=encoding)
-            if limit is not None:
-                df = df[:limit]  # Limit to reduce the size of the dataset
-            print("########################################################################",df.head())
-            smiles = df['SMILES'] 
-            target = df[config['target']]
-            global_features_names = config['global_features']
-            print("df set with encoding: ", encoding)
-            break  # Break if successful
-        except Exception as e:
-            print(f"Failed to read file with encoding {encoding}. Error: {e}")
-            continue
 
-    if df is None:
-        raise ValueError("Failed to read file with any encoding")
-    
+    # Extract data from the CSV file
+    df, smiles, target, global_features = extract_data_from_dataframe(config, encodings, limit)
 
     if 'dmpnn' in str(config['model_name']).lower():
         is_dmpnn = True
     else:
         is_dmpnn = False
-
-    if len(global_features_names) > 0:
-        # Fetch the features from the dataframe
-        features = [df[feature].values for feature in global_features_names]
-
-    # Check the length of features
-    if features and len(features) == 1:
-        global_features = features[0]  # Keep it as a 1D array if only one feature
-    elif features:
-        global_features = np.array(features)  # Convert to a 2D array if multiple features
-    else:
-        global_features = None
         
     #print("Global features shape: ", global_features.shape, "global features names: ", global_features_names, "global features: ", global_features)
     if 'allowed_atoms' in config and config['allowed_atoms'] is not None:
@@ -986,7 +1000,7 @@ def load_data_from_csv(config: Dict, return_dataset:bool = False, limit:int = No
     if mlflow.active_run():
         mlflow.log_param("data_path", config['data_path'])
         mlflow.log_param("Target", config['target'])
-        mlflow.log_param("Global Features", global_features_names)
+        mlflow.log_param("Global Features", config['global_features'])
         mlflow.log_param("Learning Rate", config['learning_rate'])
         mlflow.log_param("smile_example", smile)
         mlflow.log_param("atom_example", atom)
@@ -996,7 +1010,7 @@ def load_data_from_csv(config: Dict, return_dataset:bool = False, limit:int = No
     print("######################### model seed: ", config['model_seed'])
     train_set, val_set, test_set = data.split_and_scale(
             split_frac=[0.8, 0.1, 0.1], scale=True, seed=config['model_seed'], 
-            is_dmpnn=is_dmpnn, split_type='random'
+            is_dmpnn=is_dmpnn, split_type='consecutive'
         )
 
     # In case graphs for DMPNN has to be loaded:
@@ -1012,18 +1026,46 @@ def load_data_from_csv(config: Dict, return_dataset:bool = False, limit:int = No
             "train_size": len(train_set),
             "val_size": len(val_set),
             "test_size": len(test_set)
-            #"number of global features": len(global_features)
         })
+
+    if config['save_splits']:
+        print("DATA SAVING SPLITS NOW")
+        save_splits_to_csv(df, train_set, val_set, test_set, config['save_path'])
 
     if return_dataset:
         return train_set, val_set, test_set, data
     
-        
     return train_set, val_set, test_set
 
 ##########################################################################
 ###########  Handle paths ################################################
 ##########################################################################
+def save_splits_to_csv(df, train_set, val_set, test_set, save_folder=None):
+    """ Saves the splits of a dataset to a csv file. The dataset is saved in the same folder as the original dataset
+    and named after the original dataset with the suffix '_splits'.
+
+    Parameters
+    ----------
+    df: pd.DataFrame
+        The original dataset as a DataFrame.
+    train_set: DataSet
+        The training set.
+    val_set: DataSet
+        The validation set.
+    test_set: DataSet
+        The test set. Not used.
+    
+    """
+    if save_folder is None:
+        save_folder = 'C:\\Users\\Thoma\\code\\GraPE\\notebooks'
+
+    df['Split'] = ['train' if i in train_set.indices else 'val' if i in val_set.indices else 'test' for i in range(len(df))]
+    path = os.path.join(save_folder, "__splits.csv")
+    df.to_csv(path, index=False)
+    print(f"Data splits saved to {path}")
+
+
+
 def get_path(*args):
     ''' Cross platform path join '''
     return os.path.normpath(os.path.join(*args))
@@ -1039,7 +1081,7 @@ def get_model_dir(path, model_name):
     ''' 
     model_dirs = {
         'afp': get_path(path, '../models', 'AFP'),
-        'dmpnn': get_path(path, '../models', 'DMPNN')
+        'dmpnn': get_path(path, '../models', 'DMPNN'),
     }
 
     model_type = next((k for k in model_dirs.keys() if k in model_name.lower()), None)
