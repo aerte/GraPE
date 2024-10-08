@@ -122,7 +122,7 @@ train_data, val_data, test_data = RevIndexedSubSet(train_data), RevIndexedSubSet
 # # TRAINING
 optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
 early_stopper = EarlyStopping(patience=patience, model_name='random', skip_save=True)
-scheduler = lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.9999, min_lr=0.0000000000001,
+scheduler = lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.8, min_lr=0.0000000000001,
                                            patience=patience)
 
 loss_func = torch.nn.functional.l1_loss
