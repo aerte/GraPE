@@ -202,7 +202,7 @@ cython_debug/
 
 # saved models
 gcgat_jitted_latest.pth
-
+*.pth
 # saved models
 gcgat_jitted_latest.pth
 
