@@ -43,7 +43,7 @@ __all__ = ['filter_smiles',
 
 def filter_smiles(smiles: list[str], target: Union[list[str], list[float], ndarray], allowed_atoms: list[str] = None,
                   only_organic: bool = True, allow_dupes: bool = False, log: bool = False,
-                  global_feats = None, custom_split=None) -> Union[list,list]:
+                  global_feats = None, custom_split=None, target_columns=None) -> Union[list,list]:
     """Filters a list of smiles based on the allowed atom symbols.
 
     Parameters
@@ -64,6 +64,8 @@ def filter_smiles(smiles: list[str], target: Union[list[str], list[float], ndarr
         Decides if duplicate smiles should be allowed. Default: False
     custom_split: list (optional)
         The custom split array calculated on the dataset before filtering. Default: None
+    target_columns: list of str
+        In the case of multi dimensional targets, we specify the columns that should also be filtered. Default: None
     Returns
     ----------
     list[str]
@@ -74,11 +76,16 @@ def filter_smiles(smiles: list[str], target: Union[list[str], list[float], ndarr
     if allowed_atoms is None:
         allowed_atoms = ['C', 'N', 'O', 'S', 'F', 'Cl', 'Br', 'I', 'P']
 
-    if global_feats is not None:
-        df = pd.DataFrame({'smiles': smiles, 'target': target, 'global_feat': global_feats})
-    else:
-        df = pd.DataFrame({'smiles': smiles, 'target': target,})
-
+    if target_columns is None:
+        if global_feats is not None:
+            df = pd.DataFrame({'smiles': smiles, 'target': target, 'global_feat': global_feats})
+        else:
+            df = pd.DataFrame({'smiles': smiles, 'target': target,})
+    else: #TODO: add support for multi targets and global feats 
+        target_df = pd.DataFrame(target, columns=target_columns)
+        df = pd.DataFrame({'smiles': smiles})
+        df = pd.concat([df.reset_index(drop=True), target_df.reset_index(drop=True)], axis=1)
+    
     if custom_split is not None:
         df['split'] = custom_split
 
@@ -128,9 +135,13 @@ def filter_smiles(smiles: list[str], target: Union[list[str], list[float], ndarr
     if not allow_dupes:
         df.drop_duplicates(subset='smiles', inplace=True)
 
-    #TODO: refactor
+
     smiles = np.array(df.smiles)
-    target = np.array(df.target)
+
+    if target_columns is None:
+        target = np.array(df.target)
+    else:
+        target = np.array(df[target_columns])
     
     global_feat = np.array(df.global_feat) if global_feats is not None else None
     split = np.array(df.split) if custom_split is not None else None
@@ -271,7 +282,7 @@ class DataSet(DataLoad):
     def __init__(self, file_path: str = None, smiles: list[str] = None, target: Union[list[int], list[float],
     ndarray] = None, global_features:Union[list[float], ndarray] = None, filter: bool=True,allowed_atoms:list[str] = None,
     only_organic: bool = True, atom_feature_list: list[str] = None, bond_feature_list: list[str] = None,
-    log: bool = False, root: str = None, indices:list[int] = None, fragmentation=None, custom_split=None):
+    log: bool = False, root: str = None, indices:list[int] = None, fragmentation=None, custom_split=None, target_columns=None):
         assert (file_path is not None) or (smiles is not None and target is not None),'path or (smiles and target) must given.'
         super().__int__(root)
 
@@ -289,6 +300,8 @@ class DataSet(DataLoad):
 
             self.global_features = np.array(df.global_features)
             self.graphs = list(df.graphs)
+            
+            self.target_columns = target_columns
 
         else:
             if filter:
@@ -296,7 +309,7 @@ class DataSet(DataLoad):
                                                                                    allowed_atoms= allowed_atoms,
                                                                                     only_organic=only_organic, log=log,
                                                                                    global_feats=global_features, custom_split=custom_split,
-                                                                                   allow_dupes=allow_dupes)
+                                                                                   allow_dupes=allow_dupes, target_columns=target_columns)
 
             else:
                 self.smiles, self.raw_target = np.array(smiles), np.array(target)
