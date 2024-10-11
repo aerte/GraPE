@@ -192,24 +192,34 @@ def construct_dataset(smiles: list[str], target: Union[list[int], list[float], n
     data = []
 
     for (smile, i) in zip(smiles, range(len(smiles))):
-        mol = MolFromSmiles(smile) # get into rdkit object
+        mol = MolFromSmiles(smile)  # get into rdkit object
         edge_index = dense_to_sparse(torch.tensor(rdmolops.GetAdjacencyMatrix(mol)))[0]
-        x = atom_featurizer(mol) #creates nodes
-        edge_attr = bond_featurizer(mol) #creates "edges" attrs
+        x = atom_featurizer(mol)  # creates node features
+        edge_attr = bond_featurizer(mol)  # creates edge attributes
+        
         if graph_only:
             data_temp = Data(x=x, edge_index=edge_index, edge_attr=edge_attr)
             return data_temp
-        data_temp = Data(x = x, edge_index = edge_index, edge_attr = edge_attr, y=tensor([target[i]],
-                                                                                         dtype=torch.float32))
+
+        # Prepare the target `y_value`
+        y_value = torch.tensor(target[i], dtype=torch.float32)
+        if y_value.ndim == 0:
+            y_value = y_value.unsqueeze(0)  # Ensure `y_value` is at least 1-dimensional
+        data_temp = Data(x=x, edge_index=edge_index, edge_attr=edge_attr, y=y_value)
+
         # TODO: Might need to be tested on multidim global feats
         if global_features is not None:
-            data_temp['global_feats'] = tensor([global_features[i]], dtype=torch.float32)
+            global_feat_value = torch.tensor(global_features[i], dtype=torch.float32)
+            if global_feat_value.ndim == 0:
+                global_feat_value = global_feat_value.unsqueeze(0)  # Ensure it's at least 1-dimensional
+            data_temp['global_feats'] = global_feat_value
         else:
             data_temp['global_feats'] = None
+        # ------------------------------------------
 
         data.append(data_temp)
 
-    return data #actual pyg graphs
+    return data  # actual PyG graphs
 
 
 ##########################################################################

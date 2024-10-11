@@ -52,7 +52,8 @@ sheet_name = ''
 df = pd.read_excel(root)
 # Read SMILES and target properties
 smiles = df['SMILES'].to_numpy()
-targets_df = df[['A0', 'B0', 'C0', 'D0', 'E0']]  # You can have any number of targets here
+target_columns = ['A0', 'B0', 'C0', 'D0', 'E0']
+targets_df = df[target_columns]  # You can have any number of targets here
 num_targets = targets_df.shape[1]
 target_names = targets_df.columns.tolist()
 targets = targets_df.to_numpy()  # Shape: (num_samples, num_targets)
@@ -84,12 +85,13 @@ frag_dim = fragmentation.frag_dim
 print("Done.")
 
 ########################### DataSet Creation ######################################
-breakpoint()
+
 data = DataSet(
     smiles=smiles,
     target=targets_standardized,
     filter=True,
     fragmentation=fragmentation,
+    target_columns=target_columns,
 )
 
 # Split data using custom splits
