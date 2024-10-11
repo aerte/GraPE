@@ -156,6 +156,12 @@ class GCGAT_v4pro_jit(nn.Module):
 
         self.frag_res_dim = net_params['L2_hidden_dim']
         concat_dim = net_params['L1_hidden_dim'] + net_params['L2_hidden_dim'] + net_params['L3_hidden_dim']
+
+        self.use_global_features = net_params.get('global_features', False)
+        if self.use_global_features:
+            self.global_feats_dim = net_params.get('num_global_feats', 1)
+            concat_dim += self.global_feats_dim
+
         self.linear_predict1 = nn.Sequential(
             nn.Dropout(net_params['final_dropout']),
             nn.Linear(concat_dim, int(concat_dim / 2), bias=True),
@@ -185,6 +191,7 @@ class GCGAT_v4pro_jit(nn.Module):
         junction_edge_attr: torch.Tensor,
         junction_batch: torch.Tensor,
         motif_nodes: torch.Tensor,
+        global_feats: torch.Tensor,
     ) -> torch.Tensor:
         device = data_x.device  # Use the device of the input data
 
@@ -209,6 +216,11 @@ class GCGAT_v4pro_jit(nn.Module):
 
         # Concatenate features
         concat_features = torch.cat([graph_origin, frag_res, super_new_graph], dim=-1)
+
+        if self.use_global_features and global_feats.numel() > 0:
+            global_feats = global_feats.unsqueeze(-1)
+            concat_features = torch.cat([concat_features, global_feats], dim=-1)
+
         descriptors = self.linear_predict1(concat_features)
         output = self.linear_predict2(descriptors)
 

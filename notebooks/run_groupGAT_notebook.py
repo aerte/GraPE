@@ -29,39 +29,42 @@ epochs = 1000
 batch_size = 700
 patience = 30
 hidden_dim = 47
-learning_rate = 0.001054627
-weight_decay = 1e-4 
+learning_rate = 0.01054627
+weight_decay = 1e-6
 mlp_layers = 2
 atom_layers = 3
 mol_layers = 3
 
 
 # Change to your own specifications
-root = './env/Vc_cace_corrected.xlsx'
-sheet_name = 'Melting Point'
+root = './env/ICP.xlsx'
+#root = './env/Solvation__splits.csv'
+#in solvation the global feat is ['Temperature'], target is ['Energy'], subset is ['Split']
+sheet_name = ''
 
-df = pd.read_excel(root,)#.iloc[:25] 
+df = pd.read_excel(root,)#.iloc[:25]
+#df = pd.read_csv(root)
 smiles = df['SMILES'].to_numpy()
-target = df['Target'].to_numpy()
+target = df['Value'].to_numpy()
 
 #specific to one xlsx with a "Tag" column
-tags = df['Tag'].to_numpy()
+tags = df['Subset'].to_numpy()
 unique_tags = np.unique(tags)
-tag_to_int = {'Train': 0, 'Val': 1, 'Test': 2}
+tag_to_int = {'Training': 0, 'Validation': 1, 'Test': 2}
+#tag_to_int = {'train': 0, 'val': 1, 'test': 2}
 custom_split = np.array([tag_to_int[tag] for tag in tags])
 
 ### Global feature from sheet, uncomment
 #global_feats = df['Global Feats'].to_numpy()
 
 #### REMOVE, just for testing ####
-global_feats = np.random.randn(len(smiles))
-
+#global_feats = np.random.randn(len(smiles))
+global_feats = df['T'].to_numpy()
 ############ We need to standardize BEFORE loading it into a DataSet #############
 mean_target, std_target = np.mean(target), np.std(target)
 target = standardize(target, mean_target, std_target)
 mean_global_feats, std_global_feats = np.mean(global_feats), np.std(global_feats)
 global_feats = standardize(global_feats, mean_global_feats, std_global_feats)
-
 
 ########################## fragmentation #########################################
 fragmentation_scheme = "MG_plus_reference"
@@ -76,7 +79,7 @@ print("done.")
 ########################################################################################
 
 ######################## QM9 / testing /excel ##########################################
-data = DataSet(smiles=smiles, target=target, global_features=None, filter=True, fragmentation=fragmentation)
+data = DataSet(smiles=smiles, target=target, global_features=global_feats, filter=True, fragmentation=fragmentation,)
 ########################################################################################
 
 
@@ -101,6 +104,7 @@ net_params = {
               "MLP_layers":mlp_layers,
               "frag_dim": frag_dim,
               "final_dropout": 0.119,
+              "use_global_features": True,
             # for origins:
               "num_heads": 1,
             # for AFP:
@@ -136,7 +140,7 @@ early_Stopper = EarlyStopping(patience=50, model_name='random', skip_save=True)
 scheduler = lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.7, min_lr=1.00E-09,
                                            patience=15)
 
-loss_func = torch.nn.functional.l1_loss
+loss_func = torch.nn.functional.mse_loss
 
 model.to(device)
 
@@ -153,7 +157,7 @@ else:
     print(f"No trained model found at '{model_filename}'. Proceeding to train the model.")
     # Train the model
     train_model_jit(model=model, loss_func=loss_func, optimizer=optimizer, train_data_loader=train,
-                val_data_loader=val, epochs=epochs, device=device, batch_size=batch_size, scheduler=scheduler, model_needs_frag=True, net_params=net_params)
+                val_data_loader=val, epochs=epochs, device=device, batch_size=batch_size, scheduler=scheduler, early_stopper=early_Stopper, model_needs_frag=True, net_params=net_params)
     # Save the trained model
     torch.save(model.state_dict(), model_filename)
     print(f"Model saved to '{model_filename}'.")
@@ -164,7 +168,7 @@ pred_metric(prediction=pred, target=test.y, metrics='all', print_out=True)
 
 # ---------------------------------------------------------------------------------------
 
-
+breakpoint()
 
 ####### Example for rescaling the MAE prediction ##########
 
@@ -339,6 +343,12 @@ def test_model_jit_with_parity(
 
                     motif_nodes = frag_x  # Assuming motif nodes are fragment node features
 
+                    if hasattr(batch, 'global_feats'):
+                        global_feats = batch.global_feats
+                    else:
+                        global_feats = torch.empty((data_x.size(0), 1), dtype=torch.float32).to(device)
+
+                    global_feats = global_feats.to(device)
                     # Forward pass
                     if return_latents:
                         # Assuming the model's forward method supports `return_lats` parameter
@@ -355,7 +365,8 @@ def test_model_jit_with_parity(
                             junction_edge_index,
                             junction_edge_attr,
                             junction_batch,
-                            motif_nodes
+                            motif_nodes,
+                            global_feats,
                         )
                         lat = lat.detach().cpu()
                         latents_list.append(lat)
@@ -373,7 +384,8 @@ def test_model_jit_with_parity(
                             junction_edge_index,
                             junction_edge_attr,
                             junction_batch,
-                            motif_nodes
+                            motif_nodes,
+                            global_feats,
                         )
                 else:
                     # For models that do not need fragment information

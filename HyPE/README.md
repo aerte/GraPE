@@ -1,0 +1,2 @@
+# HyPE: Hybrid Modelling for Property Estimation
+The notebooks and files in this folder concern the usage of GraPE's tools and models to explore hybrid modelling with GNN for molecular property prediction.

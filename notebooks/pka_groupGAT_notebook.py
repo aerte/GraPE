@@ -335,6 +335,13 @@ def test_model_jit_with_parity(
 
                     motif_nodes = frag_x  # Assuming motif nodes are fragment node features
 
+                    if hasattr(batch, 'global_feats'):
+                        global_feats = batch.global_feats
+                    else:
+                        global_feats = torch.empty((data_x.size(0), 1), dtype=torch.float32).to(device)
+
+                    global_feats = global_feats.to(device)
+                    
                     # Forward pass
                     if return_latents:
                         # Assuming the model's forward method supports `return_lats` parameter

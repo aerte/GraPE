@@ -100,6 +100,7 @@ net_params = {
               "MLP_layers":mlp_layers,
               "frag_dim": frag_dim,
               "final_dropout": 0.119,
+              "global_features": False,
             # for origins:
               "num_heads": 1,
             # for AFP:
@@ -151,7 +152,7 @@ else:
     print(f"No trained model found at '{model_filename}'. Proceeding to train the model.")
     # Train the model
     train_model(model=model, loss_func=loss_func, optimizer=optimizer, train_data_loader=train,
-                val_data_loader=val, epochs=epochs, device=device, batch_size=batch_size, scheduler=scheduler, model_needs_frag=True, global_feats=global_feats)
+                val_data_loader=val, epochs=epochs, device=device, batch_size=batch_size, scheduler=scheduler, model_needs_frag=True, early_stopper=early_Stopper)
     # Save the trained model
     torch.save(model.state_dict(), model_filename)
     print(f"Model saved to '{model_filename}'.")

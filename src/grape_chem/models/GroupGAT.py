@@ -221,7 +221,7 @@ class GCGAT_v4pro(nn.Module):
         # 2. concat the output from different channels
 
         concat_features = torch.cat([graph_origin, frag_res, super_new_graph], dim=-1) #, motifs_series
-        if data.global_feats is not None:
+        if hasattr(data, 'global_feats') and data.global_feats is not None:
             global_feats = data.global_feats.to(concat_features.device).unsqueeze(-1)
             concat_features = torch.cat([concat_features, global_feats], dim=-1)
         descriptors = self.linear_predict1(concat_features)

@@ -407,6 +407,13 @@ def train_model_jit(
                 junction_edge_attr = torch.cat(junction_edge_attr_list, dim=0)
                 junction_batch = torch.cat(junction_batch_list, dim=0)
 
+                if hasattr(batch, 'global_feats') and batch.global_feats is not None:
+                    global_feats = batch.global_feats.to(device)
+                else:
+                    num_mols = data_batch.max().item() + 1  # Number of molecules in the batch
+                    global_feats = torch.zeros((num_mols, 1), device=device)  # Singleton per molecule
+                    #global_feats = torch.empty(0).to(device) #can't have optional args in jit so passing this instead
+
                 out = model(
                     data_x,
                     data_edge_index,
@@ -421,6 +428,7 @@ def train_model_jit(
                     junction_edge_attr,
                     junction_batch,
                     motif_nodes,
+                    global_feats,
                 )
 
                 out = handle_heterogenous_sizes(batch.y.to(device), out)
@@ -495,7 +503,10 @@ def train_model_jit(
                     junction_batch = torch.cat(junction_batch_list, dim=0)
                     # If motif_nodes is not available, create a placeholder or adjust the model accordingly
                     #motif_nodes = torch.zeros(junction_x.size(0), net_params['frag_dim']).to(device)
-
+                    if hasattr(batch, 'global_feats') and batch.global_feats is not None:
+                        global_feats = batch.global_feats.to(device)
+                    else:
+                        global_feats = torch.empty(0).to(device) #can't have optional args in jit so passing this instead
                     # Forward pass
                     out = model(
                         data_x,
@@ -511,6 +522,7 @@ def train_model_jit(
                         junction_edge_attr,
                         junction_batch,
                         motif_nodes,
+                        global_feats,
                     )
 
                     out = handle_heterogenous_sizes(batch.y.to(device), out)
@@ -775,6 +787,11 @@ def test_model_jit(
                 frag_batch = Batch.from_data_list(batch.frag_graphs).to(device).batch #moved this computation to training loop
                 motif_nodes = Batch.from_data_list(batch.frag_graphs).to(device).x
 
+                if hasattr(batch, 'global_feats'):
+                    global_feats = batch.global_feats.to(device)
+                else:
+                    global_feats = torch.empty(0).to(device)
+
                 # Forward pass
                 if return_latents:
                     # Assuming the model's forward method supports `return_lats` parameter
@@ -791,7 +808,8 @@ def test_model_jit(
                         junction_edge_index,
                         junction_edge_attr,
                         junction_batch,
-                        motif_nodes
+                        motif_nodes,
+                        global_feats
                     )
                     lat = lat.detach().cpu()
                     latents_list.append(lat)
@@ -809,7 +827,8 @@ def test_model_jit(
                         junction_edge_index,
                         junction_edge_attr,
                         junction_batch,
-                        motif_nodes
+                        motif_nodes,
+                        global_feats
                     )
 
                 out = out.detach().cpu()
