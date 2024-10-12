@@ -41,7 +41,8 @@ sheet_name = ''
 df = pd.read_excel(root)
 # Read SMILES and target properties A, B, C, D
 smiles = df['SMILES'].to_numpy()
-targets = df[['A', 'B', 'C', 'D']].to_numpy()  # Shape: (num_samples, 4)
+target_columns = ['A', 'B', 'C', 'D']
+targets = df[target_columns].to_numpy()  # Shape: (num_samples, 4)
 
 # Read tags for custom splits
 tags = df['Subset'].to_numpy()
@@ -70,7 +71,7 @@ frag_dim = fragmentation.frag_dim
 print("Done.")
 
 ########################### DataSet Creation ######################################
-data = DataSet(smiles=smiles, target=targets_standardized, global_features=global_feats, filter=True, fragmentation=fragmentation)
+data = DataSet(smiles=smiles, target=targets_standardized, global_features=global_feats, filter=True, fragmentation=fragmentation, )
 
 # Split data using custom splits
 train, val, test = split_data(data, split_type='custom', custom_split=custom_split)

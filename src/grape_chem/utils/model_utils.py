@@ -432,8 +432,8 @@ def train_model_jit(
                 )
 
                 out = handle_heterogenous_sizes(batch.y.to(device), out)
-
-                loss_train = loss_func(batch.y.to(device), out)
+                by = batch.y.view(out.shape[0], out.shape[1]).to(device)
+                loss_train = loss_func(by, out)
 
                 temp[idx] = loss_train.detach().cpu().numpy()
 
@@ -526,7 +526,7 @@ def train_model_jit(
                     )
 
                     out = handle_heterogenous_sizes(batch.y.to(device), out)
-                    temp[idx] = loss_func(batch.y.to(device), out).detach().cpu().numpy()
+                    temp[idx] = loss_func(batch.y.view(out.shape[0], out.shape[1]).to(device), out).detach().cpu().numpy()
 
             loss_val = np.mean(temp)
             val_loss.append(loss_val)

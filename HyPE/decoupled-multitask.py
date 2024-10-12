@@ -175,6 +175,7 @@ else:
         scheduler=scheduler,
         model_needs_frag=True,
         net_params=net_params,
+        early_stopper=early_Stopper,
     )
     # Save the trained model
     torch.save(model.state_dict(), model_filename)

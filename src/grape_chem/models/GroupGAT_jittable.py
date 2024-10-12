@@ -154,6 +154,8 @@ class GCGAT_v4pro_jit(nn.Module):
         self.frag_module = FragmentChannel(net_params)
         self.junction_module = JT_Channel(net_params)
 
+        #self.output_dim = net_params['output_dim'] #TODO: should default to 1
+        self.output_dim = 5
         self.frag_res_dim = net_params['L2_hidden_dim']
         concat_dim = net_params['L1_hidden_dim'] + net_params['L2_hidden_dim'] + net_params['L3_hidden_dim']
 
@@ -174,7 +176,7 @@ class GCGAT_v4pro_jit(nn.Module):
         for _ in range(net_params['MLP_layers'] - 1):
             self.linear_predict2.add_module('linear', nn.Linear(mid_dim, mid_dim, bias=True))
             self.linear_predict2.add_module('leaky_relu', nn.LeakyReLU(negative_slope=0.001))
-        self.linear_predict2.add_module('output_linear', nn.Linear(mid_dim, 1, bias=True))
+        self.linear_predict2.add_module('output_linear', nn.Linear(mid_dim, self.output_dim, bias=True))
 
     def forward(
         self,

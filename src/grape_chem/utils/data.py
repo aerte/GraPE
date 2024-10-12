@@ -285,8 +285,10 @@ class DataSet(DataLoad):
     fragmentation: instance of grape_chem.utils.junction_tree_utils.Fragmentation
         for now, a function that performs fragmentation
     custom_split: list (optional)
-        The custom split array calculated on the dataset before filtering. Default: None
-        it's passed in here to avoid recomputing the split after filtering.
+        The custom split array calculated on the dataset before filtering. 
+        it's passed in here to avoid recomputing the split after filtering. Default: None
+    target_columns: list of str
+        In the case of multi dimensional targets, columns that contain them. Default: None
 
     """
     def __init__(self, file_path: str = None, smiles: list[str] = None, target: Union[list[int], list[float],
