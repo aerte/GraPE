@@ -97,6 +97,7 @@ data = DataSet(
 # Split data using custom splits
 train, val, test = split_data(data, split_type='custom', custom_split=custom_split)
 
+breakpoint()
 ############################################################################################
 
 # Device configuration
@@ -201,6 +202,24 @@ def calculate_mae(preds_rescaled, targets_rescaled, dataset_name='Test'):
     print(f'Overall MAE across all properties on {dataset_name} set: {overall_mae.item():.4f}')
     return maes, overall_mae.item()
 
+def compute_metrics(preds_rescaled, targets_rescaled, dataset_name='Test'):
+    metrics_per_property = []
+    for i, prop in enumerate(target_columns):
+        pred_prop = preds_rescaled[:, i]
+        target_prop = targets_rescaled[:, i]
+        # Call pred_metric to compute desired metrics
+        results = pred_metric(pred_prop, target_prop, metrics='all', print_out=False)
+        print(f"Metrics for property {prop} on {dataset_name} set:")
+        for metric_name, value in results.items():
+            print(f"{metric_name.upper()}: {value:.4f}")
+        metrics_per_property.append(results)
+    # Compute overall metrics
+    overall_results = pred_metric(preds_rescaled, targets_rescaled, metrics='all', print_out=False)
+    print(f"Overall metrics across all properties on {dataset_name} set:")
+    for metric_name, value in overall_results.items():
+        print(f"{metric_name.upper()}: {value:.4f}")
+    return metrics_per_property, overall_results
+
 # Calculate metrics for the test set
 test_maes, test_overall_mae = calculate_mae(preds_rescaled, targets_rescaled, dataset_name='Test')
 
@@ -232,20 +251,45 @@ overall_mae_all = (train_overall_mae + val_overall_mae + test_overall_mae) / 3
 print(f'Overall MAE across all properties and datasets: {overall_mae_all:.4f}')
 
 # Modify the test_model function to return both predictions and targets
-def test_model_with_parity(
+def test_model_jit_with_parity(
     model: torch.nn.Module,
-    test_data_loader: Union[list, DataLoader],
+    test_data_loader: Union[List, DataLoader],
     device: str = None,
     batch_size: int = 32,
     return_latents: bool = False,
-    model_needs_frag: bool = False
-) -> Union[Tuple[Tensor, Tensor], Tuple[Tensor, Tensor, Tensor]]:
+    model_needs_frag: bool = False,
+) -> Union[Tuple[torch.Tensor, torch.Tensor], Tuple[torch.Tensor, torch.Tensor, torch.Tensor]]:
     """
-    Auxiliary function to test a trained model and return the predictions as well as the targets and optional latent node
+    Auxiliary function to test a trained JIT-compiled model and return the predictions as well as the targets and optional latent node
     representations. Can initialize DataLoaders if only list of Data objects are given.
-    """
-    device = torch.device('cpu') if device is None else device
 
+    Notes
+    -----
+    This function is designed for JIT-compiled models that require individual tensors as input.
+
+    Parameters
+    ----------
+    model : torch.nn.Module
+        The JIT-compiled model to be tested.
+    test_data_loader : list of Data or DataLoader
+        A list of Data objects or the DataLoader directly to be used as the test graphs.
+    device : str, optional
+        Torch device to be used ('cpu', 'cuda', or 'mps'). Default is 'cpu'.
+    batch_size : int, optional
+        Batch size of the DataLoader if not given directly. Default is 32.
+    return_latents : bool, optional
+        Determines if the latents should be returned. **If used, the model must include `return_lats` parameter**.
+        Default is False.
+    model_needs_frag : bool, optional
+        Whether the model needs fragment graphs or not. Default is False.
+
+    Returns
+    -------
+    Tuple[Tensor, Tensor] or Tuple[Tensor, Tensor, Tensor]
+        Returns predictions and targets, and optionally latents if `return_latents` is True.
+    """
+
+    device = torch.device('cpu') if device is None else torch.device(device)
     if not isinstance(test_data_loader, DataLoader):
         test_data_loader = DataLoader([data for data in test_data_loader], batch_size=batch_size)
 
@@ -258,21 +302,86 @@ def test_model_with_parity(
             latents_list = []
         with tqdm(total=len(test_data_loader)) as pbar:
             for idx, batch in enumerate(test_data_loader):
+                # Move batch to device
                 batch = batch.to(device)
-                # Handling models that require fragment information
+
                 if model_needs_frag:
-                    if return_latents:
-                        out, lat = model(batch, return_lats=True)
-                        latents_list.append(lat.detach().cpu())
+                    # Extract necessary tensors for models that require fragment information
+                    data_x = batch.x
+                    data_edge_index = batch.edge_index
+                    data_edge_attr = batch.edge_attr
+                    data_batch = batch.batch
+
+                    # Fragment graphs
+                    frag_graphs = batch.frag_graphs  # List[Data]
+                    frag_batch = Batch.from_data_list(frag_graphs).batch.to(device)
+                    frag_x = Batch.from_data_list(frag_graphs).x.to(device)
+                    frag_edge_index = Batch.from_data_list(frag_graphs).edge_index.to(device)
+                    frag_edge_attr = Batch.from_data_list(frag_graphs).edge_attr.to(device)
+
+                    # Junction graphs (motif graphs)
+                    motif_graphs = batch.motif_graphs  # List[Data]
+                    junction_batch = Batch.from_data_list(motif_graphs).batch.to(device)
+                    junction_x = Batch.from_data_list(motif_graphs).x.to(device)
+                    junction_edge_index = Batch.from_data_list(motif_graphs).edge_index.to(device)
+                    junction_edge_attr = Batch.from_data_list(motif_graphs).edge_attr.to(device)
+
+                    motif_nodes = frag_x  # Assuming motif nodes are fragment node features
+
+                    if hasattr(batch, 'global_feats'):
+                        global_feats = batch.global_feats
                     else:
-                        out = model(batch)
+                        global_feats = torch.empty((data_x.size(0), 1), dtype=torch.float32).to(device)
+
+                    global_feats = global_feats.to(device)
+                    # Forward pass
+                    if return_latents:
+                        # Assuming the model's forward method supports `return_lats` parameter
+                        out, lat = model(
+                            data_x,
+                            data_edge_index,
+                            data_edge_attr,
+                            data_batch,
+                            frag_x,
+                            frag_edge_index,
+                            frag_edge_attr,
+                            frag_batch,
+                            junction_x,
+                            junction_edge_index,
+                            junction_edge_attr,
+                            junction_batch,
+                            motif_nodes,
+                            global_feats,
+                        )
+                        lat = lat.detach().cpu()
+                        latents_list.append(lat)
+                    else:
+                        out = model(
+                            data_x,
+                            data_edge_index,
+                            data_edge_attr,
+                            data_batch,
+                            frag_x,
+                            frag_edge_index,
+                            frag_edge_attr,
+                            frag_batch,
+                            junction_x,
+                            junction_edge_index,
+                            junction_edge_attr,
+                            junction_batch,
+                            motif_nodes,
+                            global_feats,
+                        )
                 else:
+                    # For models that do not need fragment information
                     if return_latents:
                         out, lat = model(batch, return_lats=True)
-                        latents_list.append(lat.detach().cpu())
+                        lat = lat.detach().cpu()
+                        latents_list.append(lat)
                     else:
                         out = model(batch)
 
+                # Collect predictions and targets
                 preds_list.append(out.detach().cpu())
                 targets_list.append(batch.y.detach().cpu())
 
@@ -287,7 +396,7 @@ def test_model_with_parity(
         return preds, targets
 
 ####### Generating predictions and targets for all datasets #########
-train_preds, train_targets = test_model_with_parity(
+train_preds, train_targets = test_model_jit_with_parity(
     model=model,
     test_data_loader=train,
     device=device,
@@ -295,7 +404,7 @@ train_preds, train_targets = test_model_with_parity(
     model_needs_frag=True
 )
 
-val_preds, val_targets = test_model_with_parity(
+val_preds, val_targets = test_model_jit_with_parity(
     model=model,
     test_data_loader=val,
     device=device,
@@ -303,13 +412,21 @@ val_preds, val_targets = test_model_with_parity(
     model_needs_frag=True
 )
 
-test_preds, test_targets = test_model_with_parity(
+test_preds, test_targets = test_model_jit_with_parity(
     model=model,
     test_data_loader=test,
     device=device,
     batch_size=batch_size,
     model_needs_frag=True
 )
+
+train_targets = train_targets.view(-1, num_targets)
+val_targets = val_targets.view(-1, num_targets)
+test_targets = test_targets.view(-1, num_targets)
+
+train_preds = train_preds.view(-1, num_targets)
+val_preds = val_preds.view(-1, num_targets)
+test_preds = test_preds.view(-1, num_targets)
 
 ####### Rescale predictions and targets #########
 train_preds_rescaled = train_preds * std_targets + mean_targets
@@ -320,6 +437,53 @@ val_targets_rescaled = val_targets * std_targets + mean_targets
 
 test_preds_rescaled = test_preds * std_targets + mean_targets
 test_targets_rescaled = test_targets * std_targets + mean_targets
+
+test_metrics_per_property, test_overall_metrics = compute_metrics(preds_rescaled, targets_rescaled, dataset_name='Test')
+
+####### Example for overall evaluation of the metrics #########
+train_preds = test_model_jit(model=model, test_data_loader=train, device=device, batch_size=batch_size)
+val_preds = test_model_jit(model=model, test_data_loader=val, device=device, batch_size=batch_size)
+
+# Reshape predictions and targets
+train_preds = train_preds.view(-1, num_targets)
+train_targets_rescaled = train.y.view(-1, num_targets) * std_targets + mean_targets
+train_preds_rescaled = train_preds * std_targets + mean_targets
+
+val_preds = val_preds.view(-1, num_targets)
+val_targets_rescaled = val.y.view(-1, num_targets) * std_targets + mean_targets
+val_preds_rescaled = val_preds * std_targets + mean_targets
+
+# Calculate metrics for train and validation sets
+train_metrics_per_property, train_overall_metrics = compute_metrics(train_preds_rescaled, train_targets_rescaled, dataset_name='Train')
+val_metrics_per_property, val_overall_metrics = compute_metrics(val_preds_rescaled, val_targets_rescaled, dataset_name='Validation')
+
+# Calculate overall metrics across all datasets
+overall_metrics_per_property = []
+for i in range(num_targets):
+    prop = target_columns[i]
+    # Extract metrics for this property from each dataset
+    train_metrics = train_metrics_per_property[i]
+    val_metrics = val_metrics_per_property[i]
+    test_metrics = test_metrics_per_property[i]
+    # Compute average of each metric
+    avg_metrics = {}
+    for metric_name in train_metrics.keys():
+        avg_value = (train_metrics[metric_name] + val_metrics[metric_name] + test_metrics[metric_name]) / 3
+        avg_metrics[metric_name] = avg_value
+    overall_metrics_per_property.append(avg_metrics)
+    # Print the overall metrics for this property
+    print(f'Overall metrics for property {prop}:')
+    for metric_name, value in avg_metrics.items():
+        print(f"{metric_name.upper()}: {value:.4f}")
+
+# Overall metrics across all properties and datasets
+overall_metrics_across_all = {}
+for metric_name in train_overall_metrics.keys():
+    overall_value = (train_overall_metrics[metric_name] + val_overall_metrics[metric_name] + test_overall_metrics[metric_name]) / 3
+    overall_metrics_across_all[metric_name] = overall_value
+print('Overall metrics across all properties and datasets:')
+for metric_name, value in overall_metrics_across_all.items():
+    print(f"{metric_name.upper()}: {value:.4f}")
 
 ####### Creating Parity Plot #########
 def create_parity_plot(
