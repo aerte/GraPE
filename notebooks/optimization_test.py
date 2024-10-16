@@ -1,11 +1,10 @@
 ############################ Optimization script ############################################
-
 from ray.air import RunConfig
 import dgl
 import os
 import tempfile
-from grape.models import AFP, MPNN, DMPNN, MEGNet
-from grape.utils import EarlyStopping, train_model
+from grape_chem.models import AFP, MPNN, DMPNN, MEGNet, GroupGAT_jittable
+from grape_chem.utils import EarlyStopping, train_model
 from functools import partial
 import torch
 from torch.optim import lr_scheduler
@@ -14,7 +13,7 @@ from ray.tune import Tuner
 from ray import tune, train
 import numpy as np
 import pandas as pd
-from grape.utils import DataSet, split_data, train_epoch, val_epoch, RevIndexedSubSet
+from grape_chem.utils import DataSet, split_data, train_epoch, val_epoch, RevIndexedSubSet
 from torch_geometric.loader import DataLoader
 from ray.tune.search.bohb import TuneBOHB
 from ray.tune.schedulers.hb_bohb import HyperBandForBOHB
@@ -22,8 +21,8 @@ import ConfigSpace as CS
 from ray.train import Checkpoint, ScalingConfig
 from ray.train.torch import TorchTrainer
 
-root = '/zhome/4a/a/156124/GraPE/notebooks/data_splits.xlsx'
-
+#root = '/zhome/4a/a/156124/GraPE/notebooks/data_splits.xlsx'
+root = 'env/data_splits.xlsx'
 
 def set_seed(seed):
     os.environ['PYTHONHASHSEED'] = str(seed)
@@ -88,6 +87,60 @@ def load_dataset_from_excel(dataset, is_dmpnn=False, is_megnet=False):
 
     return train_set, val_set, test_set
 
+def load_pka_dataset(fragmentation=None):
+    """
+    Loads the pKa dataset with global features and applies fragmentation.
+    """
+    if fragmentation is None:
+        from grape_chem.utils import JT_SubGraph
+        fragmentation_scheme = "MG_plus_reference"
+        fragmentation = JT_SubGraph(scheme=fragmentation_scheme)
+        frag_dim = fragmentation.frag_dim
+    
+    def standardize(x, mean, std):
+        return (x - mean) / std
+
+    # Path to your pKa dataset
+    root = './env/pka_dataset.xlsx'
+    df = pd.read_excel(root)
+
+    smiles = df['SMILES'].to_numpy()
+    target = df['Target'].to_numpy()
+    tags = df['Tag'].to_numpy()
+
+    # Map tags to integers
+    tag_to_int = {'Train': 0, 'Val': 1, 'Test': 2}
+    custom_split = np.array([tag_to_int[tag] for tag in tags])
+
+    # Load global features
+    if 'Global Feats' in df.columns:
+        global_feats = df['Global Feats'].to_numpy()
+    else:
+        # If no global features are provided, generate random ones (as in your workflow)
+        global_feats = np.random.randn(len(smiles))
+
+    # Standardize targets and global features
+    mean_target, std_target = np.mean(target), np.std(target)
+    target = standardize(target, mean_target, std_target)
+    mean_global_feats, std_global_feats = np.mean(global_feats), np.std(global_feats)
+    global_feats = standardize(global_feats, mean_global_feats, std_global_feats)
+
+    # Initialize dataset with fragmentation and global features
+    data = DataSet(
+        smiles=smiles,
+        target=target,
+        global_features=global_feats,
+        filter=False,
+        fragmentation=fragmentation,
+        custom_split=custom_split
+    )
+
+    # Split data
+    train_set, val_set, test_set = split_data(
+        data, split_type='custom', custom_split=custom_split
+    )
+
+    return train_set, val_set, test_set, mean_target, std_target
 
 def load_model(model_name, config, device=None):
     """ Function to load a model based on a model name and a config dictionary. Is supposed to reduce clutter in the trainable function.
@@ -98,9 +151,11 @@ def load_model(model_name, config, device=None):
         * "MPNN"
         * "DMPNN"
         * "MEGNet"
+        * "GroupGAT"
     config : ConfigSpace
     """
 
+    device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
     mlp_out = return_hidden_layers(int(config['mlp_layers']))
 
     if model_name == "AFP":
@@ -121,10 +176,44 @@ def load_model(model_name, config, device=None):
                       edge_hidden_dim=int(config["edge_hidden_dim"]), depth=int(config["depth"]),
                       mlp_out_hidden=mlp_out, rep_dropout=config["dropout"],
                       device=device)
+    elif model_name == "GroupGAT":
+        mlp_out = return_hidden_layers(int(config['MLP_layers']))
+        net_params = {
+            "device": device,
+            "num_atom_type": 44,
+            "num_bond_type": 12,
+            "dropout": config["dropout"],
+            "MLP_layers": int(config["MLP_layers"]),
+            "frag_dim": 219, #TODO: don't hardcode 
+            "final_dropout": config.get("final_dropout", 0.257507),
+            "num_heads": 1,
+            "node_in_dim": 44,
+            "edge_in_dim": 12,
+            "num_global_feats": 1,
+            "hidden_dim": int(config["hidden_dim"]),
+            "mlp_out_hidden": mlp_out,
+            "num_layers_atom": int(config["num_layers_atom"]),
+            "num_layers_mol": int(config["num_layers_mol"]),
+            "L1_layers_atom": int(config["L1_layers_atom"]),
+            "L1_layers_mol": int(config["L1_layers_mol"]),
+            "L1_dropout": config["L1_dropout"],
+            "L1_hidden_dim": int(config["L1_hidden_dim"]),
+            # include L2 and L3 parameters if needed:
+            "L2_layers_atom": 3,
+            "L2_layers_mol": 2,
+            "L2_dropout": 0.056907,
+            "L2_hidden_dim": 155,
+            "L3_layers_atom": 1,
+            "L3_layers_mol": 4,
+            "L3_dropout": 0.137254,
+            "L3_hidden_dim": 64,
+        }
+        return GroupGAT_jittable.GCGAT_v4pro_jit(net_params)
 
 
-def trainable(config: dict, data_name: str, model_name: str, is_dmpnn: bool, device: torch.device, is_megnet: bool):
-    """ The trainable for Ray-Tune.
+def trainable(config, data_name: str = None, model_name: str = None, is_dmpnn: bool = False, device: torch.device = None, is_megnet: bool = False, is_groupgat: bool = True): #set groupgat to also false by default
+    """
+    The trainable for Ray Tune.
 
     Parameters
     -----------
@@ -135,9 +224,17 @@ def trainable(config: dict, data_name: str, model_name: str, is_dmpnn: bool, dev
         model_name: str
             The model to be loaded.
     """
+    # Handle fragmentation for GroupGAT
+    if is_groupgat:
+        from grape_chem.utils import JT_SubGraph
+        fragmentation_scheme = "MG_plus_reference"
+        fragmentation = JT_SubGraph(scheme=fragmentation_scheme)
+        frag_dim = fragmentation.frag_dim
+    else:
+        fragmentation = None
+        frag_dim = None
 
     ################### Loading the graphs #########################################################################
-
     if data_name == 'free':
         train_set, val_set, _ = load_dataset_from_excel("FreeSolv", is_dmpnn=is_dmpnn, is_megnet=is_megnet)
     elif data_name == 'mp':
@@ -160,14 +257,12 @@ def trainable(config: dict, data_name: str, model_name: str, is_dmpnn: bool, dev
     early_Stopper = EarlyStopping(patience=30, model_name='random', skip_save=True)
     scheduler = lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=config['lr_reduction_factor'],
                                                min_lr=0.0000000000001, patience=10)
-
-    loss_function = torch.nn.functional.l1_loss
+    loss_function = torch.nn.functional.mse_loss
 
     train_data = DataLoader(train_set, batch_size=300)
     val_data = DataLoader(val_set, batch_size=300)
 
     iterations = 300
-
     start_epoch = 0
     checkpoint = train.get_checkpoint()
 
@@ -178,12 +273,8 @@ def trainable(config: dict, data_name: str, model_name: str, is_dmpnn: bool, dev
                 # map_location=...,  # Load onto a different device if needed.
             )
             model.module.load_state_dict(model_state_dict)
-            optimizer.load_state_dict(
-                torch.load(os.path.join(checkpoint_dir, "optimizer.pt"))
-            )
-            start_epoch = (
-                    torch.load(os.path.join(checkpoint_dir, "extra_state.pt"))["epoch"] + 1
-            )
+            optimizer.load_state_dict(torch.load(os.path.join(checkpoint_dir, "optimizer.pt")))
+            start_epoch = (torch.load(os.path.join(checkpoint_dir, "extra_state.pt"))["epoch"] + 1)
 
     model.train()
 
@@ -228,21 +319,26 @@ def trainable(config: dict, data_name: str, model_name: str, is_dmpnn: bool, dev
 if __name__ == '__main__':
 
     import argparse
-
+    #temporarily disabling the args to chose a model, as  we're testing a GroupGAT workflow here
     parser = argparse.ArgumentParser()
-    parser.add_argument('data', type=str, default='free', choices=['mp', 'logp', 'qm', 'free'],
+    parser.add_argument('data', type=str, default='pka', choices=['mp', 'logp', 'qm', 'free', 'pka'],
                         help='the data that will be trained on (default: %(default)s)')
     parser.add_argument('--samples', type=int, default=100,
                         help='the number of samples/instances that will be running (default: %(default)s)')
-    parser.add_argument('--model', type=str, default='afp', choices=['afp', 'mpnn', 'dmpnn', 'megnet'],
-                        help='the model to be used (default: %(default)s)')
+    # parser.add_argument('--model', type=str, default='afp', choices=['afp', 'mpnn', 'dmpnn', 'megnet', 'groupgat'],
+    #                     help='the model to be used (default: %(default)s)')
 
+    is_groupgat = True
+    model_name = "GroupGAT"
+    
     args = parser.parse_args()
     data_name = args.data
     n_samples = args.samples
-    model_ = args.model
+
+    #model_ = args.model
     is_dmpnn = False
     is_megnet = False
+    is_groupgat = True
 
     ################################# Selecting the options ######################################
 
@@ -253,7 +349,9 @@ if __name__ == '__main__':
         device = torch.device("cpu")
         gpu = 0
 
-    if data_name == 'free':
+    if data_name == 'pka':
+        train_set, val_set, test_set, mean_target, std_target = load_pka_dataset()
+    elif data_name == 'free':
         dataset = 'FreeSolv'
     elif data_name == 'mp':
         dataset = 'Melting_Point'
@@ -262,6 +360,7 @@ if __name__ == '__main__':
     else:
         dataset = 'LogP'
 
+    model_ = "GroupGAT" #TODO: remove
     if model_ == 'mpnn':
         model_name = "MPNN"
     elif model_ == "dmpnn":
@@ -278,29 +377,42 @@ if __name__ == '__main__':
     ################################# Search space ######################################
 
     config_space = CS.ConfigurationSpace()
-    config_space.add_hyperparameter(
+    config_space.add(
         CS.UniformIntegerHyperparameter("depth", lower=1, upper=5))
-    config_space.add_hyperparameter(
+    config_space.add(
         CS.UniformIntegerHyperparameter("gnn_hidden_dim", lower=32, upper=256))
-    config_space.add_hyperparameter(
+    config_space.add(
         CS.UniformFloatHyperparameter('initial_lr', lower=1e-5, upper=1e-1))
-    config_space.add_hyperparameter(
+    config_space.add(
         CS.UniformFloatHyperparameter("weight_decay", lower=1e-6, upper=1e-1))
-    config_space.add_hyperparameter(
+    config_space.add(
         CS.UniformFloatHyperparameter("lr_reduction_factor", lower=0.4, upper=0.99))
-    config_space.add_hyperparameter(
+    config_space.add(
         CS.UniformFloatHyperparameter("dropout", lower=0., upper=0.4))
-    config_space.add_hyperparameter(
+    config_space.add(
         CS.UniformIntegerHyperparameter("mlp_layers", lower=1, upper=4))
     # If AFP is selected
     if model_name == "AFP":
-        config_space.add_hyperparameter(
+        config_space.add(
             CS.UniformIntegerHyperparameter("afp_mol_layers", lower=1, upper=4))
     # If MEGNet is selected
     elif model_name == "MEGNet":
-        config_space.add_hyperparameter(
+        config_space.add(
             CS.UniformIntegerHyperparameter("edge_hidden_dim", lower=32, upper=256))
-
+    elif model_name == "GroupGAT":
+        config_space.add(CS.UniformIntegerHyperparameter("hidden_dim", lower=1, upper=256))
+        config_space.add(CS.UniformIntegerHyperparameter("MLP_layers", lower=1, upper=4))
+        config_space.add(CS.UniformFloatHyperparameter("dropout", lower=0.0, upper=0.15))
+        config_space.add(CS.UniformIntegerHyperparameter("num_layers_atom", lower=1, upper=5))
+        config_space.add(CS.UniformIntegerHyperparameter("num_layers_mol", lower=1, upper=5))
+        config_space.add(CS.UniformFloatHyperparameter('initial_lr', lower=1e-5, upper=1e-1))
+        config_space.add(CS.UniformFloatHyperparameter("weight_decay", lower=1e-6, upper=1e-1))
+        config_space.add(CS.UniformFloatHyperparameter("lr_reduction_factor", lower=0.4, upper=0.99))
+        # L1:
+        config_space.add(CS.UniformIntegerHyperparameter("L1_layers_atom", lower=1, upper=5)) #layers
+        config_space.add(CS.UniformIntegerHyperparameter("L1_layers_mol", lower=1, upper=5))  #depth
+        config_space.add(CS.UniformFloatHyperparameter("L1_dropout", lower=0.0, upper=0.5))
+        config_space.add(CS.UniformIntegerHyperparameter("L1_hidden_dim", lower=32, upper=256))
     # search_space = {
     #     "depth": tune.randint(1,5),
     #     "gnn_hidden_dim": tune.randint(32, 256),
@@ -360,7 +472,7 @@ if __name__ == '__main__':
         "best_metrics": best_metrics
     }
 
-    file_name = "/zhome/4a/a/156124/GraPE/notebooks/results/new_best_hyperparameters_" + model_name + "_" + dataset + ".json"
-
+    #file_name = "/zhome/4a/a/156124/GraPE/notebooks/results/new_best_hyperparameters_" + model_name + "_" + dataset + ".json"
+    file_name = "env/bohb_results/new_best_hyperparameters_" + model_name + "_" + dataset + ".json"
     with open(file_name, "w") as file:
         json.dump(results_to_save, file, indent=4)
