@@ -93,15 +93,18 @@ def load_pka_dataset(fragmentation=None):
     """
     if fragmentation is None:
         from grape_chem.utils import JT_SubGraph
-        fragmentation_scheme = "MG_plus_reference"
-        fragmentation = JT_SubGraph(scheme=fragmentation_scheme)
+        script_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        fragmentation_scheme_file_path = os.path.join(script_dir, 'env', 'MG_plus_reference')
+        fragmentation = JT_SubGraph(scheme=fragmentation_scheme_file_path)
         frag_dim = fragmentation.frag_dim
     
     def standardize(x, mean, std):
         return (x - mean) / std
 
     # Path to your pKa dataset
-    root = './env/pka_dataset.xlsx'
+    breakpoint()
+    script_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    root = script_dir+'/env/pka_dataset.xlsx'
     df = pd.read_excel(root)
 
     smiles = df['SMILES'].to_numpy()
@@ -211,7 +214,7 @@ def load_model(model_name, config, device=None):
         return GroupGAT_jittable.GCGAT_v4pro_jit(net_params)
 
 
-def trainable(config, data_name: str = None, model_name: str = None, is_dmpnn: bool = False, device: torch.device = None, is_megnet: bool = False, is_groupgat: bool = True): #set groupgat to also false by default
+def trainable(config, data_name: str = None, model_name: str = None, is_dmpnn: bool = False, device: torch.device = None, is_megnet: bool = False, is_groupgat: bool = True, fragmentation=None): #set groupgat to also false by default
     """
     The trainable for Ray Tune.
 
@@ -225,14 +228,6 @@ def trainable(config, data_name: str = None, model_name: str = None, is_dmpnn: b
             The model to be loaded.
     """
     # Handle fragmentation for GroupGAT
-    if is_groupgat:
-        from grape_chem.utils import JT_SubGraph
-        fragmentation_scheme = "MG_plus_reference"
-        fragmentation = JT_SubGraph(scheme=fragmentation_scheme)
-        frag_dim = fragmentation.frag_dim
-    else:
-        fragmentation = None
-        frag_dim = None
 
     ################### Loading the graphs #########################################################################
     if data_name == 'free':
@@ -241,8 +236,10 @@ def trainable(config, data_name: str = None, model_name: str = None, is_dmpnn: b
         train_set, val_set, _ = load_dataset_from_excel("Melting Point", is_dmpnn=is_dmpnn, is_megnet=is_megnet)
     elif data_name == 'qm':
         train_set, val_set, _ = load_dataset_from_excel("Heat capacity", is_dmpnn=is_dmpnn, is_megnet=is_megnet)
-    else:
+    elif data_name == 'logp':
         train_set, val_set, _ = load_dataset_from_excel("LogP", is_dmpnn=is_dmpnn, is_megnet=is_megnet)
+    else:
+        train_set, val_set, _ = load_pka_dataset(fragmentation=fragmentation)
 
     ################### Defining the model #########################################################################
 
@@ -349,8 +346,18 @@ if __name__ == '__main__':
         device = torch.device("cpu")
         gpu = 0
 
+
+    if model_name == "GroupGAT":
+        from grape_chem.utils import JT_SubGraph
+        #script_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        #fragmentation_scheme_file_path = os.path.join(script_dir, 'env', 'MG_plus_reference')
+        fragmentation_scheme_file_path = 'MG_plus_reference'
+        fragmentation = JT_SubGraph(scheme=fragmentation_scheme_file_path)
+    else:
+        fragmentation = None
+
     if data_name == 'pka':
-        train_set, val_set, test_set, mean_target, std_target = load_pka_dataset()
+        train_set, val_set, test_set, mean_target, std_target = load_pka_dataset(fragmentation=fragmentation)
     elif data_name == 'free':
         dataset = 'FreeSolv'
     elif data_name == 'mp':
@@ -400,7 +407,7 @@ if __name__ == '__main__':
         config_space.add(
             CS.UniformIntegerHyperparameter("edge_hidden_dim", lower=32, upper=256))
     elif model_name == "GroupGAT":
-        config_space.add(CS.UniformIntegerHyperparameter("hidden_dim", lower=1, upper=256))
+        config_space.add(CS.UniformIntegerHyperparameter("hidden_dim", lower=64, upper=512))
         config_space.add(CS.UniformIntegerHyperparameter("MLP_layers", lower=1, upper=4))
         config_space.add(CS.UniformFloatHyperparameter("dropout", lower=0.0, upper=0.15))
         config_space.add(CS.UniformIntegerHyperparameter("num_layers_atom", lower=1, upper=5))
@@ -431,8 +438,9 @@ if __name__ == '__main__':
 
     ################################# --------------------- ######################################
 
+
     my_trainable = partial(trainable, data_name=data_name, model_name=model_name, is_dmpnn=is_dmpnn,
-                           is_megnet=is_megnet, device=device)
+                           is_megnet=is_megnet, device=device, is_groupgat=is_groupgat, fragmentation=fragmentation)
 
     trainable_with_resources = tune.with_resources(my_trainable, {"cpu": 4, "gpu": gpu})
 

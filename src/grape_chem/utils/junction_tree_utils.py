@@ -140,6 +140,7 @@ def dgl_to_pyg(dgl_graph):
 class JT_SubGraph(object):
     def __init__(self, scheme):
         path = os.path.join('./env', scheme + '.csv') #change to your needs TODO: load from yaml or larger config of script where called
+        #TODO: move out of init
         data_from = os.path.realpath(path)
         df = pd.read_csv(data_from)
         pattern = df[['First-Order Group', 'SMARTs', 'Priority']].values.tolist()
