@@ -11,20 +11,20 @@
 
 import os
 import pandas as pd
-import torch
-from torch_geometric.data import Data
-from rdkit import Chem
-
 import numpy as np
+import torch
+import pickle
+from torch_geometric.data import Data
+
+from rdkit import Chem
 
 from torch_geometric.utils import subgraph
 from torch_geometric.utils import add_self_loops
 
 import scipy.sparse as sp
 
-#stinky-ass imports
+#temp imports for debugging function
 import matplotlib.pyplot as plt
-import dgl
 import networkx as nkx
 from torch_geometric.utils import to_networkx
 
@@ -71,19 +71,12 @@ def add_edge(data, edge):
     data.edge_index = torch.cat([data.edge_index, new_edge], dim=1)
     return data
 
-def visualize_dgl_graph(g, mol):
-    options = {
-        'node_color': 'black',
-        'node_size': 20,
-        'width': 1,
-    }
-    G = dgl.to_networkx(g)
-    plt.figure(figsize=[15,7])
-    plt.title(Chem.MolToSmiles(mol))
-    nkx.draw(G, **options)
-    plt.show()
-
 def visualize_pyg_graph(data, mol):
+    """
+    helper function can be sometimes useful for debugging PyG stuff
+    does not actually respect node information so don't rely on it
+    for debugging the fragmentation algo.
+    """
     G = to_networkx(data, to_undirected=True, remove_self_loops=1)
     plt.figure(figsize=[15, 7])
     plt.title(Chem.MolToSmiles(mol))
@@ -94,42 +87,6 @@ def visualize_pyg_graph(data, mol):
     }
     nkx.draw(G, with_labels=True, **options)
     plt.show()
-
-#TODO: refactor, very messy
-
-def dgl_to_pyg(dgl_graph):
-    """
-    Convert a DGL graph to a PyTorch Geometric graph.
-    Parameters:
-        dgl_graph (dgl.DGLGraph): the DGL graph to convert
-    Returns:
-        torch_geometric.data.Data: the graph encoded in PyG format
-    made by chatGPT so don't trust it
-    """
-    # Get node features from DGL graph
-    if dgl_graph.ndata:
-        x = {key: dgl_graph.ndata[key] for key in dgl_graph.ndata}
-    else:
-        x = None
-
-    # Get edge features from DGL graph
-    if dgl_graph.edata:
-        edge_attr = {key: dgl_graph.edata[key] for key in dgl_graph.edata}
-    else:
-        edge_attr = None
-    
-    # Get edge indices from DGL graph
-    src, dst = dgl_graph.edges()
-    edge_index = torch.stack([src, dst], dim=0)
-    
-    # Convert edge indices to the same dtype and device as the node features if necessary
-    if x is not None:
-        first_key = next(iter(x))
-        edge_index = edge_index.to(x[first_key].device).type(x[first_key].dtype)
-
-    pyg_graph = Data(x=x, edge_index=edge_index, edge_attr=edge_attr)
-    
-    return pyg_graph
 
 #use "MG_plus_reference" as scheme
 
@@ -147,17 +104,36 @@ class JT_SubGraph(object):
         self.frag_name_list = [x[0] for x in self.patterns]
         self.frag_dim = len(self.frag_name_list)
 
-    def fragmentation(self, graph, mol):
+    def fragmentation(self, graph, mol, save_file_path=None, check_metadata=False):
         """
-        TODO: write real desc
-        while converting, good to know:
-            graph.edata['feat'] is graph.feat
-            motif_graph.ndata['feat'] is graph.nfeat          (arbitrary)
-            motif_graph.ndata['atom_mask'] is graph.atom_mask (arbitrary)
-        we assume that the ndata['feat'] from before entering the function is not needed
+        Parameters:
+        - graph: The input graph to fragment.
+        - mol: The RDKit molecule object.
+        - save_file_path: Optional; path to save/load the fragmentation result.
+        #TODO: get from self instead of passing
+        - check_metadata: Optional; if True, checks fragment metadata before returning a loaded file.
+        
+        Returns:
+        - frag_graph_list: List of fragment graphs (subgraphs resulting of fragmentation).
+        - motif_graph: The "motif graph" (junction tree), encoding connectivity between fragments
+        - atom_mask: for each fragment, a mask of atoms in the original molecule.
+        - frag_flag: Fragment flags indentifying fragments to nodes in the motif graph.
         """
-    
-        #graph = from_dgl(graph) #if passing a dgl for debugging
+        if save_file_path and os.path.exists(save_file_path):
+            print(f"Loading fragmentation data from {save_file_path}")
+            with open(save_file_path, 'rb') as f:
+                saved_data = pickle.load(f)
+            
+            if check_metadata:
+                frag_count = len(saved_data['frag_graph_list'])
+                print(f"Loaded data has {frag_count} fragments.")
+                # TODO: actually implement checks
+            
+            return (saved_data['frag_graph_list'], 
+                    saved_data['motif_graph'], 
+                    saved_data['atom_mask'], 
+                    saved_data['frag_flag'])
+        
         num_atoms = mol.GetNumAtoms()
 
         frag_graph, frag_flag, atom_mask, idx_tuples, frag_features = self.compute_fragments(mol, graph, num_atoms)
@@ -188,10 +164,22 @@ class JT_SubGraph(object):
             motif_edge_features = edge_features[add_edge_feats_ids_list, :] #da same
             motif_graph.edge_attr = motif_edge_features
             frag_graph_list = self.rebuild_frag_graph(frag_graph, motif_graph, mol)
-            return frag_graph_list, motif_graph, atom_mask, frag_flag
         else:
             frag_graph_list = self.rebuild_frag_graph(frag_graph, motif_graph, mol)
-            return frag_graph_list, motif_graph, atom_mask, frag_flag
+
+        if save_file_path:
+            print(f"Saving fragmentation data to {save_file_path}")
+            frag_data = {
+                'frag_graph_list': frag_graph_list,
+                'motif_graph': motif_graph,
+                'atom_mask': atom_mask,
+                'frag_flag': frag_flag
+            }
+            with open(save_file_path, 'wb') as f:
+                pickle.dump(frag_data, f)
+
+        return frag_graph_list, motif_graph, atom_mask, frag_flag
+    
 
     def compute_fragments(self, mol, graph, num_atoms):
         clean_edge_index = graph.edge_index
