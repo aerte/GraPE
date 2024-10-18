@@ -203,9 +203,8 @@ cython_debug/
 # saved models
 gcgat_jitted_latest.pth
 
-# saved models
-gcgat_jitted_latest.pth
-
+# pickle files shouldn't be shared on this repo anyways
+*.pth
 
 ## Ignore venv directory
 pyvenv.cfg
