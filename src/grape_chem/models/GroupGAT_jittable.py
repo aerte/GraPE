@@ -155,7 +155,7 @@ class GCGAT_v4pro_jit(nn.Module):
         self.junction_module = JT_Channel(net_params)
 
         #self.output_dim = net_params['output_dim'] #TODO: should default to 1
-        self.output_dim = 5
+        self.output_dim = net_params['output_dim'] if 'output_dim' in net_params else 1
         self.frag_res_dim = net_params['L2_hidden_dim']
         concat_dim = net_params['L1_hidden_dim'] + net_params['L2_hidden_dim'] + net_params['L3_hidden_dim']
 

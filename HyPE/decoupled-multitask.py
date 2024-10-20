@@ -35,7 +35,7 @@ def standardize(x, mean, std):
 set_seed(42)
 
 # Hyperparameters
-epochs = 12000
+epochs = 1000
 batch_size = 700
 patience = 30
 hidden_dim = 47
@@ -561,7 +561,6 @@ from typing import Callable, Union, List, Tuple, Optional
 from torch.optim import Optimizer
 import torch.nn.functional as F
 from torch_geometric.data import Data
-from grokfast import gradfilter_ma, gradfilter_ema
 
 def train_model_jit_grokk(
     model: torch.nn.Module,
@@ -711,9 +710,6 @@ def train_model_jit_grokk(
 
                 loss_train.backward()
 
-                # Apply Grokfast (gradfilter_ema)
-                grads = gradfilter_ema(model, grads=grads, alpha=alpha, lamb=lamb)
-
                 optimizer.step()
 
             loss_train = np.mean(temp)
@@ -823,36 +819,3 @@ def train_model_jit_grokk(
             print(f'Model saved at: {model_name}')
 
     return train_loss, val_loss
-
-# Include the gradfilter_ema function directly
-def gradfilter_ema(
-    m: torch.nn.Module,
-    grads: Optional[Dict[str, torch.Tensor]] = None,
-    alpha: float = 0.98,
-    lamb: float = 2.0,
-) -> Dict[str, torch.Tensor]:
-    """
-    Implementation of GradFilter with Exponential Moving Average (EMA).
-
-    Args:
-        m (nn.Module): Model that contains every trainable parameters.
-        grads (Optional[Dict[str, torch.Tensor]]): Running memory (EMA). Initialize by setting it to None. Feed the output of the method recursively after on.
-        alpha (float, optional): Momentum hyperparmeter of the EMA. Defaults to 0.98.
-        lamb (float, optional): Amplifying factor hyperparameter of the filter. Defaults to 2.0.
-
-    Returns:
-        Dict[str, torch.Tensor]: Updated running memory.
-    """
-    if grads is None:
-        grads = {}
-        for name, p in m.named_parameters():
-            if p.grad is None:
-                continue
-            grads[name] = p.grad.data.clone()
-    else:
-        for name, p in m.named_parameters():
-            if p.grad is None:
-                continue
-            grads[name] = alpha * grads[name] + (1 - alpha) * p.grad.data
-            p.grad.data += lamb * (p.grad.data - grads[name])
-    return grads
