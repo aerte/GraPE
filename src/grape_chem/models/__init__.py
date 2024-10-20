@@ -6,4 +6,5 @@ from .MEGNet_gnn import *
 from .AFP_gnn import *
 from .GroupGAT import *
 from .GroupGAT_jittable import *
+from .GroupGAT_multitask import *
 from .AttentiveFP_alphas import * #TODO: fix naming so class and module aren't the same 
