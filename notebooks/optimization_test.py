@@ -1,5 +1,6 @@
 ############################ Optimization script ############################################
 from ray.air import RunConfig
+import ray
 import dgl
 import os
 import tempfile
@@ -23,6 +24,7 @@ from ray.train.torch import TorchTrainer
 
 #root = '/zhome/4a/a/156124/GraPE/notebooks/data_splits.xlsx'
 root = 'env/data_splits.xlsx'
+ray.init(_temp_dir="/media/paul/external_drive/tmp_ray")
 
 def set_seed(seed):
     os.environ['PYTHONHASHSEED'] = str(seed)
@@ -43,7 +45,6 @@ def set_seed(seed):
         torch.backends.cudnn.benchmark = False
         torch.backends.cudnn.enabled = False
 
-
 def return_hidden_layers(num):
     """ Returns a list of hidden layers, starting from 2**num*32, reducing the hidden dim by 2 every step.
 
@@ -55,7 +56,6 @@ def return_hidden_layers(num):
     [256, 128, 64]
     """
     return [2 ** i * 32 for i in range(num, 0, -1)]
-
 
 def load_dataset_from_excel(dataset, is_dmpnn=False, is_megnet=False):
     """
@@ -213,7 +213,6 @@ def load_model(model_name, config, device=None):
         }
         return GroupGAT_jittable.GCGAT_v4pro_jit(net_params)
 
-
 def trainable(config, data_name: str = None, model_name: str = None, is_dmpnn: bool = False, device: torch.device = None, is_megnet: bool = False, is_groupgat: bool = True, fragmentation=None): #set groupgat to also false by default
     """
     The trainable for Ray Tune.
@@ -253,7 +252,7 @@ def trainable(config, data_name: str = None, model_name: str = None, is_dmpnn: b
     optimizer = torch.optim.Adam(model.parameters(), lr=config['initial_lr'], weight_decay=config['weight_decay'])
     early_Stopper = EarlyStopping(patience=30, model_name='random', skip_save=True)
     scheduler = lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=config['lr_reduction_factor'],
-                                               min_lr=0.0000000000001, patience=10)
+                                               min_lr=1e-10, patience=10)
     loss_function = torch.nn.functional.mse_loss
 
     train_data = DataLoader(train_set, batch_size=300)
@@ -267,49 +266,52 @@ def trainable(config, data_name: str = None, model_name: str = None, is_dmpnn: b
         with checkpoint.as_directory() as checkpoint_dir:
             model_state_dict = torch.load(
                 os.path.join(checkpoint_dir, "model.pt"),
-                # map_location=...,  # Load onto a different device if needed.
+                map_location=device,
             )
-            model.module.load_state_dict(model_state_dict)
+            model.load_state_dict(model_state_dict)
             optimizer.load_state_dict(torch.load(os.path.join(checkpoint_dir, "optimizer.pt")))
-            start_epoch = (torch.load(os.path.join(checkpoint_dir, "extra_state.pt"))["epoch"] + 1)
+            start_epoch = torch.load(os.path.join(checkpoint_dir, "extra_state.pt"))["epoch"] + 1
 
     model.train()
-
+    print("loaded and trained model one epoch")
     for i in range(start_epoch, iterations):
+        # Add logging to track progress
+        print(f"Trial {train.get_trial_id()}: Starting epoch {i + 1}/{iterations}")
+
         train_loss = train_epoch(model=model, loss_func=loss_function, optimizer=optimizer, train_loader=train_data,
                                  device=device)
         val_loss = val_epoch(model=model, loss_func=loss_function, val_loader=val_data, device=device)
         scheduler.step(val_loss)
         early_Stopper(val_loss=val_loss, model=model)
 
+        # Report metrics to Ray Tune
+        metrics = {
+            "epoch": i + 1,
+            "train_loss": train_loss,
+            "val_loss": val_loss,
+            "mae_loss": val_loss  # Assuming val_loss is your metric of interest
+        }
+        train.report(metrics)
+
+        # Log metrics to the console
+        print(f"Trial {train.get_trial_id()}: Epoch {i + 1}, Train Loss: {train_loss:.4f}, Val Loss: {val_loss:.4f}")
+
         if early_Stopper.stop:
-            train.report({"mae_loss": val_loss})
+            print(f"Trial {train.get_trial_id()}: Early stopping at epoch {i + 1}")
             break
 
-        with tempfile.TemporaryDirectory() as temp_checkpoint_dir:
-            checkpoint = None
-
-            should_checkpoint = i % config.get("checkpoint_freq", 15) == 0
-            # In standard DDP training, where the model is the same across all ranks,
-            # only the global rank 0 worker needs to save and report the checkpoint
-            if train.get_context().get_world_rank() == 0 and should_checkpoint:
-                # === Make sure to save all state needed for resuming training ===
-                torch.save(
-                    model.module.state_dict(),  # NOTE: Unwrap the model.
-                    os.path.join(temp_checkpoint_dir, "model.pt"),
-                )
-                torch.save(
-                    optimizer.state_dict(),
-                    os.path.join(temp_checkpoint_dir, "optimizer.pt"),
-                )
-                torch.save(
-                    {"epoch": i},
-                    os.path.join(temp_checkpoint_dir, "extra_state.pt"),
-                )
-                # ================================================================
+        # Checkpointing
+        should_checkpoint = i % config.get("checkpoint_freq", 15) == 0
+        if should_checkpoint and train.get_context().get_world_rank() == 0:
+            with tempfile.TemporaryDirectory() as temp_checkpoint_dir:
+                # Save model and optimizer state
+                torch.save(model.state_dict(), os.path.join(temp_checkpoint_dir, "model.pt"))
+                torch.save(optimizer.state_dict(), os.path.join(temp_checkpoint_dir, "optimizer.pt"))
+                torch.save({"epoch": i}, os.path.join(temp_checkpoint_dir, "extra_state.pt"))
                 checkpoint = Checkpoint.from_directory(temp_checkpoint_dir)
 
-            train.report({"mae_loss": val_loss}, checkpoint=checkpoint)
+            # Report checkpoint to Ray Tune
+            train.report(metrics, checkpoint=checkpoint)
         # We report the loss to ray tune every 15 steps, that way tune's scheduler can interfere
 
 
@@ -379,10 +381,10 @@ if __name__ == '__main__':
     elif model_ == "afp":
         model_name = "AFP"
     else:
-        model_name = "AFP"
+        model_name = "GroupGAT"
 
     ################################# Search space ######################################
-
+    print("model name: ", model_name)
     config_space = CS.ConfigurationSpace()
     config_space.add(
         CS.UniformIntegerHyperparameter("depth", lower=1, upper=5))
@@ -395,7 +397,7 @@ if __name__ == '__main__':
     config_space.add(
         CS.UniformFloatHyperparameter("lr_reduction_factor", lower=0.4, upper=0.99))
     config_space.add(
-        CS.UniformFloatHyperparameter("dropout", lower=0., upper=0.4))
+        CS.UniformFloatHyperparameter("dropout", lower=0.0, upper=0.15))
     config_space.add(
         CS.UniformIntegerHyperparameter("mlp_layers", lower=1, upper=4))
     # If AFP is selected
@@ -408,13 +410,9 @@ if __name__ == '__main__':
             CS.UniformIntegerHyperparameter("edge_hidden_dim", lower=32, upper=256))
     elif model_name == "GroupGAT":
         config_space.add(CS.UniformIntegerHyperparameter("hidden_dim", lower=64, upper=512))
-        config_space.add(CS.UniformIntegerHyperparameter("MLP_layers", lower=1, upper=4))
-        config_space.add(CS.UniformFloatHyperparameter("dropout", lower=0.0, upper=0.15))
+
         config_space.add(CS.UniformIntegerHyperparameter("num_layers_atom", lower=1, upper=5))
         config_space.add(CS.UniformIntegerHyperparameter("num_layers_mol", lower=1, upper=5))
-        config_space.add(CS.UniformFloatHyperparameter('initial_lr', lower=1e-5, upper=1e-1))
-        config_space.add(CS.UniformFloatHyperparameter("weight_decay", lower=1e-6, upper=1e-1))
-        config_space.add(CS.UniformFloatHyperparameter("lr_reduction_factor", lower=0.4, upper=0.99))
         # L1:
         config_space.add(CS.UniformIntegerHyperparameter("L1_layers_atom", lower=1, upper=5)) #layers
         config_space.add(CS.UniformIntegerHyperparameter("L1_layers_mol", lower=1, upper=5))  #depth
@@ -453,6 +451,14 @@ if __name__ == '__main__':
         max_t=1000,
     )
 
+    from ray.tune import CLIReporter
+
+    # Define the metrics and parameters to report
+    reporter = CLIReporter(
+        parameter_columns=["depth", "gnn_hidden_dim", "initial_lr", "dropout"],
+        metric_columns=["epoch", "train_loss", "val_loss", "mae_loss"]
+    )
+
     ## Initialize the tuner
     tuner = Tuner(trainable_with_resources,
                   tune_config=tune.TuneConfig(
@@ -463,8 +469,11 @@ if __name__ == '__main__':
                       num_samples=n_samples),
                   run_config=train.RunConfig(
                       name="bo_exp",
-                      stop={"training_iteration": 100}),
+                      stop={"training_iteration": 100},
+                      progress_reporter=reporter
                   #   param_space=search_space
+                      ),
+
                   )
 
     result = tuner.fit()
