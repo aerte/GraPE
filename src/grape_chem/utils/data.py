@@ -470,22 +470,50 @@ class DataSet(DataLoad):
         """
         return a list of frag_graphs and motif_graphs based on the fragmentation
         passed-in when initializing the datatset
-        TODO: complete, remove debug statements, could be made static
+
+        If the file path exists, it will attempt to load the data from there.
+        Else it will compute fragmentation and attempt to save to the file path.
+        TODO: could be made static
         """
         assert self.fragmentation is not None, 'fragmentation scheme and method must not be none to prepare frag data'
-
+        if self.fragmentation.save_file_path is not None:
+            try:
+                if os.path.exists(self.fragmentation.save_file_path):
+                    with open(self.fragmentation.save_file_path, 'rb') as saved_frags:
+                        frag_data = pickle.load(saved_frags)
+                        if len(frag_data) != len(self.smiles):
+                            raise ValueError(f"Fragmentation data does not match the number of smiles in the dataset. ")
+                        for i in range(len(self.smiles)):
+                            frag_graphs, motif_graph = frag_data[i]
+                            self.graphs[i].frag_graphs = frag_graphs
+                            self.graphs[i].motif_graphs = motif_graph
+                        print(f"successfully loaded saved fragmentation at {self.fragmentation.save_file_path}")
+                        return
+            except Exception as e:
+                print(f"Warning: Could not load fragmentation data from {self.fragmentation.save_file_path}. Reason: {e}")
+        
+        ## - Actual computation - ##
         print("beginning fragmentation...")
+        frag_data = []
         for i, s in enumerate(self.smiles):
             if log_progress:
                 if (i + 1) % log_every == 0:
                     print('Currently performing fragmentation on molecule {:d}/{:d}'.format(i + 1, len(self.smiles)))
-            frag_graphs, motif_graph, _, _ = graph_2_frag(s, self.graphs[i], self.fragmentation) #TODO: add graph_2_frag method to take fragmentation 
+            frag_graphs, motif_graph, _, _ = graph_2_frag(s, self.graphs[i], self.fragmentation)
             if hasattr(motif_graph, 'atom_mask'):
                 del motif_graph.atom_mask #hacky, but necessary to avoid issues with pytorch geometric
             if frag_graphs is not None:
                 self.graphs[i].frag_graphs = Batch.from_data_list(frag_graphs) #empty lists could cause issues. consider replacing with None in case list empty
                 self.graphs[i].motif_graphs = motif_graph
-            
+                frag_data.append((self.graphs[i].frag_graphs, self.graphs[i].motif_graphs))
+            else:
+                frag_data.append((None, None)) 
+                #^to keep consistent with the length of the dataset, in case it contains singletons which won't produce frag and motif
+        ## --- ##
+
+        if self.fragmentation.save_file_path is not None:
+            with open(self.fragmentation.save_file_path, 'wb') as save_frags:
+                pickle.dump(frag_data, save_frags)
 
     def indices(self):
         return range(len(self.graphs)) if self._indices is None else self._indices

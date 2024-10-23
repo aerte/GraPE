@@ -11,24 +11,24 @@
 
 import os
 import pandas as pd
-import torch
-from torch_geometric.data import Data
-from rdkit import Chem
-
 import numpy as np
+import torch
+import pickle
+from torch_geometric.data import Data
+
+from rdkit import Chem
 
 from torch_geometric.utils import subgraph
 from torch_geometric.utils import add_self_loops
 
 import scipy.sparse as sp
 
-#stinky-ass imports
+# temp imports for debugging function
 import matplotlib.pyplot as plt
-import dgl
 import networkx as nkx
 from torch_geometric.utils import to_networkx
 
-#temporary import
+# temporary import
 import logging
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.ERROR)
@@ -71,19 +71,12 @@ def add_edge(data, edge):
     data.edge_index = torch.cat([data.edge_index, new_edge], dim=1)
     return data
 
-def visualize_dgl_graph(g, mol):
-    options = {
-        'node_color': 'black',
-        'node_size': 20,
-        'width': 1,
-    }
-    G = dgl.to_networkx(g)
-    plt.figure(figsize=[15,7])
-    plt.title(Chem.MolToSmiles(mol))
-    nkx.draw(G, **options)
-    plt.show()
-
 def visualize_pyg_graph(data, mol):
+    """
+    Helper function can be sometimes useful for debugging PyG stuff
+    does not actually respect node information so don't rely on it
+    for debugging the fragmentation algo.
+    """
     G = to_networkx(data, to_undirected=True, remove_self_loops=1)
     plt.figure(figsize=[15, 7])
     plt.title(Chem.MolToSmiles(mol))
@@ -95,70 +88,39 @@ def visualize_pyg_graph(data, mol):
     nkx.draw(G, with_labels=True, **options)
     plt.show()
 
-#TODO: refactor, very messy
-
-def dgl_to_pyg(dgl_graph):
-    """
-    Convert a DGL graph to a PyTorch Geometric graph.
-    Parameters:
-        dgl_graph (dgl.DGLGraph): the DGL graph to convert
-    Returns:
-        torch_geometric.data.Data: the graph encoded in PyG format
-    made by chatGPT so don't trust it
-    """
-    # Get node features from DGL graph
-    if dgl_graph.ndata:
-        x = {key: dgl_graph.ndata[key] for key in dgl_graph.ndata}
-    else:
-        x = None
-
-    # Get edge features from DGL graph
-    if dgl_graph.edata:
-        edge_attr = {key: dgl_graph.edata[key] for key in dgl_graph.edata}
-    else:
-        edge_attr = None
-    
-    # Get edge indices from DGL graph
-    src, dst = dgl_graph.edges()
-    edge_index = torch.stack([src, dst], dim=0)
-    
-    # Convert edge indices to the same dtype and device as the node features if necessary
-    if x is not None:
-        first_key = next(iter(x))
-        edge_index = edge_index.to(x[first_key].device).type(x[first_key].dtype)
-
-    pyg_graph = Data(x=x, edge_index=edge_index, edge_attr=edge_attr)
-    
-    return pyg_graph
-
-#use "MG_plus_reference" as scheme
+# use "MG_plus_reference" as scheme
 
 ###############################################################################
 ###############                 Junction tree                  ################
 ###############################################################################
 
 class JT_SubGraph(object):
-    def __init__(self, scheme):
-        path = os.path.join('./env', scheme + '.csv') #change to your needs TODO: load from yaml or larger config of script where called
-        #TODO: move out of init
+    def __init__(self, scheme, save_file_path=None, verbose=True):
+        path = os.path.join('./env', scheme + '.csv') # change to your needs TODO: load from yaml or larger config of script where called
         data_from = os.path.realpath(path)
         df = pd.read_csv(data_from)
         pattern = df[['First-Order Group', 'SMARTs', 'Priority']].values.tolist()
         self.patterns = sorted(pattern, key=lambda x: x[2], reverse=False)
         self.frag_name_list = [x[0] for x in self.patterns]
         self.frag_dim = len(self.frag_name_list)
+        self.save_file_path = save_file_path
+        self.verbose = verbose
 
-    def fragmentation(self, graph, mol):
+    def fragmentation(self, graph, mol, check_metadata=False):
         """
-        TODO: write real desc
-        while converting, good to know:
-            graph.edata['feat'] is graph.feat
-            motif_graph.ndata['feat'] is graph.nfeat          (arbitrary)
-            motif_graph.ndata['atom_mask'] is graph.atom_mask (arbitrary)
-        we assume that the ndata['feat'] from before entering the function is not needed
+        Parameters:
+        - graph: The input graph to fragment.
+        - mol: The RDKit molecule object.
+        - save_file_path: Optional; path to save/load the fragmentation result.
+        Currently that logic is implemented in the `_prepare_frag` method of DataSet class (TODO: change this)
+        - check_metadata: Optional; if True, checks fragment metadata before returning a loaded file.
+        
+        Returns:
+        - frag_graph_list: List of fragment graphs (subgraphs resulting of fragmentation).
+        - motif_graph: The "motif graph" (junction tree), encoding connectivity between fragments
+        - atom_mask: for each fragment, a mask of atoms in the original molecule.
+        - frag_flag: Fragment flags identifying fragments to nodes in the motif graph.
         """
-    
-        #graph = from_dgl(graph) #if passing a dgl for debugging
         num_atoms = mol.GetNumAtoms()
 
         frag_graph, frag_flag, atom_mask, idx_tuples, frag_features = self.compute_fragments(mol, graph, num_atoms)
@@ -189,14 +151,15 @@ class JT_SubGraph(object):
             motif_edge_features = edge_features[add_edge_feats_ids_list, :] #da same
             motif_graph.edge_attr = motif_edge_features
             frag_graph_list = self.rebuild_frag_graph(frag_graph, motif_graph, mol)
-            return frag_graph_list, motif_graph, atom_mask, frag_flag
         else:
             frag_graph_list = self.rebuild_frag_graph(frag_graph, motif_graph, mol)
-            return frag_graph_list, motif_graph, atom_mask, frag_flag
+
+        return frag_graph_list, motif_graph, atom_mask, frag_flag
+    
 
     def compute_fragments(self, mol, graph, num_atoms):
         clean_edge_index = graph.edge_index
-        #graph.edge_index = add_self_loops(graph.edge_index)[0] #might make it slower: TODO: investigate #this part changes the self loops
+        # graph.edge_index = add_self_loops(graph.edge_index)[0] # might make it slower: TODO: investigate #this part changes the self loops
         pat_list = []
         mol_size = mol.GetNumAtoms()
         num_atoms = mol.GetNumAtoms()
@@ -340,17 +303,17 @@ class JT_SubGraph(object):
             idx_list = coord.tolist()
 
             # Create new fragment graph as a subgraph of the original
-            new_graph_edge_index, new_graph_edge_attr,= subgraph(
-                idx_list, frag_graph.edge_index, edge_attr=frag_graph.edge_attr, relabel_nodes=True,num_nodes=frag_graph.num_nodes,
+            new_graph_edge_index, new_graph_edge_attr = subgraph(
+                idx_list, frag_graph.edge_index, edge_attr=frag_graph.edge_attr, relabel_nodes=True, num_nodes=frag_graph.num_nodes,
             )
 
             new_node_features = frag_graph.x[idx_list] if frag_graph.x is not None else None
 
-            new_frag_graph= Data(
+            new_frag_graph = Data(
                 edge_index=new_graph_edge_index,
                 edge_attr=new_graph_edge_attr,
                 num_nodes=len(idx_list), 
-                x=new_node_features #explicitely passing nodes. TODO: unit test to make sure feats match with origin graph
+                x=new_node_features #explicitly passing nodes. TODO: unit test to make sure feats match with origin graph
             )
             frag_graph_list.append(new_frag_graph)
         
@@ -394,7 +357,7 @@ def remove_edges(data, to_remove: list[tuple[int, int]]):
 
 def remove_edges_other(data, to_remove: list[tuple[int, int]]):
     """
-    other more PyG-esque take on the remove edges fucntion
+    Other more PyG-esque take on the remove edges function
     TODO: unit test against top function
     """
     edge_indices = []
