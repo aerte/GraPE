@@ -27,7 +27,9 @@ __all__ = [
     'return_hidden_layers',
     'set_seed',
     'rescale_arrays',
-    'test_model_jit'
+    'test_model_jit',
+    'train_epoch_jittable',
+    'val_epoch_jittable',
 ]
 
 # import grape_chem.models
@@ -80,7 +82,8 @@ class EarlyStopping:
             self.counter += 1
 
         if self.counter >= self.patience:
-            print(f'Early stopping reached with best validation loss {self.best_score:.4f}')
+            #TODO: make into logger instead
+            #print(f'Early stopping reached with best validation loss {self.best_score:.4f}')
             if not self.skip_save:
                 print(f'Model saved at: {self.model_name}')
             self.stop = True
@@ -552,7 +555,8 @@ def train_model_jit(
             if early_stopper is not None:
                 early_stopper(val_loss=loss_val, model=model)
                 if early_stopper.stop:
-                    print("Early stopping reached with best validation loss: {:.4f}".format(early_stopper.best_score))
+                    #TODO: make into logger instead
+                    #print("Early stopping reached with best validation loss: {:.4f}".format(early_stopper.best_score))
                     early_stopper.stop_epoch = epoch - early_stopper.patience
                     if tuning:
                         pass
@@ -612,9 +616,188 @@ def val_epoch(model: torch.nn.Module, loss_func: Callable, val_loader, device: s
 
     return loss/it
 
+##############################################################################################################
+#############          Model testing for models with only jit-friendly operations                 ############
+##############################################################################################################
+
+def train_epoch_jittable(
+    model: torch.nn.Module,
+    loss_func: Callable,
+    optimizer: torch.optim.Optimizer,
+    train_loader,
+    device: str = None,
+    net_params: dict = None,
+):
+    """
+    see `train_epoch` for args and easily readable logic. 
+    This version is for jittable models where all arguments 
+    need to be passed in explicitly
+    """
+    if device is None:
+        device = torch.device('cpu')
+    else:
+        device = torch.device(device)
+
+    model.train()
+    total_loss = 0.0
+    total_iters = 0.0
+
+    for idx, batch in enumerate(train_loader):
+        optimizer.zero_grad()
+        # Extract tensors from batch
+        data_x = batch.x.to(device)
+        data_edge_index = batch.edge_index.to(device)
+        data_edge_attr = batch.edge_attr.to(device)
+        data_batch = batch.batch.to(device)
+
+        # Fragment graphs
+        frag_batch_data = Batch.from_data_list(batch.frag_graphs).to(device)
+        frag_x = frag_batch_data.x
+        frag_edge_index = frag_batch_data.edge_index
+        frag_edge_attr = frag_batch_data.edge_attr
+        frag_batch = frag_batch_data.batch
+
+        # Junction graphs (motif graphs)
+        junction_batch_data = Batch.from_data_list(batch.motif_graphs).to(device)
+        junction_x = junction_batch_data.x
+        junction_edge_index = junction_batch_data.edge_index
+        junction_edge_attr = junction_batch_data.edge_attr
+        junction_batch = junction_batch_data.batch
+
+        # Motif nodes
+        motif_nodes = frag_batch_data.x  # Assuming motif nodes are the same as fragment node features
+
+        # Handle global_feats
+        if hasattr(batch, 'global_feats') and batch.global_feats is not None:
+            global_feats = batch.global_feats.to(device)
+        else:
+            global_feats = torch.empty(0).to(device)  # Can't have optional args in JIT, so pass an empty tensor
+
+        # Forward pass
+        out = model(
+            data_x,
+            data_edge_index,
+            data_edge_attr,
+            data_batch,
+            frag_x,
+            frag_edge_index,
+            frag_edge_attr,
+            frag_batch,
+            junction_x,
+            junction_edge_index,
+            junction_edge_attr,
+            junction_batch,
+            motif_nodes,
+            global_feats,
+        )
+
+        # Compute loss
+        if out.dim() == 2:
+            by = batch.y.view(out.shape[0], out.shape[1]).to(device)
+        else:
+            by = batch.y.to(device)
+
+        loss_train = loss_func(by, out)
+
+        # Backward and optimize
+        loss_train.backward()
+        optimizer.step()
+
+        # Accumulate loss
+        total_loss += loss_train.detach().cpu().numpy()
+        total_iters += 1.0
+
+    return total_loss / total_iters
+
+
+def val_epoch_jittable(
+    model: torch.nn.Module,
+    loss_func: Callable,
+    val_loader,
+    device: str = None,
+    net_params: dict = None,
+):
+    """
+    see `val_epoch` for args and easily readable logic. 
+    This version is for jittable models where all arguments 
+    need to be passed in explicitly
+    """
+    if device is None:
+        device = torch.device('cpu')
+    else:
+        device = torch.device(device)
+
+    model.eval()
+    total_loss = 0.0
+    total_iters = 0.0
+
+    with torch.no_grad():
+        for idx, batch in enumerate(val_loader):
+            # Extract tensors from batch
+            data_x = batch.x.to(device)
+            data_edge_index = batch.edge_index.to(device)
+            data_edge_attr = batch.edge_attr.to(device)
+            data_batch = batch.batch.to(device)
+
+            # Fragment graphs
+            frag_batch_data = Batch.from_data_list(batch.frag_graphs).to(device)
+            frag_x = frag_batch_data.x
+            frag_edge_index = frag_batch_data.edge_index
+            frag_edge_attr = frag_batch_data.edge_attr
+            frag_batch = frag_batch_data.batch
+
+            # Junction graphs (motif graphs)
+            junction_batch_data = Batch.from_data_list(batch.motif_graphs).to(device)
+            junction_x = junction_batch_data.x
+            junction_edge_index = junction_batch_data.edge_index
+            junction_edge_attr = junction_batch_data.edge_attr
+            junction_batch = junction_batch_data.batch
+
+            # Motif nodes
+            motif_nodes = frag_batch_data.x  # Assuming motif nodes are the same as fragment node features
+
+            # Handle global_feats
+            if hasattr(batch, 'global_feats') and batch.global_feats is not None:
+                global_feats = batch.global_feats.to(device)
+            else:
+                global_feats = torch.empty(0).to(device)  # Can't have optional args in JIT, so pass an empty tensor
+
+            # Forward pass
+            out = model(
+                data_x,
+                data_edge_index,
+                data_edge_attr,
+                data_batch,
+                frag_x,
+                frag_edge_index,
+                frag_edge_attr,
+                frag_batch,
+                junction_x,
+                junction_edge_index,
+                junction_edge_attr,
+                junction_batch,
+                motif_nodes,
+                global_feats,
+            )
+
+            # Compute loss
+            if out.dim() == 2:
+                by = batch.y.view(out.shape[0], out.shape[1]).to(device)
+            else:
+                by = batch.y.to(device)
+
+            loss_val = loss_func(by, out)
+
+            # Accumulate loss
+            total_loss += loss_val.detach().cpu().numpy()
+            total_iters += 1.0
+
+    return total_loss / total_iters
+
+
 
 ##############################################################################################################
-################################# Model testing ##############################################################s
+################################# Model testing ##############################################################
 ##############################################################################################################
 
 

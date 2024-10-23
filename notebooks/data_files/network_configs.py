@@ -1,4 +1,5 @@
-# a list of configs of networks, for reproduceability purposes
+# a list of configs of networks,
+#  for reproduceability purposes
 import torch 
 from grape_chem.utils import return_hidden_layers
 
@@ -168,3 +169,20 @@ ICP_coupled_multitask_groupGAT = {
         "num_prediction": 5, #was not used like this in the actual implementation, but this would have been the value
     }
 }
+
+GroupGAT_pKA_after_1st_hyperparam_search = {'L1_dropout': 0.428770053646,
+ 'L1_hidden_dim': 51,
+ 'L1_layers_atom': 5,
+ 'L1_layers_mol': 1,
+ 'MLP_layers': 2,
+ 'depth': 2,
+ 'dropout': 0.0317320110957,
+ 'gnn_hidden_dim': 108,
+ 'hidden_dim': 114,
+ 'initial_lr': 0.0036979616644,
+ 'lr_reduction_factor': 0.7552366725079,
+ 'mlp_layers': 1,
+ 'num_layers_atom': 3,
+ 'num_layers_mol': 2,
+ 'weight_decay': 0.0051247177026
+ }

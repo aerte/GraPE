@@ -14,7 +14,7 @@ from ray.tune import Tuner
 from ray import tune, train
 import numpy as np
 import pandas as pd
-from grape_chem.utils import DataSet, split_data, train_epoch, val_epoch, RevIndexedSubSet
+from grape_chem.utils import DataSet, split_data, train_epoch_jittable, val_epoch_jittable, RevIndexedSubSet
 from torch_geometric.loader import DataLoader
 from ray.tune.search.bohb import TuneBOHB
 from ray.tune.schedulers.hb_bohb import HyperBandForBOHB
@@ -95,14 +95,14 @@ def load_pka_dataset(fragmentation=None):
         from grape_chem.utils import JT_SubGraph
         script_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         fragmentation_scheme_file_path = os.path.join(script_dir, 'env', 'MG_plus_reference')
-        fragmentation = JT_SubGraph(scheme=fragmentation_scheme_file_path)
+        save_fragmentation_file_path = os.path.join(script_dir, 'env', 'fragmentation_data')
+        fragmentation = JT_SubGraph(scheme=fragmentation_scheme_file_path, save_file_path=save_fragmentation_file_path, verbose=False)
         frag_dim = fragmentation.frag_dim
     
     def standardize(x, mean, std):
         return (x - mean) / std
 
     # Path to your pKa dataset
-    breakpoint()
     script_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     root = script_dir+'/env/pka_dataset.xlsx'
     df = pd.read_excel(root)
@@ -157,9 +157,8 @@ def load_model(model_name, config, device=None):
         * "GroupGAT"
     config : ConfigSpace
     """
-
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
-    mlp_out = return_hidden_layers(int(config['mlp_layers']))
+    mlp_out = return_hidden_layers(int(config['MLP_layers']))
 
     if model_name == "AFP":
         return AFP(node_in_dim=44, edge_in_dim=12, num_layers_mol=int(config["afp_mol_layers"]),
@@ -201,15 +200,16 @@ def load_model(model_name, config, device=None):
             "L1_layers_mol": int(config["L1_layers_mol"]),
             "L1_dropout": config["L1_dropout"],
             "L1_hidden_dim": int(config["L1_hidden_dim"]),
-            # include L2 and L3 parameters if needed:
-            "L2_layers_atom": 3,
-            "L2_layers_mol": 2,
-            "L2_dropout": 0.056907,
-            "L2_hidden_dim": 155,
-            "L3_layers_atom": 1,
-            "L3_layers_mol": 4,
-            "L3_dropout": 0.137254,
-            "L3_hidden_dim": 64,
+
+            "L2_layers_atom": int(config["L2_layers_atom"]),
+            "L2_layers_mol": int(config["L2_layers_mol"]),
+            "L2_dropout": config["L2_dropout"],
+            "L2_hidden_dim": int(config["L2_hidden_dim"]),
+
+            "L3_layers_atom": int(config["L3_layers_atom"]),
+            "L3_layers_mol": int(config["L3_layers_mol"]),
+            "L3_dropout": config["L3_dropout"],
+            "L3_hidden_dim": int(config["L3_hidden_dim"]),    
         }
         return GroupGAT_jittable.GCGAT_v4pro_jit(net_params)
 
@@ -226,7 +226,6 @@ def trainable(config, data_name: str = None, model_name: str = None, is_dmpnn: b
         model_name: str
             The model to be loaded.
     """
-    # Handle fragmentation for GroupGAT
 
     ################### Loading the graphs #########################################################################
     if data_name == 'free':
@@ -238,8 +237,8 @@ def trainable(config, data_name: str = None, model_name: str = None, is_dmpnn: b
     elif data_name == 'logp':
         train_set, val_set, _ = load_dataset_from_excel("LogP", is_dmpnn=is_dmpnn, is_megnet=is_megnet)
     else:
-        train_set, val_set, _ = load_pka_dataset(fragmentation=fragmentation)
-
+        train_set, val_set, _, _, _ = load_pka_dataset(fragmentation=fragmentation)
+    print("loaded dataset")
     ################### Defining the model #########################################################################
 
     model = load_model(model_name=model_name, config=config, device=device)
@@ -258,10 +257,9 @@ def trainable(config, data_name: str = None, model_name: str = None, is_dmpnn: b
     train_data = DataLoader(train_set, batch_size=300)
     val_data = DataLoader(val_set, batch_size=300)
 
-    iterations = 300
+    iterations = 300 #wtf? why is this hardcoded? TODO: investigate
     start_epoch = 0
     checkpoint = train.get_checkpoint()
-
     if checkpoint:
         with checkpoint.as_directory() as checkpoint_dir:
             model_state_dict = torch.load(
@@ -273,14 +271,14 @@ def trainable(config, data_name: str = None, model_name: str = None, is_dmpnn: b
             start_epoch = torch.load(os.path.join(checkpoint_dir, "extra_state.pt"))["epoch"] + 1
 
     model.train()
-    print("loaded and trained model one epoch")
     for i in range(start_epoch, iterations):
         # Add logging to track progress
-        print(f"Trial {train.get_trial_id()}: Starting epoch {i + 1}/{iterations}")
+        #print(f"Trial {train.get_trial_id()}: Starting epoch {i + 1}/{iterations}")
 
-        train_loss = train_epoch(model=model, loss_func=loss_function, optimizer=optimizer, train_loader=train_data,
+        train_loss = train_epoch_jittable(model=model, loss_func=loss_function, optimizer=optimizer, train_loader=train_data,
                                  device=device)
-        val_loss = val_epoch(model=model, loss_func=loss_function, val_loader=val_data, device=device)
+        val_loss = val_epoch_jittable(model=model, loss_func=loss_function, val_loader=val_data, device=device)
+        #print(f"Trial {train.trial_id}: Epoch {i + 1}, Train Loss: {train_loss:.4f}, Val Loss: {val_loss:.4f}")
         scheduler.step(val_loss)
         early_Stopper(val_loss=val_loss, model=model)
 
@@ -289,16 +287,9 @@ def trainable(config, data_name: str = None, model_name: str = None, is_dmpnn: b
             "epoch": i + 1,
             "train_loss": train_loss,
             "val_loss": val_loss,
-            "mae_loss": val_loss  # Assuming val_loss is your metric of interest
+            "mae_loss": val_loss  #TODO: check if correct
         }
         train.report(metrics)
-
-        # Log metrics to the console
-        print(f"Trial {train.get_trial_id()}: Epoch {i + 1}, Train Loss: {train_loss:.4f}, Val Loss: {val_loss:.4f}")
-
-        if early_Stopper.stop:
-            print(f"Trial {train.get_trial_id()}: Early stopping at epoch {i + 1}")
-            break
 
         # Checkpointing
         should_checkpoint = i % config.get("checkpoint_freq", 15) == 0
@@ -349,17 +340,17 @@ if __name__ == '__main__':
         gpu = 0
 
 
-    if model_name == "GroupGAT":
-        from grape_chem.utils import JT_SubGraph
-        #script_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        #fragmentation_scheme_file_path = os.path.join(script_dir, 'env', 'MG_plus_reference')
-        fragmentation_scheme_file_path = 'MG_plus_reference'
-        fragmentation = JT_SubGraph(scheme=fragmentation_scheme_file_path)
-    else:
-        fragmentation = None
+    # if model_name == "GroupGAT":
+    #     from grape_chem.utils import JT_SubGraph
+    #     #script_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    #     #fragmentation_scheme_file_path = os.path.join(script_dir, 'env', 'MG_plus_reference')
+    #     fragmentation_scheme_file_path = 'MG_plus_reference'
+    #     fragmentation = JT_SubGraph(scheme=fragmentation_scheme_file_path)
+    # else:
+    #     fragmentation = None
 
     if data_name == 'pka':
-        train_set, val_set, test_set, mean_target, std_target = load_pka_dataset(fragmentation=fragmentation)
+        dataset = 'pKa'
     elif data_name == 'free':
         dataset = 'FreeSolv'
     elif data_name == 'mp':
@@ -389,8 +380,6 @@ if __name__ == '__main__':
     config_space.add(
         CS.UniformIntegerHyperparameter("depth", lower=1, upper=5))
     config_space.add(
-        CS.UniformIntegerHyperparameter("gnn_hidden_dim", lower=32, upper=256))
-    config_space.add(
         CS.UniformFloatHyperparameter('initial_lr', lower=1e-5, upper=1e-1))
     config_space.add(
         CS.UniformFloatHyperparameter("weight_decay", lower=1e-6, upper=1e-1))
@@ -413,11 +402,25 @@ if __name__ == '__main__':
 
         config_space.add(CS.UniformIntegerHyperparameter("num_layers_atom", lower=1, upper=5))
         config_space.add(CS.UniformIntegerHyperparameter("num_layers_mol", lower=1, upper=5))
+        config_space.add(CS.UniformFloatHyperparameter("final_dropout", lower=0.0, upper=0.5))
+        config_space.add(CS.UniformIntegerHyperparameter("num_heads", lower=1, upper=4))
+        config_space.add(CS.UniformIntegerHyperparameter("MLP_layers", lower=1, upper=3))
         # L1:
         config_space.add(CS.UniformIntegerHyperparameter("L1_layers_atom", lower=1, upper=5)) #layers
         config_space.add(CS.UniformIntegerHyperparameter("L1_layers_mol", lower=1, upper=5))  #depth
         config_space.add(CS.UniformFloatHyperparameter("L1_dropout", lower=0.0, upper=0.5))
         config_space.add(CS.UniformIntegerHyperparameter("L1_hidden_dim", lower=32, upper=256))
+
+        config_space.add(CS.UniformIntegerHyperparameter("L2_layers_atom", lower=1, upper=5)) #layers
+        config_space.add(CS.UniformIntegerHyperparameter("L2_layers_mol", lower=1, upper=5))  #depth
+        config_space.add(CS.UniformFloatHyperparameter("L2_dropout", lower=0.0, upper=0.5))
+        config_space.add(CS.UniformIntegerHyperparameter("L2_hidden_dim", lower=32, upper=256))
+
+        config_space.add(CS.UniformIntegerHyperparameter("L3_layers_atom", lower=1, upper=5)) #layers
+        config_space.add(CS.UniformIntegerHyperparameter("L3_layers_mol", lower=1, upper=5))  #depth
+        config_space.add(CS.UniformFloatHyperparameter("L3_dropout", lower=0.0, upper=0.5))
+        config_space.add(CS.UniformIntegerHyperparameter("L3_hidden_dim", lower=32, upper=256))
+        
     # search_space = {
     #     "depth": tune.randint(1,5),
     #     "gnn_hidden_dim": tune.randint(32, 256),
@@ -438,7 +441,7 @@ if __name__ == '__main__':
 
 
     my_trainable = partial(trainable, data_name=data_name, model_name=model_name, is_dmpnn=is_dmpnn,
-                           is_megnet=is_megnet, device=device, is_groupgat=is_groupgat, fragmentation=fragmentation)
+                           is_megnet=is_megnet, device=device, is_groupgat=is_groupgat, ) #fragmentation=fragmentation
 
     trainable_with_resources = tune.with_resources(my_trainable, {"cpu": 4, "gpu": gpu})
 
@@ -447,8 +450,9 @@ if __name__ == '__main__':
 
     ## Get the trial control algorithm
     scheduler = HyperBandForBOHB(
-        time_attr="training_iteration",
-        max_t=1000,
+        time_attr="epoch",   # Changed from 'training_iteration' to 'epoch'
+        max_t=1000,    # Set to match the iterations in the training loop
+        reduction_factor=2.9,
     )
 
     from ray.tune import CLIReporter
@@ -469,7 +473,7 @@ if __name__ == '__main__':
                       num_samples=n_samples),
                   run_config=train.RunConfig(
                       name="bo_exp",
-                      stop={"training_iteration": 100},
+                      stop={"epoch": 300},
                       progress_reporter=reporter
                   #   param_space=search_space
                       ),
@@ -490,6 +494,9 @@ if __name__ == '__main__':
     }
 
     #file_name = "/zhome/4a/a/156124/GraPE/notebooks/results/new_best_hyperparameters_" + model_name + "_" + dataset + ".json"
-    file_name = "env/bohb_results/new_best_hyperparameters_" + model_name + "_" + dataset + ".json"
+
+    directory = os.path.join("env", "bohb_results")
+    file_name = os.path.join(directory, f"new_best_hyperparameters_{model_name}_{dataset}.json")
+    os.makedirs(directory, exist_ok=True)
     with open(file_name, "w") as file:
         json.dump(results_to_save, file, indent=4)

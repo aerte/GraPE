@@ -54,7 +54,7 @@ global_feats = standardize(global_feats, mean_global_feats, std_global_feats)
 ########################## fragmentation #########################################
 fragmentation_scheme = "MG_plus_reference"
 print("initializing frag...")
-fragmentation = JT_SubGraph(scheme=fragmentation_scheme)
+fragmentation = JT_SubGraph(scheme=fragmentation_scheme, save_file_path='env/frag_pka_run.pth')
 frag_dim = fragmentation.frag_dim
 print("done.")
 
@@ -86,12 +86,14 @@ else:
 epochs = 600
 batch_size = 700
 patience = 30
-hidden_dim = 47
-learning_rate = 0.00126
-weight_decay = 0.003250012
+hidden_dim = 114
+learning_rate = 0.0036979616644
+weight_decay = 0.0051247177026
 mlp_layers = 4
 atom_layers = 3
-mol_layers = 3
+mol_layers = 2
+#final_droupout = 0.257507
+final_droupout = 0.0317320110957
 
 # num_global_feats is the dimension of global features per observation
 mlp = return_hidden_layers(mlp_layers)
@@ -100,9 +102,9 @@ net_params = {
               "num_atom_type": 44, # == node_in_dim TODO: check matches with featurizer or read from featurizer
               "num_bond_type": 12, # == edge_in_dim
               "dropout": 0.0,
-              "MLP_layers":mlp_layers,
+              "MLP_layers":2,
               "frag_dim": frag_dim,
-              "final_dropout": 0.257507,
+              "final_dropout": final_droupout,
             # for origins:
               "num_heads": 1,
             # for AFP:
@@ -114,8 +116,8 @@ net_params = {
               "num_layers_atom": atom_layers, 
               "num_layers_mol": mol_layers,
             # for channels:
-              "L1_layers_atom": 3, #L1_layers
-              "L1_layers_mol": 3,  #L1_depth
+              "L1_layers_atom": 5, #L1_layers
+              "L1_layers_mol": 1,  #L1_depth
               "L1_dropout": 0.370796,
 
               "L2_layers_atom": 3, #L2_layers
@@ -126,7 +128,7 @@ net_params = {
               "L3_layers_mol": 4,  #L3_depth
               "L3_dropout": 0.137254,
 
-              "L1_hidden_dim": 125,
+              "L1_hidden_dim": 51,
               "L2_hidden_dim": 155,
               "L3_hidden_dim": 64,
               }
@@ -134,7 +136,7 @@ model = torch.jit.script(GroupGAT_jittable.GCGAT_v4pro_jit(net_params))
 
 optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
 early_Stopper = EarlyStopping(patience=100, model_name='random', skip_save=True)
-scheduler = lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.7, min_lr=1e-9,
+scheduler = lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.7552366725079, min_lr=0.0036979616644,
                                            patience=30)
 
 loss_func = torch.nn.functional.mse_loss
@@ -358,7 +360,8 @@ def test_model_jit_with_parity(
                             junction_edge_index,
                             junction_edge_attr,
                             junction_batch,
-                            motif_nodes
+                            motif_nodes,
+                            global_feats
                         )
                         lat = lat.detach().cpu()
                         latents_list.append(lat)
@@ -376,7 +379,8 @@ def test_model_jit_with_parity(
                             junction_edge_index,
                             junction_edge_attr,
                             junction_batch,
-                            motif_nodes
+                            motif_nodes,
+                            global_feats
                         )
                 else:
                     # For models that do not need fragment information
