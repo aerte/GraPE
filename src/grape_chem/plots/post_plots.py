@@ -214,6 +214,9 @@ def residual_plot(prediction: Union[Tensor, ndarray], target: Union[Tensor, ndar
     if path_to_export is not None:
         fig.savefig(fname=f'{path_to_export}/residual_plot.svg', format='svg')
 
+    if mlflow.active_run():
+        mlflow.log_artifact(f'{path_to_export}/residual_plot.svg')
+
     return ax
 
 
@@ -298,4 +301,7 @@ def residual_density_plot(train_pred:Union[Tensor, ndarray], val_pred: Union[Ten
 
     if path_to_export is not None:
         plt.savefig(fname=f'{path_to_export}/residual_plot.svg', format='svg')
+
+    if mlflow.active_run():
+        mlflow.log_artifact(f'{path_to_export}/residual_density_plot.svg')
 

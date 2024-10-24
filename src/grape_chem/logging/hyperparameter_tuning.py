@@ -1,16 +1,17 @@
 # grape/hyperparameter_tuning.py
 from ray import tune
 from ray.tune.schedulers import ASHAScheduler
+import os
 
 # Shorten directory name to avoid exceeding path length limits
 def custom_trial_dirname_creator(trial):
     return f"trial_{trial.trial_id}"
 
-def hyperparameter_tuning(train_model_experiment, config, num_samples=10, storage_path='../../ray_results'):
+def hyperparameter_tuning(train_model_experiment, config, num_samples=10, storage_path='../../ray_results', data_bundle=None):
     scheduler = ASHAScheduler(max_t=100, grace_period=10, reduction_factor=2)
-
+    storage_path = 'file:///' + os.path.abspath(storage_path).replace('\\', '/')
     analysis = tune.run(
-        tune.with_parameters(train_model_experiment),
+        tune.with_parameters(train_model_experiment, data_bundle=data_bundle),
         metric="val_loss",
         mode="min",
         config=config,
