@@ -33,7 +33,7 @@ GroupGAT_pka = {
         "mol_layers" : 3,
     },
     'net_params' : {
-              "device": device, #shouldn't be passed in in this way, but best we have for now  
+              "device": device,#shouldn't be passed in in this way, but best we have for now  
               "num_atom_type": 39, # == node_in_dim TODO: check matches with featurizer or read from featurizer
               "num_bond_type": 12, # == edge_in_dim
               "dropout": 0.0,
@@ -186,3 +186,30 @@ GroupGAT_pKA_after_1st_hyperparam_search = {'L1_dropout': 0.428770053646,
  'num_layers_mol': 2,
  'weight_decay': 0.0051247177026
  }
+
+
+new_pka_hyperparam_opt = {
+ 'L1_dropout': 0.1723501091646,
+ 'L1_hidden_dim': 223,
+ 'L1_layers_atom': 4,
+ 'L1_layers_mol': 4,
+ 'L2_dropout': 0.1900047779751,
+ 'L2_hidden_dim': 202,
+ 'L2_layers_atom': 5,
+ 'L2_layers_mol': 3,
+ 'L3_dropout': 0.00054874106,
+ 'L3_hidden_dim': 227,
+ 'L3_layers_atom': 4,
+ 'L3_layers_mol': 2,
+ 'MLP_layers': 3,
+ 'depth': 4,
+ 'dropout': 0.0523608921771,
+ 'final_dropout': 0.1720950490985,
+ 'hidden_dim': 378,
+ 'initial_lr': 0.0016848138285,
+ 'lr_reduction_factor': 0.8409780590571,
+ 'mlp_layers': 1,
+ 'num_heads': 1,
+ 'num_layers_atom': 1,
+ 'num_layers_mol': 5,
+ 'weight_decay': 0.0003324230157}

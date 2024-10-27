@@ -7,7 +7,8 @@ import numpy as np
 import torch
 import pandas as pd
 import matplotlib.pyplot as plt
-from torch_geometric.data import DataLoader, Data, Batch
+from torch_geometric.data import Data, Batch
+from torch_geometric.loader import DataLoader
 from tqdm import tqdm
 from typing import Union, List, Tuple
 from torch import Tensor
@@ -86,14 +87,14 @@ else:
 epochs = 600
 batch_size = 700
 patience = 30
-hidden_dim = 114
-learning_rate = 0.0036979616644
-weight_decay = 0.0051247177026
-mlp_layers = 4
-atom_layers = 3
-mol_layers = 2
+hidden_dim = 378
+learning_rate = 0.0016848138285
+weight_decay = 0.0003324230157
+mlp_layers = 1
+atom_layers = 1
+mol_layers = 5
 #final_droupout = 0.257507
-final_droupout = 0.0317320110957
+final_droupout = 0.0523608921771
 
 # num_global_feats is the dimension of global features per observation
 mlp = return_hidden_layers(mlp_layers)
@@ -116,34 +117,34 @@ net_params = {
               "num_layers_atom": atom_layers, 
               "num_layers_mol": mol_layers,
             # for channels:
-              "L1_layers_atom": 5, #L1_layers
-              "L1_layers_mol": 1,  #L1_depth
-              "L1_dropout": 0.370796,
+              "L1_layers_atom": 4, #L1_layers
+              "L1_layers_mol": 4,  #L1_depth
+              "L1_dropout": 0.1723501091646,
 
-              "L2_layers_atom": 3, #L2_layers
-              "L2_layers_mol": 2,  #2_depth
-              "L2_dropout": 0.056907,
+              "L2_layers_atom": 5, #L2_layers
+              "L2_layers_mol": 3,  #2_depth
+              "L2_dropout": 0.1900047779751,
 
-              "L3_layers_atom": 1, #L3_layers
-              "L3_layers_mol": 4,  #L3_depth
-              "L3_dropout": 0.137254,
+              "L3_layers_atom": 4, #L3_layers
+              "L3_layers_mol": 2,  #L3_depth
+              "L3_dropout": 0.00054874106,
 
-              "L1_hidden_dim": 51,
-              "L2_hidden_dim": 155,
-              "L3_hidden_dim": 64,
+              "L1_hidden_dim": 223,
+              "L2_hidden_dim": 202,
+              "L3_hidden_dim": 227,
               }
 model = torch.jit.script(GroupGAT_jittable.GCGAT_v4pro_jit(net_params))
 
 optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
 early_Stopper = EarlyStopping(patience=100, model_name='random', skip_save=True)
-scheduler = lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.7552366725079, min_lr=0.0036979616644,
+scheduler = lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.7552366725079, min_lr=0.0016848138285,
                                            patience=30)
 
 loss_func = torch.nn.functional.mse_loss
 
 model.to(device)
 
-model_filename = 'gcgat_jitted_latest.pth'
+model_filename = 'gcgat_pka_jitted_latest.pth'
 
 if os.path.exists(model_filename):
     print(f"Model file '{model_filename}' found. Loading the trained model.")

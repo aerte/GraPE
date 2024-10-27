@@ -257,7 +257,7 @@ def trainable(config, data_name: str = None, model_name: str = None, is_dmpnn: b
     train_data = DataLoader(train_set, batch_size=300)
     val_data = DataLoader(val_set, batch_size=300)
 
-    iterations = 300 #wtf? why is this hardcoded? TODO: investigate
+    iterations = 400 #wtf? why is this hardcoded? TODO: investigate
     start_epoch = 0
     checkpoint = train.get_checkpoint()
     if checkpoint:
@@ -287,7 +287,7 @@ def trainable(config, data_name: str = None, model_name: str = None, is_dmpnn: b
             "epoch": i + 1,
             "train_loss": train_loss,
             "val_loss": val_loss,
-            "mae_loss": val_loss  #TODO: check if correct
+            "mse_loss": val_loss  #TODO: check if correct
         }
         train.report(metrics)
 
@@ -443,16 +443,16 @@ if __name__ == '__main__':
     my_trainable = partial(trainable, data_name=data_name, model_name=model_name, is_dmpnn=is_dmpnn,
                            is_megnet=is_megnet, device=device, is_groupgat=is_groupgat, ) #fragmentation=fragmentation
 
-    trainable_with_resources = tune.with_resources(my_trainable, {"cpu": 4, "gpu": gpu})
+    trainable_with_resources = tune.with_resources(my_trainable, {"cpu": 6, "gpu": gpu})
 
     ### Define search algorithm
-    algo = TuneBOHB(config_space, mode='min', metric="mae_loss", )
+    algo = TuneBOHB(config_space, mode='min', metric="mse_loss", )
 
     ## Get the trial control algorithm
     scheduler = HyperBandForBOHB(
         time_attr="epoch",   # Changed from 'training_iteration' to 'epoch'
         max_t=1000,    # Set to match the iterations in the training loop
-        reduction_factor=2.9,
+        reduction_factor=2.78,
     )
 
     from ray.tune import CLIReporter
@@ -460,7 +460,7 @@ if __name__ == '__main__':
     # Define the metrics and parameters to report
     reporter = CLIReporter(
         parameter_columns=["depth", "gnn_hidden_dim", "initial_lr", "dropout"],
-        metric_columns=["epoch", "train_loss", "val_loss", "mae_loss"]
+        metric_columns=["epoch", "train_loss", "val_loss", "mse_loss"]
     )
 
     ## Initialize the tuner
@@ -469,11 +469,11 @@ if __name__ == '__main__':
                       scheduler=scheduler,
                       search_alg=algo,
                       mode='min',
-                      metric="mae_loss",
+                      metric="mse_loss",
                       num_samples=n_samples),
                   run_config=train.RunConfig(
                       name="bo_exp",
-                      stop={"epoch": 300},
+                      stop={"epoch": 600},
                       progress_reporter=reporter
                   #   param_space=search_space
                       ),
@@ -484,7 +484,7 @@ if __name__ == '__main__':
 
     import json
 
-    best_result = result.get_best_result(metric="mae_loss", mode="min")
+    best_result = result.get_best_result(metric="mse_loss", mode="min")
     best_config = best_result.config
     best_metrics = best_result.metrics
 

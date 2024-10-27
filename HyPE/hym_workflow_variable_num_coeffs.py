@@ -12,7 +12,7 @@ import numpy as np
 import torch
 import pandas as pd
 import matplotlib.pyplot as plt
-from torch_geometric.data import DataLoader, Batch
+from torch_geometric.loader import DataLoader
 from tqdm import tqdm
 from typing import Union, List, Tuple
 from torch import Tensor
