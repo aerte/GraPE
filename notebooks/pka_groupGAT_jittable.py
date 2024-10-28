@@ -19,6 +19,9 @@ import os
 def standardize(x, mean, std):
     return (x - mean) / std
 
+def unstandardize(x, mean, std):
+    return x * std + mean
+
 ##########################################################################################
 #####################    Data Input Region  ##############################################
 ##########################################################################################
@@ -65,7 +68,7 @@ print("done.")
 ########################################################################################
 
 ######################## QM9 / testing /excel ##########################################
-data = DataSet(smiles=smiles, target=target, global_features=None, filter=True, fragmentation=fragmentation, custom_split=custom_split)
+data = DataSet(smiles=smiles, target=target, global_features=global_feats, filter=True, fragmentation=fragmentation, custom_split=custom_split)
 custom_split = data.custom_split #messy but it gets recomputed in this way
 ########################################################################################
 
@@ -84,17 +87,20 @@ else:
 
 
 # Hyperparameters
-epochs = 600
-batch_size = 700
+epochs = 1000
+batch_size = len(train)
 patience = 30
-hidden_dim = 378
-learning_rate = 0.0016848138285
-weight_decay = 0.0003324230157
-mlp_layers = 1
-atom_layers = 1
-mol_layers = 5
+hidden_dim = 47
+learning_rate = 0.00126
+weight_decay = 0.003250012
+mlp_layers = 4
+atom_layers = 3
+mol_layers = 3
 #final_droupout = 0.257507
-final_droupout = 0.0523608921771
+final_droupout = 0.257507
+
+init_lr = 0.001054627
+min_lr = 1.00E-09  
 
 # num_global_feats is the dimension of global features per observation
 mlp = return_hidden_layers(mlp_layers)
@@ -117,27 +123,27 @@ net_params = {
               "num_layers_atom": atom_layers, 
               "num_layers_mol": mol_layers,
             # for channels:
-              "L1_layers_atom": 4, #L1_layers
-              "L1_layers_mol": 4,  #L1_depth
-              "L1_dropout": 0.1723501091646,
+              "L1_layers_atom": 3, #L1_layers
+              "L1_layers_mol": 3,  #L1_depth
+              "L1_dropout": 0.370796,
 
-              "L2_layers_atom": 5, #L2_layers
-              "L2_layers_mol": 3,  #2_depth
-              "L2_dropout": 0.1900047779751,
+              "L2_layers_atom": 3, #L2_layers
+              "L2_layers_mol": 2,  #2_depth
+              "L2_dropout": 0.056907,
 
-              "L3_layers_atom": 4, #L3_layers
-              "L3_layers_mol": 2,  #L3_depth
-              "L3_dropout": 0.00054874106,
+              "L3_layers_atom": 1, #L3_layers
+              "L3_layers_mol": 4,  #L3_depth
+              "L3_dropout": 0.137254,
 
-              "L1_hidden_dim": 223,
-              "L2_hidden_dim": 202,
-              "L3_hidden_dim": 227,
+              "L1_hidden_dim": 125,
+              "L2_hidden_dim": 155,
+              "L3_hidden_dim": 64,
               }
 model = torch.jit.script(GroupGAT_jittable.GCGAT_v4pro_jit(net_params))
 
 optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
 early_Stopper = EarlyStopping(patience=100, model_name='random', skip_save=True)
-scheduler = lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.7552366725079, min_lr=0.0016848138285,
+scheduler = lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.7552366725079, min_lr=min_lr,
                                            patience=30)
 
 loss_func = torch.nn.functional.mse_loss
@@ -393,8 +399,12 @@ def test_model_jit_with_parity(
                         out = model(batch)
 
                 # Collect predictions and targets
-                preds_list.append(out.detach().cpu())
-                targets_list.append(batch.y.detach().cpu())
+
+                out_unscaled = unstandardize(out.detach().cpu(), mean_target, std_target)
+                target_unscaled = unstandardize(batch.y.detach().cpu(), mean_target, std_target)
+
+                preds_list.append(out_unscaled)
+                targets_list.append(target_unscaled)
 
                 pbar.update(1)
 
@@ -408,7 +418,7 @@ def test_model_jit_with_parity(
 
 ####### Generating predictions and targets for all datasets #########
 
-# Replace 'train_loader', 'val_loader', 'test_loader' with your actual data loaders
+# Obtain predictions and targets for train, val, and test sets
 train_preds, train_targets = test_model_jit_with_parity(
     model=model,
     test_data_loader=train,
@@ -416,7 +426,6 @@ train_preds, train_targets = test_model_jit_with_parity(
     batch_size=batch_size,
     model_needs_frag=True
 )
-
 val_preds, val_targets = test_model_jit_with_parity(
     model=model,
     test_data_loader=val,
@@ -424,7 +433,6 @@ val_preds, val_targets = test_model_jit_with_parity(
     batch_size=batch_size,
     model_needs_frag=True
 )
-
 test_preds, test_targets = test_model_jit_with_parity(
     model=model,
     test_data_loader=test,
@@ -433,19 +441,141 @@ test_preds, test_targets = test_model_jit_with_parity(
     model_needs_frag=True
 )
 
+####### Unscaling Predictions and Targets #########
+
+# Unscale predictions and targets
+train_preds_unscaled = unstandardize(train_preds, mean_target, std_target)
+train_targets_unscaled = unstandardize(train_targets, mean_target, std_target)
+val_preds_unscaled = unstandardize(val_preds, mean_target, std_target)
+val_targets_unscaled = unstandardize(val_targets, mean_target, std_target)
+test_preds_unscaled = unstandardize(test_preds, mean_target, std_target)
+test_targets_unscaled = unstandardize(test_targets, mean_target, std_target)
+
+####### Calculating Metrics #########
+
+# Compute metrics using unscaled predictions and targets
+print("Train Set Metrics:")
+pred_metric(
+    prediction=train_preds_unscaled,
+    target=train_targets_unscaled,
+    metrics='all',
+    print_out=True
+)
+print("\nValidation Set Metrics:")
+pred_metric(
+    prediction=val_preds_unscaled,
+    target=val_targets_unscaled,
+    metrics='all',
+    print_out=True
+)
+print("\nTest Set Metrics:")
+pred_metric(
+    prediction=test_preds_unscaled,
+    target=test_targets_unscaled,
+    metrics='all',
+    print_out=True
+)
+
+# Compute overall MAE
+train_mae = pred_metric(
+    prediction=train_preds_unscaled,
+    target=train_targets_unscaled,
+    metrics='mae',
+    print_out=False
+)['mae']
+val_mae = pred_metric(
+    prediction=val_preds_unscaled,
+    target=val_targets_unscaled,
+    metrics='mae',
+    print_out=False
+)['mae']
+test_mae = pred_metric(
+    prediction=test_preds_unscaled,
+    target=test_targets_unscaled,
+    metrics='mae',
+    print_out=False
+)['mae']
+
+overall_mae = (train_mae + val_mae + test_mae) / 3
+print(f'\nOverall MAE: {overall_mae:.3f}')
+
 ####### Creating Parity Plot #########
 
 # Convert tensors to numpy arrays
-train_preds_np = train_preds.cpu().numpy()
-train_targets_np = train_targets.cpu().numpy()
-val_preds_np = val_preds.cpu().numpy()
-val_targets_np = val_targets.cpu().numpy()
-test_preds_np = test_preds.cpu().numpy()
-test_targets_np = test_targets.cpu().numpy()
+train_preds_np = train_preds_unscaled.numpy()
+train_targets_np = train_targets_unscaled.numpy()
+val_preds_np = val_preds_unscaled.numpy()
+val_targets_np = val_targets_unscaled.numpy()
+test_preds_np = test_preds_unscaled.numpy()
+test_targets_np = test_targets_unscaled.numpy()
 
 # Concatenate predictions and targets
 all_preds = np.concatenate([train_preds_np, val_preds_np, test_preds_np], axis=0)
 all_targets = np.concatenate([train_targets_np, val_targets_np, test_targets_np], axis=0)
+
+external_predictions = df['Prediction'][:-1].to_numpy()
+
+train_external_preds = external_predictions[custom_split == 0]
+val_external_preds = external_predictions[custom_split == 1]
+test_external_preds = external_predictions[custom_split == 2]
+
+# Corresponding targets (already unscaled)
+targets_external = df['Target'][:-1].to_numpy()
+
+train_targets_external = targets_external[custom_split == 0]
+val_targets_external = targets_external[custom_split == 1]
+test_targets_external = targets_external[custom_split == 2]
+
+train_external_preds_tensor = torch.tensor(train_external_preds, dtype=torch.float32)
+val_external_preds_tensor = torch.tensor(val_external_preds, dtype=torch.float32)
+test_external_preds_tensor = torch.tensor(test_external_preds, dtype=torch.float32)
+
+train_targets_external_tensor = torch.tensor(train_targets_external, dtype=torch.float32)
+val_targets_external_tensor = torch.tensor(val_targets_external, dtype=torch.float32)
+test_targets_external_tensor = torch.tensor(test_targets_external, dtype=torch.float32)
+
+print("\n=== External Predictions Metrics ===")
+print("\nPaper Train Set Metrics:")
+train_external_metrics = pred_metric(
+    prediction=train_external_preds_tensor,
+    target=train_targets_external_tensor,
+    metrics='all',
+    print_out=True
+)
+print("\nPaper Validation Set Metrics:")
+val_external_metrics = pred_metric(
+    prediction=val_external_preds_tensor,
+    target=val_targets_external_tensor,
+    metrics='all',
+    print_out=True
+)
+print("\nPaper Test Set Metrics:")
+test_external_metrics = pred_metric(
+    prediction=test_external_preds_tensor,
+    target=test_targets_external_tensor,
+    metrics='all',
+    print_out=True
+)
+
+# Compute overall metrics
+all_external_preds = torch.cat([train_external_preds_tensor, val_external_preds_tensor, test_external_preds_tensor], dim=0)
+all_targets_external = torch.cat([train_targets_external_tensor, val_targets_external_tensor, test_targets_external_tensor], dim=0)
+
+print("\nPaper Overall Metrics:")
+overall_external_metrics = pred_metric(
+    prediction=all_external_preds,
+    target=all_targets_external,
+    metrics='all',
+    print_out=True
+)
+
+print("\nOverall Metrics:")
+overall_metrics = pred_metric(
+    prediction=all_preds,
+    target=all_targets,
+    metrics='all',
+    print_out=True
+)
 
 # Create labels
 train_labels = np.array(['Train'] * len(train_preds_np))
@@ -481,6 +611,7 @@ plt.legend(handles=[
     plt.Line2D([], [], marker='o', color='w', label='Test', markerfacecolor='red', markersize=10)
 ])
 plt.show()
+
 
 # first run :
 # MSE: 0.006

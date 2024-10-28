@@ -1,7 +1,3 @@
-##########################################################################################
-############################### Main Code ################################################
-##########################################################################################
-
 import torch
 import numpy as np
 import pandas as pd
@@ -10,13 +6,141 @@ from torch_geometric.loader import DataLoader
 from tqdm import tqdm
 import os
 
-from grape_chem.models import GroupGAT_jittable
+from grape_chem.models import GroupGAT_Ensemble
 from grape_chem.utils import (
     DataSet, train_model_jit, EarlyStopping, split_data,
     test_model_jit, pred_metric, return_hidden_layers,
     set_seed, JT_SubGraph
 )
 from torch.optim import lr_scheduler
+
+def standardize(x, mean, std):
+    return (x - mean) / std
+
+def train_and_evaluate_model(
+    target_name, smiles, target_values, fragmentation,
+    custom_split_indices, net_params, device, batch_size, epochs,
+    learning_rate, weight_decay, scheduler_patience, global_feats=None
+):
+    # Standardize target
+    mean_target = np.mean(target_values)
+    std_target = np.std(target_values)
+    target_standardized = standardize(target_values, mean_target, std_target)
+
+    # Create DataSet
+    data = DataSet(
+        smiles=smiles,
+        target=target_standardized,
+        global_features=global_feats,
+        filter=True,
+        fragmentation=fragmentation
+    )
+
+    # Split data
+    train_indices, val_indices, test_indices = custom_split_indices
+    train_data, val_data, test_data = split_data_by_indices(
+        data, train_indices, val_indices, test_indices
+    )
+
+    # Initialize the ensemble model
+    num_models = 5  # Number of models in the ensemble
+    model = GroupGAT_Ensemble(net_params, num_models).to(device)
+
+    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
+    scheduler = lr_scheduler.ReduceLROnPlateau(
+        optimizer, mode='min', factor=0.7, min_lr=1.00E-09, patience=scheduler_patience
+    )
+    early_Stopper = EarlyStopping(patience=patience, model_name='random', skip_save=True)
+    loss_func = torch.nn.functional.mse_loss
+
+    # Define model filename
+    model_filename = f'gcgat_ensemble_model_{target_name}.pth'
+
+    # Check if the model file exists
+    if os.path.exists(model_filename):
+        print(f"Model file '{model_filename}' found. Loading the trained model.")
+        model.load_state_dict(torch.load(model_filename, map_location=device))
+        model.eval()
+    else:
+        print(f"No trained model found at '{model_filename}'. Proceeding to train the model.")
+        # Train the model
+        train_model_jit(
+            model=model,
+            loss_func=loss_func,
+            optimizer=optimizer,
+            train_data_loader=train_data,
+            val_data_loader=val_data,
+            epochs=epochs,
+            device=device,
+            batch_size=batch_size,
+            scheduler=scheduler,
+            model_needs_frag=True,
+            net_params=net_params,
+            early_stopper=early_Stopper
+        )
+        # Save the trained model
+        torch.save(model.state_dict(), model_filename)
+        print(f"Model saved to '{model_filename}'.")
+
+    ####### Evaluating the Model #########
+    # Generate predictions on test set
+    test_pred = test_model_jit(
+        model=model,
+        test_data_loader=test_data,
+        device=device,
+        batch_size=batch_size
+    )
+    test_target = torch.tensor([data.y for data in test_data]).to(device)
+
+    # Rescale predictions and targets
+    test_pred_rescaled = test_pred * std_target + mean_target
+    test_target_rescaled = test_target * std_target + mean_target
+
+    # Calculate metrics
+    mae = torch.mean(torch.abs(test_pred_rescaled - test_target_rescaled))
+    print(f'MAE for property {target_name} on test set: {mae.item():.4f}')
+
+    # Generate predictions on train and val sets
+    train_pred = test_model_jit(
+        model=model,
+        test_data_loader=train_data,
+        device=device,
+        batch_size=batch_size
+    )
+    val_pred = test_model_jit(
+        model=model,
+        test_data_loader=val_data,
+        device=device,
+        batch_size=batch_size
+    )
+    train_target = torch.tensor([data.y for data in train_data]).to(device)
+    val_target = torch.tensor([data.y for data in val_data]).to(device)
+
+    # Rescale predictions and targets
+    train_pred_rescaled = train_pred * std_target + mean_target
+    val_pred_rescaled = val_pred * std_target + mean_target
+    train_target_rescaled = train_target * std_target + mean_target
+    val_target_rescaled = val_target * std_target + mean_target
+
+    # Store results
+    results = {
+        'model': model,
+        'mean': mean_target,
+        'std': std_target,
+        'train_pred': train_pred_rescaled.detach().cpu().numpy(),
+        'train_target': train_target_rescaled.detach().cpu().numpy(),
+        'val_pred': val_pred_rescaled.detach().cpu().numpy(),
+        'val_target': val_target_rescaled.detach().cpu().numpy(),
+        'test_pred': test_pred_rescaled.detach().cpu().numpy(),
+        'test_target': test_target_rescaled.detach().cpu().numpy(),
+    }
+
+    return results
+
+
+##########################################################################################
+############################### Main Code ################################################
+##########################################################################################
 
 # Set seed for reproducibility
 set_seed(42)
@@ -73,6 +197,11 @@ fragmentation = JT_SubGraph(scheme=fragmentation_scheme)
 frag_dim = fragmentation.frag_dim
 print("Done.")
 
+###################### train and eval model 
+
+
+
+############################## workflow ##########################################
 # Define network parameters
 mlp = return_hidden_layers(mlp_layers)
 net_params = {
@@ -184,122 +313,3 @@ def create_parity_plot(results_dict, target_name):
 print(f"\nCreating parity plot for target: {target_name}")
 create_parity_plot(results, target_name)
 
-def train_and_evaluate_model(
-    target_name, smiles, target_values, fragmentation,
-    custom_split_indices, net_params, device, batch_size, epochs,
-    learning_rate, weight_decay, scheduler_patience, global_feats=None
-):
-    # Standardize target
-    mean_target = np.mean(target_values)
-    std_target = np.std(target_values)
-    target_standardized = standardize(target_values, mean_target, std_target)
-
-    # Create DataSet
-    data = DataSet(
-        smiles=smiles,
-        target=target_standardized,
-        global_features=global_feats,
-        filter=True,
-        fragmentation=fragmentation
-    )
-
-    # Split data
-    train_indices, val_indices, test_indices = custom_split_indices
-    train_data, val_data, test_data = split_data_by_indices(
-        data, train_indices, val_indices, test_indices
-    )
-
-    # Initialize the ensemble model
-    num_models = 5  # Number of models in the ensemble
-    model = GroupGATEnsemble(net_params, num_models).to(device)
-
-    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
-    scheduler = lr_scheduler.ReduceLROnPlateau(
-        optimizer, mode='min', factor=0.7, min_lr=1.00E-09, patience=scheduler_patience
-    )
-    early_Stopper = EarlyStopping(patience=patience, model_name='random', skip_save=True)
-    loss_func = torch.nn.functional.mse_loss
-
-    # Define model filename
-    model_filename = f'gcgat_ensemble_model_{target_name}.pth'
-
-    # Check if the model file exists
-    if os.path.exists(model_filename):
-        print(f"Model file '{model_filename}' found. Loading the trained model.")
-        model.load_state_dict(torch.load(model_filename, map_location=device))
-        model.eval()
-    else:
-        print(f"No trained model found at '{model_filename}'. Proceeding to train the model.")
-        # Train the model
-        train_model_jit(
-            model=model,
-            loss_func=loss_func,
-            optimizer=optimizer,
-            train_data_loader=train_data,
-            val_data_loader=val_data,
-            epochs=epochs,
-            device=device,
-            batch_size=batch_size,
-            scheduler=scheduler,
-            model_needs_frag=True,
-            net_params=net_params,
-            early_stopper=early_Stopper
-        )
-        # Save the trained model
-        torch.save(model.state_dict(), model_filename)
-        print(f"Model saved to '{model_filename}'.")
-
-    ####### Evaluating the Model #########
-    # Generate predictions on test set
-    test_pred = test_model_jit(
-        model=model,
-        test_data_loader=test_data,
-        device=device,
-        batch_size=batch_size
-    )
-    test_target = torch.tensor([data.y for data in test_data]).to(device)
-
-    # Rescale predictions and targets
-    test_pred_rescaled = test_pred * std_target + mean_target
-    test_target_rescaled = test_target * std_target + mean_target
-
-    # Calculate metrics
-    mae = torch.mean(torch.abs(test_pred_rescaled - test_target_rescaled))
-    print(f'MAE for property {target_name} on test set: {mae.item():.4f}')
-
-    # Generate predictions on train and val sets
-    train_pred = test_model_jit(
-        model=model,
-        test_data_loader=train_data,
-        device=device,
-        batch_size=batch_size
-    )
-    val_pred = test_model_jit(
-        model=model,
-        test_data_loader=val_data,
-        device=device,
-        batch_size=batch_size
-    )
-    train_target = torch.tensor([data.y for data in train_data]).to(device)
-    val_target = torch.tensor([data.y for data in val_data]).to(device)
-
-    # Rescale predictions and targets
-    train_pred_rescaled = train_pred * std_target + mean_target
-    val_pred_rescaled = val_pred * std_target + mean_target
-    train_target_rescaled = train_target * std_target + mean_target
-    val_target_rescaled = val_target * std_target + mean_target
-
-    # Store results
-    results = {
-        'model': model,
-        'mean': mean_target,
-        'std': std_target,
-        'train_pred': train_pred_rescaled.detach().cpu().numpy(),
-        'train_target': train_target_rescaled.detach().cpu().numpy(),
-        'val_pred': val_pred_rescaled.detach().cpu().numpy(),
-        'val_target': val_target_rescaled.detach().cpu().numpy(),
-        'test_pred': test_pred_rescaled.detach().cpu().numpy(),
-        'test_target': test_target_rescaled.detach().cpu().numpy(),
-    }
-
-    return results

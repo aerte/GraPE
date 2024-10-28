@@ -177,6 +177,7 @@ class GCGAT_v4pro(nn.Module):
         # assuming net_params includes dimensions for concatenated outputs (does it?)
         concat_dim = net_params['L1_hidden_dim'] + net_params['L2_hidden_dim'] + net_params['L3_hidden_dim']
         concat_dim_debug = net_params['L3_hidden_dim']
+        #linear_dim_1 = int(concat_dim / 2)
         if net_params['global_features']:
             concat_dim += 1
         self.linear_predict1 = nn.Sequential(
