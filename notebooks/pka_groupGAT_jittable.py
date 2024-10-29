@@ -33,6 +33,7 @@ root = './env/pka_dataset.xlsx'
 sheet_name = ''
 
 df = pd.read_excel(root,)#.iloc[:25] 
+df.drop_duplicates(subset='SMILES', inplace=True)
 smiles = df['SMILES'].to_numpy()
 target = df['Target'].to_numpy()
 
@@ -46,13 +47,12 @@ custom_split = np.array([tag_to_int[tag] for tag in tags])
 #global_feats = df['Global Feats'].to_numpy()
 
 #### REMOVE, just for testing ####
-global_feats = np.random.randn(len(smiles))
 
 ############ We need to standardize BEFORE loading it into a DataSet #############
 mean_target, std_target = np.mean(target), np.std(target)
 target = standardize(target, mean_target, std_target)
-mean_global_feats, std_global_feats = np.mean(global_feats), np.std(global_feats)
-global_feats = standardize(global_feats, mean_global_feats, std_global_feats)
+# mean_global_feats, std_global_feats = np.mean(global_feats), np.std(global_feats)
+# global_feats = standardize(global_feats, mean_global_feats, std_global_feats)
 
 
 ########################## fragmentation #########################################
@@ -68,7 +68,7 @@ print("done.")
 ########################################################################################
 
 ######################## QM9 / testing /excel ##########################################
-data = DataSet(smiles=smiles, target=target, global_features=global_feats, filter=True, fragmentation=fragmentation, custom_split=custom_split)
+data = DataSet(smiles=smiles, target=target, global_features=None, filter=True, fragmentation=fragmentation, custom_split=custom_split)
 custom_split = data.custom_split #messy but it gets recomputed in this way
 ########################################################################################
 
@@ -142,7 +142,7 @@ net_params = {
 model = torch.jit.script(GroupGAT_jittable.GCGAT_v4pro_jit(net_params))
 
 optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
-early_Stopper = EarlyStopping(patience=100, model_name='random', skip_save=True)
+early_Stopper = EarlyStopping(patience=62, model_name='random', skip_save=True)
 scheduler = lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.7552366725079, min_lr=min_lr,
                                            patience=30)
 
@@ -444,54 +444,54 @@ test_preds, test_targets = test_model_jit_with_parity(
 ####### Unscaling Predictions and Targets #########
 
 # Unscale predictions and targets
-train_preds_unscaled = unstandardize(train_preds, mean_target, std_target)
-train_targets_unscaled = unstandardize(train_targets, mean_target, std_target)
-val_preds_unscaled = unstandardize(val_preds, mean_target, std_target)
-val_targets_unscaled = unstandardize(val_targets, mean_target, std_target)
-test_preds_unscaled = unstandardize(test_preds, mean_target, std_target)
-test_targets_unscaled = unstandardize(test_targets, mean_target, std_target)
+# train_preds_unscaled = unstandardize(train_preds, mean_target, std_target)
+# train_targets_unscaled = unstandardize(train_targets, mean_target, std_target)
+# val_preds_unscaled = unstandardize(val_preds, mean_target, std_target)
+# val_targets_unscaled = unstandardize(val_targets, mean_target, std_target)
+# test_preds_unscaled = unstandardize(test_preds, mean_target, std_target)
+# test_targets_unscaled = unstandardize(test_targets, mean_target, std_target)
 
 ####### Calculating Metrics #########
-
+breakpoint()
 # Compute metrics using unscaled predictions and targets
 print("Train Set Metrics:")
 pred_metric(
-    prediction=train_preds_unscaled,
-    target=train_targets_unscaled,
+    prediction=train_preds,
+    target=train_targets,
     metrics='all',
     print_out=True
 )
 print("\nValidation Set Metrics:")
 pred_metric(
-    prediction=val_preds_unscaled,
-    target=val_targets_unscaled,
+    prediction=val_preds,
+    target=val_targets,
     metrics='all',
     print_out=True
 )
 print("\nTest Set Metrics:")
 pred_metric(
-    prediction=test_preds_unscaled,
-    target=test_targets_unscaled,
+    prediction=test_preds,
+    target=test_targets,
     metrics='all',
     print_out=True
 )
 
 # Compute overall MAE
 train_mae = pred_metric(
-    prediction=train_preds_unscaled,
-    target=train_targets_unscaled,
+    prediction=train_preds,
+    target=train_targets,
     metrics='mae',
     print_out=False
 )['mae']
 val_mae = pred_metric(
-    prediction=val_preds_unscaled,
-    target=val_targets_unscaled,
+    prediction=val_preds,
+    target=val_targets,
     metrics='mae',
     print_out=False
 )['mae']
 test_mae = pred_metric(
-    prediction=test_preds_unscaled,
-    target=test_targets_unscaled,
+    prediction=test_preds,
+    target=test_targets,
     metrics='mae',
     print_out=False
 )['mae']
@@ -502,19 +502,19 @@ print(f'\nOverall MAE: {overall_mae:.3f}')
 ####### Creating Parity Plot #########
 
 # Convert tensors to numpy arrays
-train_preds_np = train_preds_unscaled.numpy()
-train_targets_np = train_targets_unscaled.numpy()
-val_preds_np = val_preds_unscaled.numpy()
-val_targets_np = val_targets_unscaled.numpy()
-test_preds_np = test_preds_unscaled.numpy()
-test_targets_np = test_targets_unscaled.numpy()
+train_preds_np = train_preds.numpy()
+train_targets_np = train_targets.numpy()
+val_preds_np = val_preds.numpy()
+val_targets_np = val_targets.numpy()
+test_preds_np = test_preds.numpy()
+test_targets_np = test_targets.numpy()
 
 # Concatenate predictions and targets
 all_preds = np.concatenate([train_preds_np, val_preds_np, test_preds_np], axis=0)
 all_targets = np.concatenate([train_targets_np, val_targets_np, test_targets_np], axis=0)
 
 external_predictions = df['Prediction'][:-1].to_numpy()
-
+breakpoint()
 train_external_preds = external_predictions[custom_split == 0]
 val_external_preds = external_predictions[custom_split == 1]
 test_external_preds = external_predictions[custom_split == 2]

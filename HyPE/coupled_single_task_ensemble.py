@@ -8,14 +8,21 @@ import os
 
 from grape_chem.models import GroupGAT_Ensemble
 from grape_chem.utils import (
-    DataSet, train_model_jit, EarlyStopping, split_data,
-    test_model_jit, pred_metric, return_hidden_layers,
+    DataSet, train_model, EarlyStopping, split_data,
+    test_model, pred_metric, return_hidden_layers,
     set_seed, JT_SubGraph
 )
 from torch.optim import lr_scheduler
 
 def standardize(x, mean, std):
     return (x - mean) / std
+
+def split_data_by_indices(data, train_idx, val_idx, test_idx):
+    train = [data[i] for i in train_idx]
+    val = [data[i] for i in val_idx]
+    test = [data[i] for i in test_idx]
+    return train, val, test
+
 
 def train_and_evaluate_model(
     target_name, smiles, target_values, fragmentation,
@@ -26,7 +33,8 @@ def train_and_evaluate_model(
     mean_target = np.mean(target_values)
     std_target = np.std(target_values)
     target_standardized = standardize(target_values, mean_target, std_target)
-
+    if global_feats is not None:
+        global_feats = standardize(global_feats, np.mean(global_feats), np.std(global_feats))
     # Create DataSet
     data = DataSet(
         smiles=smiles,
@@ -64,7 +72,7 @@ def train_and_evaluate_model(
     else:
         print(f"No trained model found at '{model_filename}'. Proceeding to train the model.")
         # Train the model
-        train_model_jit(
+        train_model(
             model=model,
             loss_func=loss_func,
             optimizer=optimizer,
@@ -75,7 +83,6 @@ def train_and_evaluate_model(
             batch_size=batch_size,
             scheduler=scheduler,
             model_needs_frag=True,
-            net_params=net_params,
             early_stopper=early_Stopper
         )
         # Save the trained model
@@ -84,7 +91,7 @@ def train_and_evaluate_model(
 
     ####### Evaluating the Model #########
     # Generate predictions on test set
-    test_pred = test_model_jit(
+    test_pred = test_model(
         model=model,
         test_data_loader=test_data,
         device=device,
@@ -101,13 +108,13 @@ def train_and_evaluate_model(
     print(f'MAE for property {target_name} on test set: {mae.item():.4f}')
 
     # Generate predictions on train and val sets
-    train_pred = test_model_jit(
+    train_pred = test_model(
         model=model,
         test_data_loader=train_data,
         device=device,
         batch_size=batch_size
     )
-    val_pred = test_model_jit(
+    val_pred = test_model(
         model=model,
         test_data_loader=val_data,
         device=device,
@@ -161,21 +168,22 @@ scheduler_patience = 15  # For learning rate scheduler
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 # Change to your own specifications
-root = './env/params_prediction.xlsx'
+root = './env/ICP.xlsx'
 sheet_name = ''
 
 df = pd.read_excel(root)
-
-# Read SMILES and target property
+# Read SMILES and target properties A, B, C, D
 smiles = df['SMILES'].to_numpy()
-# Suppose 'E0' is the target property
-target_name = 'E0'
-target_values = df[target_name].to_numpy()  # Shape: (num_samples,)
+targets = df['Value'].to_numpy()
 
 # Read tags for custom splits
-tags = df['bin'].to_numpy()
-tag_to_int = {'train': 0, 'val': 1, 'test': 2}
+tags = df['Subset'].to_numpy()
+unique_tags = np.unique(tags)
+tag_to_int = {'Training': 0, 'Validation': 1, 'Test': 2}
 custom_split = np.array([tag_to_int[tag] for tag in tags])
+
+# Global features
+global_feats = df['T'].to_numpy()
 
 # Get indices for splits
 train_indices = np.where(custom_split == 0)[0]
@@ -193,7 +201,7 @@ custom_split_indices = (train_indices, val_indices, test_indices)
 ########################## Fragmentation #########################################
 fragmentation_scheme = "MG_plus_reference"
 print("Initializing fragmentation...")
-fragmentation = JT_SubGraph(scheme=fragmentation_scheme)
+fragmentation = JT_SubGraph(scheme=fragmentation_scheme, save_file_path='env/ICP_fragmentation.pth')
 frag_dim = fragmentation.frag_dim
 print("Done.")
 
@@ -213,6 +221,7 @@ net_params = {
     "frag_dim": frag_dim,
     "final_dropout": 0.119,
     "use_global_features": False,
+    "global_features": 1,
     # For origins:
     "num_heads": 1,
     # For AFP:
@@ -246,9 +255,9 @@ model = GroupGAT_Ensemble(net_params, num_models).to(device)
 
 # Training the ensemble model
 results = train_and_evaluate_model(
-    target_name=target_name,
+    target_name="ICP",
     smiles=smiles,
-    target_values=target_values,
+    target_values=targets,
     fragmentation=fragmentation,
     custom_split_indices=custom_split_indices,
     net_params=net_params,
@@ -257,7 +266,8 @@ results = train_and_evaluate_model(
     epochs=epochs,
     learning_rate=learning_rate,
     weight_decay=weight_decay,
-    scheduler_patience=scheduler_patience
+    scheduler_patience=scheduler_patience,
+    global_feats=global_feats
 )
 
 # Create parity plot for the overall predictions

@@ -41,7 +41,7 @@ sheet_name = ''
 df = pd.read_excel(root)
 # Read SMILES and target properties A, B, C, D
 smiles = df['SMILES'].to_numpy()
-targets = df[['A0', 'B0', 'C0', 'D0']].to_numpy()  # Shape: (num_samples, 4)
+targets = df[['A0', 'B0', 'C0', 'D0', 'E0']].to_numpy()  # Shape: (num_samples, 4)
 
 # Read tags for custom splits
 tags = df['Subset'].to_numpy()
