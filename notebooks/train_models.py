@@ -7,7 +7,7 @@ from collections import defaultdict
 import matplotlib.pyplot as plt
 
 from grape_chem.utils import train_model, test_model, pred_metric
-from grape_chem.utils.data import load_data_from_csv, get_path, get_model_dir, save_splits_to_csv
+from grape_chem.utils.data import load_dataset_from_csv, get_path, get_model_dir, save_splits_to_csv
 from grape_chem.utils.model_utils import set_seed, create_checkpoint, load_model_from_data, load_model
 from grape_chem.plots.post_plots import parity_plot, parity_plot_mlflow
 from grape_chem.utils import EarlyStopping
@@ -88,6 +88,8 @@ def log_metrics(val_loss, model, early_stopper):
     best_epoch = val_loss.index(best_val_loss)
     mlflow.log_param("best_epoch", best_epoch)
     mlflow.log_metric("best_val_loss", best_val_loss)
+    metric = {"val_loss": best_val_loss}
+    train.report(metric)
     return best_epoch
 
 def load_best_model(early_stopper, model, device, best_epoch):
@@ -122,9 +124,10 @@ def evaluate_model(model, data, test_data, device, batch_size, config):
         mean = mean_tensor[i].cpu().detach() if num_targets > 1 else mean_tensor.cpu().detach()
         std = std_tensor[i].cpu().detach() if num_targets > 1 else std_tensor.cpu().detach()
 
-        mask = ~torch.isnan(target)
-        preds = preds[mask]
-        target = target[mask]
+        if num_targets > 1:
+            mask = ~torch.isnan(target)
+            preds = preds[mask]
+            target = target[mask]
 
         pred_rescaled = (preds * std) + mean
         target_rescaled = (target * std) + mean
@@ -134,12 +137,11 @@ def evaluate_model(model, data, test_data, device, batch_size, config):
 
         metrics = pred_metric(pred_rescaled, target_rescaled, metrics='all')
         for key, value in metrics.items():
-            mlflow.log_metric(f"{config['target_names'][i]}_{key}", value) if num_targets > 1 else mlflow.log_metric(key, value)
+            mlflow.log_metric(f"{config['data_labels'][i]}_{key}", value) if num_targets > 1 else mlflow.log_metric(key, value)
 
-        parity_plot_name = f"test_predictions_vs_targets_{config['target_names'][i]}" if num_targets > 1 else "test_predictions_vs_targets"
+        parity_plot_name = f"test_predictions_vs_targets_{config['data_labels'][i]}" if num_targets > 1 else "test_predictions_vs_targets"
         plot_path = parity_plot_mlflow(parity_plot_name, target_rescaled, pred_rescaled.cpu().detach(), config['save_path'])
         mlflow.log_artifact(plot_path)
-        parity_plot(pred_rescaled, target_rescaled, path_to_export=config['save_path'])
 
         for metric, value in metrics.items():
             metrics_by_type[metric].append(value)
@@ -150,11 +152,14 @@ def create_barplot(metrics_by_type, config):
     """Plot and log metrics for multiple targets."""
     for metric, values in metrics_by_type.items():
         plt.figure(figsize=(8, 6))
-        plt.bar(config['target_names'], values, color=['skyblue', 'lightgreen', 'salmon'])
+        plt.bar(config['data_labels'], values, color=['skyblue', 'lightgreen', 'salmon'], data=values)
         plt.xlabel('Target')
         plt.ylabel(f'{metric.upper()} Value')
         plt.title(f'{metric.upper()} Comparison Across Targets')
         plt.tight_layout()
+        for i in range(len(values)):
+            plt.text(i,values[i]/2,values[i], ha = 'center',
+                bbox = dict(facecolor = 'white', alpha = .5))
 
         plot_filename = f'{metric}_comparison_plot.png'
         plt.savefig(plot_filename)
@@ -205,7 +210,7 @@ def train_model_experiment(config: Dict, data_bundle: Dict):
             early_stopper, scheduler, device
         )
 
-        # Log validation metrics
+        # Log validation metrics and report to raytune
         best_epoch = log_metrics(val_loss, model, early_stopper)
 
         # Load the best model and evaluate
@@ -230,10 +235,24 @@ def main():
     # Important to set the paths in the config file
     base_config = load_config(path)
     # Define configurations for Ray Tune
+    # search_space = {
+    #     'epochs': tune.choice([1000]), #1000
+    #     'batch_size': tune.choice([None]),#tune.choice([1048,4192,8384]), # None for full dataset
+    #     'hidden_dim': tune.choice([128]), #tune.choice([47]),
+    #     'dropout': tune.choice([0.006262658491111717]), 
+    #     'patience': tune.choice([50]), #125
+    #     'patience_scheduler': tune.choice([10]),
+    #     'learning_rate': tune.choice([0.0006954802068126907]), #tune.loguniform(1e-4, 1e-3), # tune.choice([0.0008927180304353635]), #tune.loguniform(1e-4, 1e-3), #4e-4 to 5e-4 same here #tune.loguniform(1e-5, 1e-2), #tune.choice([0.001054627]), tune.choice([0.0053708188433723904]) 0.0008927180304353635tune.loguniform(1e-4, 1e-3) tune.choice([0.00023273922280628748])
+    #     'weight_decay': tune.choice([2.23492e-6]), #tune.loguniform(1e-5, 1e-4), # 4e-5 to 5e-5 #tune.loguniform(1e-5, 1e-3),# tune.choice([1e-4]), #tune.choice([0.00045529597892867465]) tune.loguniform(1e-5, 1e-4) tune.choice([0.00006021310185147612])
+    #     'mlp_layers': tune.choice([3]), #tune.choice([2,3,4,5]), 2 4
+    #     'schedule_factor': tune.choice([0.8]), 
+    #     'num_layers_atom': tune.choice([3]), #tune.choice([2,3,4,5]), 3 2
+    #     'num_layers_mol': tune.choice([5]), #tune.choice([2,3,4,5]), 3 3
+    # }
     search_space = {
-        'epochs': tune.choice([1000]), #1000
+        'epochs': tune.choice([10]), #1000
         'batch_size': tune.choice([None]),#tune.choice([1048,4192,8384]), # None for full dataset
-        'hidden_dim': tune.choice([128]), #tune.choice([47]),
+        'hidden_dim': tune.choice([32,128,256]), #tune.choice([47]),
         'dropout': tune.uniform(0.0, 0.2),
         'patience': tune.choice([50]), #125
         'patience_scheduler': tune.choice([10]),
@@ -246,7 +265,7 @@ def main():
     }
     config = {**base_config, **search_space}
     
-    df, train_data, val_data, test_data, data = load_data_from_csv(config, return_dataset=True, limit = None) # None 100
+    df, train_data, val_data, test_data, data = load_dataset_from_csv(config, return_dataset=True, limit = None) # None 100
     # Bundle the df & datasets into one variable
     data_bundle = {
         'df': df,
@@ -256,7 +275,7 @@ def main():
         'data': data,
     }
 
-    hyperparameter_tuning(train_model_experiment, config, num_samples=15, storage_path=get_path(current_dir, '../ray_results'), data_bundle=data_bundle)
+    hyperparameter_tuning(train_model_experiment, config, num_samples=1, storage_path=get_path(current_dir, '../ray_results'), data_bundle=data_bundle)
 
 if __name__ == "__main__":
     main()
