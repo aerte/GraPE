@@ -14,6 +14,8 @@ import os
 import dgl
 import mlflow
 import mlflow.pytorch
+from ray import tune
+from ray import train
 
 __all__ = [
     'EarlyStopping',
@@ -62,7 +64,6 @@ class EarlyStopping:
     def __init__(self, patience: int = 15, min_delta: float = 1e-3, model_name = 'best_model', skip_save: bool = False, save_path: str = None):
         self.patience = patience
         self.min_delta = min_delta
-        self.model_name = model_name
         self.best_score = np.inf
         self.counter = 0
         self.stop = False
@@ -94,6 +95,7 @@ class EarlyStopping:
 
     def save_checkpoint(self, model: Module):
         model_name = self.model_name
+        print("Creating torch model save")
         if self.save_path is not None:
             model_name = os.path.join(self.save_path, model_name)
         if hasattr(model, 'dataset_dict') and model.dataset_dict is not None:
@@ -121,7 +123,7 @@ def reset_weights(model: Module):
                 reset_weights(child)
 
 
-def load_model(model_class, model_path, device=None):
+def load_model(model_class, model_path, device=None, model_only=False):
     """
     Load a model from a .pt file.
 
@@ -159,20 +161,23 @@ def load_model(model_class, model_path, device=None):
             model = AFP(node_in_dim=model_params["node_in_dim"], edge_in_dim=model_params["edge_in_dim"], hidden_dim=model_params["hidden_dim"], out_dim=model_params["out_dim"], num_layers_atom=model_params["num_layers_atom"], num_layers_mol=model_params["num_layers_mol"], dropout=model_params["dropout"], mlp_out_hidden=model_params["mlp_out_hidden"], num_global_feats=model_params["num_global_feats"])
         if model_class.lower() == 'dmpnn':
             from grape_chem.models import DMPNN
-            print("hi")
             model = DMPNN(node_in_dim=model_params["node_dim"], edge_in_dim=model_params["edge_dim"], node_hidden_dim=model_params["hidden_size"], mlp_out_hidden=model_params["mlp_out_hidden"], num_global_feats=model_params["num_global_feats"])
-            print("__Something")
-        # Load the state dictionary
-        dataset = DataSet(allowed_atoms=model_params["allowed_atoms"], atom_feature_list=model_params["atom_feature_list"], bond_feature_list=model_params["bond_feature_list"], mean=model_params["data_mean"], std=model_params["data_std"])
-        # Load the state dict into the model
         
         model.load_state_dict(state_dict)
         # Set the model to evaluation mode
         model.eval()
         # Move the model to the appropriate device
-        model.to(device)
+        if device is not None:
+            model.to(device)
         
-        return model, dataset
+        if model_only:
+            return model
+        else:
+            # Load the state dictionary
+            print("model_params: ", model_params)
+            dataset = DataSet(allowed_atoms=model_params["allowed_atoms"], atom_feature_list=model_params["atom_feature_list"], bond_feature_list=model_params["bond_feature_list"], mean=model_params["data_mean"], std=model_params["data_std"])
+            return model, dataset
+    
     except Exception as e:
         print(f"An error occurred while loading the model: {e}")
         return None, None
@@ -196,7 +201,7 @@ def load_model_from_data(data, config, device):
     """
 
     # Extract node and edge input dimensions from the sample data
-    sample = data[50]  # Get a sample from the dataset
+    sample = data[10]  # Get a sample from the dataset
     node_in_dim = sample.x.shape[1]  # Number of input features for nodes
     edge_in_dim = sample.edge_attr.shape[1]  # Number of input features for edges
     num_global_feats = len(config['global_features'])
@@ -232,8 +237,14 @@ def load_model_from_data(data, config, device):
     elif 'afp' in config['model_name'].lower():
         print("################## AFP ##################")
         from grape_chem.models import AFP
+        out_dim = None
+        
+        out_dim = len(config["data_labels"])
+        print("### out_dim: ", out_dim, "####")
         model = AFP(node_in_dim=node_in_dim, edge_in_dim=edge_in_dim, 
-                    out_dim=1, mlp_out_hidden=mlp, num_global_feats=num_global_feats, dataset_dict=dataset_dict)
+                    out_dim=out_dim, hidden_dim=config["hidden_dim"], num_layers_atom=config["num_layers_atom"], num_layers_mol=config["num_layers_mol"], mlp_out_hidden=mlp, num_global_feats=num_global_feats, dataset_dict=dataset_dict)
+
+        print(model)
     else:
         raise ValueError(f"Unsupported model name: {config['model_name']}")
     
@@ -242,7 +253,7 @@ def load_model_from_data(data, config, device):
         mlflow.log_params({
             "node_in_dim": node_in_dim,
             "edge_in_dim": edge_in_dim,
-            "out_dim": 1
+            "out_dim": model.out_dim,
         })
         
         # Count and log the number of learnable parameters in the model
@@ -330,10 +341,17 @@ def train_model(model: torch.nn.Module, loss_func: Union[Callable,str], optimize
             for idx, batch in enumerate(train_data_loader):
                 optimizer.zero_grad()
                 out = model(batch.to(device))
+                if batch.y.ndim > 1:
+                    if batch.y.shape[1] > 1:
+                        # Mask out NaN values
+                        mask = ~torch.isnan(batch.y)
+                        out = out[mask]
+                        batch.y = batch.y[mask]
+                    elif batch.y.shape[1] == 1:
+                        batch.y.flatten()
+                        
                 loss_train = loss_func(batch.y, out)
-
                 temp[idx] = loss_train.detach().cpu().numpy()
-
 
                 loss_train.backward()
                 optimizer.step()
@@ -344,14 +362,27 @@ def train_model(model: torch.nn.Module, loss_func: Union[Callable,str], optimize
             temp = np.zeros(len(val_data_loader))
             for idx, batch in enumerate(val_data_loader):
                 out = model(batch.to(device))
+                if batch.y.ndim > 1:
+                    if batch.y.shape[1] > 1:
+                        # Mask out NaN values
+                        mask = ~torch.isnan(batch.y)
+                        out = out[mask]
+                        batch.y = batch.y[mask]
+                    elif batch.y.shape[1] == 1:
+                        batch.y.flatten()
                 temp[idx] = loss_func(batch.y, out).detach().cpu().numpy()
-
             loss_val = np.mean(temp)
             val_loss.append(loss_val)
 
             if mlflow.active_run():
                 mlflow.log_metric("train_loss_inside_train_model", loss_train, step=i)
                 mlflow.log_metric("val_loss_inside_train_model", loss_val, step=i)
+                # Ray tune report epoch for hyperparameter tuning
+                # train.report(
+                #     epoch=i,
+                #     train_loss=train_loss,
+                #     val_loss=val_loss
+                # )
 
             if i%2 == 0:
                 pbar.set_description(f"epoch={i}, training loss= {loss_train:.3f}, validation loss= {loss_val:.3f}")
@@ -475,9 +506,10 @@ def test_model(model: torch.nn.Module, test_data_loader: Union[list, Data, DataL
 
     device = torch.device('cpu') if device is None else device
 
+    if batch_size == None or len(test_data_loader) < batch_size:
+        batch_size = len(test_data_loader) 
     if not isinstance(test_data_loader, DataLoader):
         test_data_loader = DataLoader(test_data_loader, batch_size = batch_size)
-
     model.eval()
     all_preds = []
     all_targets = []
@@ -597,6 +629,7 @@ def pred_metric(prediction: Union[Tensor, ndarray], target: Union[Tensor, ndarra
         target = target.cpu().detach().numpy()
     if not isinstance(metrics, list) and metrics != 'all':
         metrics = [metrics]
+    
     if rescale_data is not None:
         prediction =  rescale_data.rescale_data(prediction)
         target = rescale_data.rescale_data(target)
@@ -622,6 +655,22 @@ def pred_metric(prediction: Union[Tensor, ndarray], target: Union[Tensor, ndarra
         elif metric_ == 'r2':
             results['r2'] = r2_score(target, prediction)
             prints.append(f'R2: {results["r2"]:.3f}')
+
+            sse = sum((target - prediction)**2)
+            tse = (len(target) - 1) * np.var(target, ddof=1)
+            r2_custom = 1 - (sse / tse)
+            print("R2 CUSTOM: ", r2_custom)
+            mlflow.log_metric("r2_custom", r2_custom)
+            
+            #print("R2 SKLEARN: ", results['r2'], "R2 CUSTOM: ",  1 - (sse / tse))
+            # target_mean = np.mean(target)
+            # prediction_mean = np.mean(prediction)
+            # numerator = np.sum((target - target_mean) * (prediction - prediction_mean))
+            # denominator = np.sqrt(np.sum((target - target_mean) ** 2) * np.sum((prediction - prediction_mean) ** 2))
+            # r = numerator / denominator
+
+            # #https://support.microsoft.com/en-au/office/rsq-function-d7161715-250d-4a01-b80d-a8364f2be08f
+            # results['r2'] = r ** 2
         elif metric_ == 'sse':
             results['sse'] = np.sum(np.square(target-prediction))
             prints.append(f'SSE: {results["sse"]:.3f}')
@@ -631,11 +680,6 @@ def pred_metric(prediction: Union[Tensor, ndarray], target: Union[Tensor, ndarra
         elif metric_ == 'mdape':
             results['mdape'] = np.median(np.abs((target - prediction) / target)) * 100
             prints.append(f'MDAPE: {results["mdape"]:.3f}')
-
-    # # Log all relevant metrics to MLFlow if running
-    # if mlflow.active_run():
-    #     for key, value in results.items():
-    #         mlflow.log_metric(key, value)
 
     if print_out:
         for out in prints:
