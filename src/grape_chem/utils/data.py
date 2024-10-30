@@ -30,7 +30,7 @@ from grape_chem.utils.feature_func import mol_weight
 from sklearn.preprocessing import StandardScaler
 
 import mlflow
-from typing import Dict
+from typing import Dict, Union, List
 
 
 RDLogger.DisableLog('rdApp.*')
@@ -42,7 +42,10 @@ __all__ = ['filter_smiles',
            'DataSet',
            'GraphDataSet',
            'load_dataset_from_excel',
-           'load_data_from_csv']
+           'load_dataset_from_csv']
+
+def standardize(x, mean, std):
+    return (x - mean) / std
 
 
 ##########################################################################
@@ -102,6 +105,10 @@ def filter_smiles(smiles: list[str], target: Union[list[str], list[float], ndarr
         else:
             # If global_feats is 1D, add it as a single column (original GraPE implementation)
             df = pd.DataFrame({'smiles': smiles, 'target': target, 'global_feat': global_feats})
+
+    elif target.ndim > 1:
+        target_dict = {f'target_{i}': target[:, i] for i in range(target.shape[1])}
+        df = pd.DataFrame({'smiles': smiles, **target_dict})
     else:
         df = pd.DataFrame({'smiles': smiles, 'target': target})
 
@@ -150,10 +157,6 @@ def filter_smiles(smiles: list[str], target: Union[list[str], list[float], ndarr
     # map smiles to mol and back to ensure SMILE notation consistency
     mols = df.smiles.map(lambda x: MolFromSmiles(x))
     df.smiles = mols.map(lambda x: MolToSmiles(x))
-    # for idx, mol in enumerate(mols):
-    #     print(f"mol {idx} ", df.smiles[idx])
-    #     for atom in mol.GetAtoms():
-    #         print(f"atom {atom.GetSymbol()}")
 
     if not allow_dupes:
         df.drop_duplicates(subset='smiles', inplace=True)
@@ -162,10 +165,22 @@ def filter_smiles(smiles: list[str], target: Union[list[str], list[float], ndarr
         if global_feats.ndim > 1:
             return np.array(df.smiles), np.array(df.target), np.array(df[global_feat_columns])
         return np.array(df.smiles), np.array(df.target), np.array(df.global_feat)
+    
+    if target.ndim > 1:
+        return np.array(df.smiles), np.array(df.drop(columns=['smiles'])), None
     return np.array(df.smiles), np.array(df.target), None
 
 def is_multidimensional(lst):
     return any(isinstance(i, list) for i in lst)
+
+
+# Remove duplicates while keeping NaNs
+def filter_duplicates(group):
+    # Keep the group only if there's no identical rows
+    if len(group) > 1 and (group.dropna().duplicated(keep=False).any()):
+        return pd.DataFrame(columns=group.columns)  # return empty DataFrame if duplicates exist
+    return group
+
 
 
 ##########################################################################
@@ -293,7 +308,7 @@ class DataSet(DataLoad):
     def __init__(self, file_path: str = None, smiles: list[str] = None, target: Union[list[int], list[float],
     ndarray] = None, global_features:Union[list[float], ndarray] = None, filter: bool=True,allowed_atoms:list[str] = None,
     only_organic: bool = True, allow_dupes: bool = False, atom_feature_list: list[str] = None, bond_feature_list: list[str] = None,
-    log: bool = False, root: str = None, indices:list[int] = None, mean: float = None, std: float = None):
+    log: bool = False, root: str = None, indices:list[int] = None, mean: Union[float, List[float]] = None, std: float = None):
 
 
         super().__int__(root)
@@ -373,11 +388,23 @@ class DataSet(DataLoad):
         return (target *std) + mean
 
     def rescale_data(self, target):
-        if self.mean is None or self.std is None:
-            mean, std = np.mean(self.target), np.std(self.target)
+        rescaled_target = np.zeros(len(target))
+        num_targets = self.mean.shape[0] if self.mean.ndim > 0 else 1
+        if num_targets > 1:  
+            for i in range(num_targets):
+                if self.mean is None or self.std is None:
+                    mean, std = np.mean(target), np.std(target)
+                else:
+                    mean, std = self.mean[i].item(), self.std[i].item()
+                rescaled_target = self.rescale(target, mean, std)
+            return rescaled_target
         else:
-            mean, std = self.mean, self.std
-        return self.rescale(target, mean, std)
+            if self.mean is None or self.std is None:
+                mean, std = np.mean(self.target), np.std(self.target)
+            else:
+                mean, std = self.mean, self.std
+            return self.rescale(target, mean, std)
+        
 
     def get_mol_weight(self):
         """Calculates the molecular weights of the DataSet smiles.
@@ -795,14 +822,6 @@ class DataSet(DataLoad):
 
 
 
-
-
-
-
-
-
-
-
 class GraphDataSet(DataSet):
     """A class that takes a path to a pickle file or a list of smiles and targets. The dataset is stored in
         Pytorch-Geometric Data instances and be accessed like an array. Additionally, if desired it splits the datasets and
@@ -875,6 +894,70 @@ class GraphDataSet(DataSet):
                                                         split_frac = self.split_frac, custom_split = self.custom_split,
                                                          seed=seed)
         
+def extract_combined_data(config: Dict, encodings=None, limit: int = None):
+    if encodings is None:
+        encodings = ['latin', 'utf-8', 'utf-8-sig', 'iso-8859-1', 'unicode_escape', 'cp1252']  # Default encodings
+
+    combined_df = pd.DataFrame()
+    global_features_names = config.get('global_features', [])
+    smiles_column = config['smiles']
+    target_column = config['target']
+    data_files = config.get('data_files', [config['data_path']])  # Support both single and multiple dataset paths
+    data_labels = config.get('data_labels', [''])  # Label is empty if single dataset
+    
+    for data, label in zip(data_files, data_labels):
+        print(f"Processing dataset: {data} with target name: {label}")
+        df = None
+
+        for encoding in encodings:
+            try:
+                df = pd.read_csv(data, sep=';', encoding=encoding)
+                
+                # Select relevant columns: smiles, target, and any global features
+                columns = [smiles_column, target_column] + global_features_names
+                df = df[columns]
+                
+                if limit is not None:
+                    df = df[:limit]  # Limit the dataset size if required
+                
+                # Drop rows where the target column has NaN values
+                df[target_column] = pd.to_numeric(df[target_column], errors='coerce')
+                df.dropna(subset=[target_column], inplace=True)
+                print(f"Dataframe for {data} loaded with encoding: {encoding}")
+                break
+            except Exception as e:
+                print(f"Failed to read file {data} with encoding {encoding}. Error: {e}")
+                continue
+
+        if df is None:
+            raise ValueError(f"Failed to read file {data} with any encoding")
+
+        # Rename the target column to distinguish across datasets
+        df.rename(columns={target_column: f"{target_column}_{label}"}, inplace=True)
+        
+        # Merge with combined DataFrame on SMILES using outer join
+        if combined_df.empty:
+            combined_df = df
+        else:
+            combined_df = combined_df.merge(df, on=smiles_column, how='outer')
+
+    # Fill missing target values with NaN and extract global features
+    combined_df.fillna(np.nan, inplace=True)
+    target_columns = [f"{target_column}_{label}" for label in data_labels]
+    targets = combined_df[target_columns].to_numpy()
+    smiles = combined_df[smiles_column]
+    
+    # Standardize target values across datasets
+    for target_col in target_columns:
+        mean_target, std_target = np.mean(combined_df[target_col]), np.std(combined_df[target_col])
+        combined_df[target_col] = standardize(combined_df[target_col], mean_target, std_target)
+
+    # Extract and stack global features if specified
+    global_features = None
+    if global_features_names:
+        global_features = np.hstack([combined_df[feature].to_numpy().reshape(-1, 1) for feature in global_features_names])
+    
+    return combined_df, smiles, targets, global_features
 
 def extract_data_from_dataframe(config: Dict, encodings = None, limit: int = None):
     if encodings is None:
@@ -885,46 +968,140 @@ def extract_data_from_dataframe(config: Dict, encodings = None, limit: int = Non
     target = None
     global_features = None
     global_features_names = None
-    features = None
     
-    print("config['data_path']: ", config['data_path'])
-    for encoding in encodings:
-        try:
-            df = pd.read_csv(config['data_path'], sep=';', encoding=encoding)
-            if limit is not None:
-                df = df[:limit]  # Limit to reduce the size of the dataset
-            print("########################################################################", df.head())
+    print("config['data_files']: ", config['data_files'])
+    for file in config['data_files']:
+        for encoding in encodings:
+            try:
+                df = pd.read_csv(file, sep=';', encoding=encoding)
+                if limit is not None:
+                    df = df[:limit]  # Limit to reduce the size of the dataset
+                print("########################################################################", df.head())
 
-            # Drop rows where the target column has NaN values
-            df[config['target']] = pd.to_numeric(df[config['target']], errors='coerce')
-            df.dropna(subset=[config['target']], inplace=True)
+                # !!!! Drop rows where the target column has NaN values !!!!
+                df[config['target']] = pd.to_numeric(df[config['target']], errors='coerce')
+                df.dropna(subset=[config['target']], inplace=True)
 
-            # Extract 'SMILES' and 'target' from the cleaned DataFrame
-            smiles = df['SMILES']
-            target = df[config['target']]
+                # Extract 'SMILES' and 'target' from the cleaned DataFrame
+                smiles = df[config['smiles']]
+                target = df[config['target']]
 
-            global_features_names = config['global_features']
-            print("df set with encoding: ", encoding)
-            break  # Break if successful
-        except Exception as e:
-            print(f"Failed to read file with encoding {encoding}. Error: {e}")
-            continue
+                global_features_names = config['global_features']
+                print("df set with encoding: ", encoding)
+                break  # Break if successful
+            except Exception as e:
+                print(f"Failed to read file with encoding {encoding}. Error: {e}")
+                continue
 
     if df is None:
         raise ValueError("Failed to read file with any encoding")
 
+    ############ We need to standardize BEFORE loading it into a DataSet ################
+    mean_target, std_target = np.mean(target), np.std(target)
+    target = standardize(target, mean_target, std_target)
+
     # Extract global features if they exist in the DataFrame
     if global_features_names and len(global_features_names) > 0:
         # Fetch the features from the dataframe
-        features = [df[feature].values for feature in global_features_names]
+        for feature in global_features_names:
+            if feature not in df.columns:
+                raise ValueError(f"Global feature '{feature}' not found in the DataFrame")
+            else:
+                print("Global feature found: ", feature)
 
+            global_feat = df[feature].to_numpy()
+
+            # Reshape global_feat to 2D if it's 1D
+            if global_feat.ndim == 1:
+                global_feat = global_feat.reshape(1, -1)
+
+            # Initialize features if it's None, else stack the arrays
+            if global_features is None:
+                global_features = global_feat  # Start with the first global_feat
+            else:
+                ########### Check this hstack or vstack
+                global_features = np.hstack((global_features, global_feat))  # Stack subsequent global_feat
+        
     # Check the length of features and convert to the appropriate format
-    if features and len(features) == 1:
-        global_features = features[0]  # Keep it as a 1D array if only one feature
-    elif features:
-        global_features = np.array(features)  # Convert to a 2D array if multiple features
-
+    if global_features is not None and global_features.shape[0] == 1:
+        global_features = global_features.flatten()  # Converts from shape (1, 100) to shape (100,)
+        
     return df, smiles, target, global_features
+    
+def extract_data_from_multiple_datasets(config: Dict, encodings = None, limit: int = None):
+    if encodings is None:
+        encodings = ['latin', 'utf-8', 'utf-8-sig', 'iso-8859-1', 'unicode_escape', 'cp1252']  # Default encodings
+    
+    # Create an empty DataFrame to store combined data
+    combined_df = pd.DataFrame()
+
+    # Iterate over the dataset files specified in the config
+    for data, label in zip(config['data_files'], config['data_labels']):
+        print(f"Processing dataset: {data} with target name: {label}")
+        df = None
+        
+        for encoding in encodings:
+            try:
+                df = pd.read_csv(data, sep=';', encoding=encoding)
+                #Drop all columns besides smiles target and global features
+                df = df[[config['smiles'], config['target']]]
+
+                if 'global_features' in config and len(config['global_features']) > 0:
+                    # Select global features from df and concatenate them to the existing DataFrame
+                    df = pd.concat([df, df[config['global_features']]], axis=1)
+
+                #print("Length of dataset: ", len(df))
+                print("shape of dataset: ", df.shape)
+                #print("Columns of dataset: ", df.columns)
+                if limit is not None:
+                    df = df[:limit]  # Limit to reduce the size of the dataset
+                
+                # Drop rows where the target column has NaN values
+                df[config['target']] = pd.to_numeric(df[config['target']], errors='coerce')
+                df.dropna(subset=[config['target']], inplace=True)
+                print("shape of target:", df[config['target']].shape)
+                print(f"Dataframe for {data} loaded with encoding: {encoding}")
+                break  # Break if successful
+            except Exception as e:
+                print(f"Failed to read file {data} with encoding {encoding}. Error: {e}")
+                continue
+
+        if df is None:
+            raise ValueError(f"Failed to read file {data} with any encoding")
+        
+        # Ensure the target column is numeric 
+        df['Const_Value'] = pd.to_numeric(df['Const_Value'], errors='coerce')
+        
+        print("Dataframe: ", df.head())
+        # Add target name as a suffix for clarity
+        df.rename(columns={'Const_Value': f'Const_Value_{label}'}, inplace=True)
+        print("After renaming: ", df.head())
+
+        
+        # Merge with combined DataFrame using outer join
+        if combined_df.empty:
+            combined_df = df
+        else:
+            combined_df = combined_df.merge(df, on=config['smiles'], how='outer')
+
+    # Apply filtering
+    filtered_df = combined_df.groupby(config['smiles']).apply(filter_duplicates).reset_index(drop=True)
+
+    # Print the filtered DataFrame
+    print("Filtered DataFrame:\n", filtered_df)
+
+    # Fill in missing target values with NaN
+    combined_df.fillna(np.nan, inplace=True)
+    print("Dataframe: ", combined_df.head())
+
+    target_columns = [f"{config['target']}_{label}" for label in config['data_labels']]
+    targets = combined_df[target_columns].to_numpy()
+    #print("Targets: ", targets)
+    print("Targets dimensions: ", targets.shape)
+    smiles = combined_df[config['smiles']]
+    global_features = None
+
+    return combined_df, smiles, targets, global_features
 
 def load_dataset_from_excel(file_path: str, dataset:str, is_dmpnn=False, return_dataset:bool = False):
     """ A convenience function to load a dataset from an excel file and a specific sheet there-in. The
@@ -971,71 +1148,51 @@ def load_dataset_from_excel(file_path: str, dataset:str, is_dmpnn=False, return_
 
     return train_set, val_set, test_set
 
-def load_data_from_csv(config: Dict, return_dataset: bool = False, return_df: bool = False, limit: int = None, encodings = None, save_splits: bool = False):
-    if config['data_path'] is None:
+def load_dataset_from_csv(config: Dict, return_dataset: bool = False, return_df: bool = False, limit: int = None, encodings = None):
+    if ('data_files' in config and config['data_files'] is None) or ('data_files' in config and config['data_files'] is None) :
         raise ValueError("File path not provided")
-
-    # Extract data from the CSV file
-    df, smiles, target, global_features = extract_data_from_dataframe(config, encodings, limit)
+    # Extract data from multiple CSV files
+    #df, smiles, target, global_features = extract_combined_data(config, encodings, limit)
+    if 'data_files' in config and len(config['data_files']) > 1:
+        df, smiles, target, global_features = extract_data_from_multiple_datasets(config, encodings, limit)
+    else:    
+         # Extract data from the CSV file
+         df, smiles, target, global_features = extract_data_from_dataframe(config, encodings, limit)
+    
+    ############ We need to standardize BEFORE loading it into a DataSet ################
+    mean, std = np.nanmean(target, axis=0), np.nanstd(target, axis=0)
+    target = standardize(target, mean, std)
 
     if 'dmpnn' in str(config['model_name']).lower():
         is_dmpnn = True
     else:
         is_dmpnn = False
         
-    #print("Global features shape: ", global_features.shape, "global features names: ", global_features_names, "global features: ", global_features)
     if 'allowed_atoms' in config and config['allowed_atoms'] is not None:
-        data = DataSet(smiles=smiles, target=target, global_features=global_features, 
+        data = DataSet(smiles=smiles, target=target, global_features=global_features,#global_features[0] try this 
                         allowed_atoms=config['allowed_atoms'], 
                         atom_feature_list=config['atom_feature_list'], 
                         bond_feature_list=config['bond_feature_list'], 
-                        log=False, only_organic=False, filter=True, allow_dupes=True)
+                        log=False, only_organic=False, filter=True, allow_dupes=True, mean=mean, std=std)
     else:
         data = DataSet(smiles=smiles, target=target, global_features=global_features,
-                       log=False, only_organic=False, filter=True, allow_dupes=True)
+                       log=False, only_organic=False, filter=True, allow_dupes=True, mean=mean, std=std)
     
-    smile = data.smiles[0]
-    atom = data[0].x
-    bond = data[0].edge_attr
-    if mlflow.active_run():
-        mlflow.log_param("data_path", config['data_path'])
-        mlflow.log_param("Target", config['target'])
-        mlflow.log_param("Global Features", config['global_features'])
-        mlflow.log_param("Learning Rate", config['learning_rate'])
-        mlflow.log_param("smile_example", smile)
-        mlflow.log_param("atom_example", atom)
-        mlflow.log_param("bond_example", bond)
+    print("######################### seed: ", config['seed'])
 
-
-    print("######################### model seed: ", config['model_seed'])
-    train_set, val_set, test_set = data.split_and_scale(
-            split_frac=[0.8, 0.1, 0.1], scale=True, seed=config['model_seed'], 
-            is_dmpnn=is_dmpnn, split_type='consecutive'
-        )
+    train_set, val_set, test_set = split_data(data, split_type='consecutive', split_frac=[0.8, 0.1, 0.1], seed=config['seed'], is_dmpnn=is_dmpnn)
 
     # In case graphs for DMPNN has to be loaded:
     if is_dmpnn == True:
         from grape_chem.utils.split_utils import RevIndexedSubSet
         train_set, val_set, test_set = RevIndexedSubSet(train_set), RevIndexedSubSet(val_set), RevIndexedSubSet(
             test_set)
-    
-
-    if mlflow.active_run():
-        mlflow.log_params({
-            "dataset_length": len(data),
-            "train_size": len(train_set),
-            "val_size": len(val_set),
-            "test_size": len(test_set)
-        })
-
-    if config['save_splits']:
-        print("DATA SAVING SPLITS NOW")
-        save_splits_to_csv(df, train_set, val_set, test_set, config['save_path'])
 
     if return_dataset:
-        return train_set, val_set, test_set, data
+        return df, train_set, val_set, test_set, data
     
-    return train_set, val_set, test_set
+    return df, train_set, val_set, test_set
+
 
 ##########################################################################
 ###########  Handle paths ################################################
@@ -1063,6 +1220,7 @@ def save_splits_to_csv(df, train_set, val_set, test_set, save_folder=None):
     path = os.path.join(save_folder, "__splits.csv")
     df.to_csv(path, index=False)
     print(f"Data splits saved to {path}")
+    return path
 
 
 
@@ -1082,9 +1240,12 @@ def get_model_dir(path, model_name):
     model_dirs = {
         'afp': get_path(path, '../models', 'AFP'),
         'dmpnn': get_path(path, '../models', 'DMPNN'),
+        'original': get_path(path, '../models', 'original_DMPNN'),
     }
 
     model_type = next((k for k in model_dirs.keys() if k in model_name.lower()), None)
+    if not os.path.exists(model_dirs[model_type]):
+        os.makedirs(model_dirs[model_type])
     if model_type is None:
         raise ValueError(f"Model name {model_name} not recognized")
     return model_dirs[model_type]
