@@ -45,27 +45,34 @@ class CpLayer(nn.Module):
         super(CpLayer, self).__init__()
 
     def forward(self, B, C, D, E, F, T):
-        """
-        Computes Cp using the provided equation:
-        Cp = B + C * ((D / T) / sinh(D / T)) ** 2 + E * ((F / T) / cosh(F / T)) ** 2
-        """
-        epsilon = 1e-7 # to avoid 0 division
-        T = T + epsilon
+        epsilon = 1e-7  # to avoid division by zero
+        T = T.unsqueeze(1) + epsilon  # Ensure T has shape [700, 1]
 
-        D_over_T = torch.clamp(D / T, min=-1000, max=1000)
-        F_over_T = torch.clamp(F / T, min=-1000, max=1000)
+        # Clamp D_over_T and F_over_T to prevent extreme values
+        D_over_T = torch.clamp(D / T, min=-20, max=20)
+        F_over_T = torch.clamp(F / T, min=-20, max=20)
 
+        # Safe computations for sinh and cosh
+        def safe_sinh(x):
+            return torch.where(
+                torch.abs(x) <= 20,
+                torch.sinh(x),
+                torch.sign(x) * (torch.exp(torch.clamp(torch.abs(x), max=88)) / 2)
+            )
+
+        def safe_cosh(x):
+            return torch.where(
+                torch.abs(x) <= 20,
+                torch.cosh(x),
+                torch.exp(torch.clamp(torch.abs(x), max=88)) / 2
+            )
+
+        sinh_term = safe_sinh(D_over_T) + epsilon
+        cosh_term = safe_cosh(F_over_T) + epsilon
+
+        # Debugging statements
         # print(f"D_over_T stats - min: {D_over_T.min()}, max: {D_over_T.max()}, mean: {D_over_T.mean()}")
-        # print(f"F_over_T stats - min: {F_over_T.min()}, max: {F_over_T.max()}, mean: {F_over_T.mean()}")
-
-        sinh_term = torch.sinh(D_over_T)
-        cosh_term = torch.cosh(F_over_T)
         # print(f"sinh_term stats - min: {sinh_term.min()}, max: {sinh_term.max()}, mean: {sinh_term.mean()}")
-        # print(f"cosh_term stats - min: {cosh_term.min()}, max: {cosh_term.max()}, mean: {cosh_term.mean()}")
 
         Cp = B + C * ((D_over_T / sinh_term) ** 2) + E * ((F_over_T / cosh_term) ** 2)
-        # Ensure T doesn't contain zero
-        
-        # Cp_o = B + C * ((D / T) / torch.sinh(D / T)) ** 2 + E * (
-        #         (F / T) / torch.cosh(F / T)) ** 2
         return Cp

@@ -142,6 +142,32 @@ def train_and_evaluate_model(
         'test_target': test_target_rescaled.detach().cpu().numpy(),
     }
 
+    print(f"\nMetrics for property '{target_name}' on training set:")
+    train_metrics = pred_metric(
+        prediction=train_pred_rescaled,
+        target=train_target_rescaled,
+        metrics='all',
+        print_out=True
+    )
+
+    # Calculate and print metrics for validation set
+    print(f"\nMetrics for property '{target_name}' on validation set:")
+    val_metrics = pred_metric(
+        prediction=val_pred_rescaled,
+        target=val_target_rescaled,
+        metrics='all',
+        print_out=True
+    )
+    
+    # Calculate and print metrics for test set
+    print(f"\nMetrics for property '{target_name}' on test set:")
+    test_metrics = pred_metric(
+        prediction=test_pred_rescaled,
+        target=test_target_rescaled,
+        metrics='all',
+        print_out=True
+    )
+
     return results
 
 
@@ -307,7 +333,7 @@ def create_parity_plot(results_dict, target_name):
     buffer = (max_val - min_val) * 0.05
     plt.xlim([min_val - buffer, max_val + buffer])
     plt.ylim([min_val - buffer, max_val + buffer])
-
+    target_name = "C_p"
     # Labels and title
     plt.xlabel('Actual')
     plt.ylabel('Predicted')
@@ -318,7 +344,7 @@ def create_parity_plot(results_dict, target_name):
         plt.Line2D([], [], marker='o', color='w', label='Test', markerfacecolor='red', markersize=10)
     ])
     plt.show()
-
+target_name = "C_p"
 # Create parity plot
 print(f"\nCreating parity plot for target: {target_name}")
 create_parity_plot(results, target_name)
