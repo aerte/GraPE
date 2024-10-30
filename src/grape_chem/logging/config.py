@@ -18,7 +18,14 @@ def load_config(config_file_path):
         config = yaml.safe_load(file)
 
     # Update the paths based on the directory of the config file
-    config['data_path'] = get_path(os.path.dirname(config_file_path), config['data_path'])
+    if 'data_files' in config:
+        for file in config['data_files']:
+            index = config['data_files'].index(file)
+            file = get_path(os.path.dirname(config_file_path), file)
+            config['data_files'][index] = file
+    if 'data_path' in config:
+        config['data_path'] = get_path(os.path.dirname(config_file_path), config['data_path'])
+
     config['save_path'] = get_path(os.path.dirname(config_file_path), config['save_path'])
     config['pip_requirements'] = get_path(os.path.dirname(config_file_path), config['pip_requirements'])
 
