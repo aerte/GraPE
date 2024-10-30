@@ -248,10 +248,11 @@ class DMPNN(torch.nn.Module):
 
         # Check if global features are present
         if self.num_global_feats > 0:
-            if self.num_global_feats > 1:
-                z = torch.cat((z, data.global_feats), dim=1)
-            else:
-                z = torch.cat((z, data.global_feats[:, None]), dim=1)
+            # Ensure that global_feats is not empty and concatenate appropriately
+            if data.global_feats.ndim == 1:  # Case where global_feats is 1D (1 global feature per graph)
+                z = torch.concat((z, data.global_feats[:, None]), dim=1)
+            elif data.global_feats.ndim > 1:  # Case where global_feats is nD (multiple global features per graph)
+                z = torch.concat((z, data.global_feats), dim=1)
 
         # Apply the first sequential block
         z = self.sequential_block_1(z)
