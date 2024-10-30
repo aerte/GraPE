@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 
 from grape_chem.utils.model_utils import set_seed
 from grape_chem.utils.ensemble import Bagging, RandomWeightInitialization, Jackknife, BayesianBootstrap
-from grape_chem.utils.data import load_data_from_csv, get_path
+from grape_chem.utils.data import load_dataset_from_csv, get_path
 from grape_chem.logging.config import load_config
 from grape_chem.logging.mlflow_logging import setup_mlflow
 
@@ -22,7 +22,7 @@ def run_ensemble(config: Dict):
         ### SETUP ###
         set_seed(config["seed"])
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        train_data, val_data, test_data, data = load_data_from_csv(config, return_dataset=True)
+        df, train_data, val_data, test_data, data = load_dataset_from_csv(config, return_dataset=True)
         node_in_dim = data[0].x.shape[1]
         edge_in_dim = data[0].edge_attr.shape[1]
 
@@ -30,7 +30,7 @@ def run_ensemble(config: Dict):
         techniques = {
             "Bagging": Bagging,
             "Random Initialization": RandomWeightInitialization,
-            "Jackknife": Jackknife,
+            #"Jackknife": Jackknife,
             "Weighted Bayesian Bootstrap": BayesianBootstrap
         }
 
@@ -49,10 +49,10 @@ def main():
     
     # Define configurations for the search space
     search_space = {
-        'epochs': 1,
+        'epochs': 100,
         'batch_size': None,  # Set in setup_data
-        'n_models': 2,
-        'early_stopping_patience': 50,
+        'n_models': 5,
+        'early_stopping_patience': 25,
         'scheduler_patience': 5,
         'scheduler_factor': 0.9,
         'learning_rate': 1e-3,
