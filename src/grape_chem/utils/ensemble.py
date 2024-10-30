@@ -95,7 +95,11 @@ class Ensemble:
     ## Training functions
     def create_model(self):
         if self.hyperparams['model'] == 'afp':
-            return AFP(node_in_dim=self.node_in_dim, edge_in_dim=self.edge_in_dim, out_dim=1).to(self.device)
+            if self.train_data[0].y.dim() > 1: 
+                out_dim = self.train_data[0].y.shape[1]
+            elif self.train_data[0].y.dim() == 1:
+                out_dim = 1
+            return AFP(node_in_dim=self.node_in_dim, edge_in_dim=self.edge_in_dim, out_dim=out_dim).to(self.device)
         elif self.hyperparams['model'] == 'dmpnn':
             return DMPNN(node_in_dim=self.node_in_dim, edge_in_dim=self.edge_in_dim).to(self.device)
         else:
@@ -126,19 +130,45 @@ class Ensemble:
             models.append(model)
         
         prediction_list, target_list = self.get_preds_and_targets_ensemble(models) 
+        
         # Rescale predictions and targets using list comprehensions
-        preds = [dataset.rescale_data(prediction) for prediction in prediction_list]
-        targts = [dataset.rescale_data(target) for target in target_list]
+        preds = [prediction.cpu().detach() for prediction in prediction_list]
+        targets = [target.cpu().detach() for target in target_list]
         metrics = []
-        for prediction, target in zip(preds, targts):
-            metrics.append(pred_metric(prediction, target, metrics='all', print_out=False))
+        num_targets = targets[0].shape[1] if targets[0].ndim > 1 else 1
+        for prediction, target in zip(preds, targets):
+            for i in range(num_targets):
+                if num_targets > 1:
+                    pred = prediction[:, i].cpu().detach()  # Get predictions for the ith target
+                    t = target[:, i].cpu().detach()  # Get corresponding true targets
+                else:
+                    pred = prediction.cpu().detach()  # No need to slice for single target
+                    t = target.cpu().detach()  # Single target
+
+                if num_targets > 1:
+                    mask = ~torch.isnan(t)  # Mask to filter out NaN values
+                    pred = pred[mask]
+                    t = t[mask]
+                
+                pred = dataset.rescale_data(pred)
+                t = dataset.rescale_data(t)
+
+                if torch.isnan(pred).any():
+                   print("Predictions contain NaN values.")
+                if torch.isnan(t).any():
+                   print("Targets contain NaN values.")
+                
+                metrics.append(pred_metric(pred, t, metrics='all', print_out=False))
         calculate_std_metrics(metrics, self.technique)
         
         # Take one sample of the targets
-        targets = targts[0]
+        target = targets[0]
         # Calc the average predictions
         avg_predictions = torch.mean(torch.stack(preds), dim=0)
-        self.log_and_plot_ensemble_uq_metrics(avg_predictions.cpu().detach(), targets.cpu().detach())
+        if num_targets == 1:
+            self.log_and_plot_ensemble_uq_metrics(avg_predictions.cpu().detach(), target.cpu().detach())
+        else:
+            print("No working plots for multiple targets")
 
     def create_samples(self):
         raise NotImplementedError("Subclasses should implement this method")
