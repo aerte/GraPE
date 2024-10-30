@@ -1,6 +1,7 @@
 # AFP model
 from typing import Union
 from torch_geometric.nn import AttentiveFP
+import torch.nn.functional as F
 from torch.nn import Module
 from torch import nn
 import torch
@@ -83,7 +84,7 @@ class AFP(Module):
                  regressor:bool=True, mlp_out_hidden:Union[int,list]=512, rep_dropout:float=0.0,
                  num_global_feats:int = 0, dataset_dict=None):
         super(AFP, self).__init__()
-
+        #print("Initializing AFP model")
         self.regressor = regressor
         self.num_global_feats = num_global_feats
 
@@ -94,7 +95,10 @@ class AFP(Module):
         self.node_in_dim = node_in_dim
         self.edge_in_dim = edge_in_dim
         self.hidden_dim = hidden_dim
-        self.out_dim=out_dim
+        if out_dim is None:
+            self.out_dim = 1
+        else:
+            self.out_dim=out_dim
         self.num_layers_atom=num_layers_atom
         self.num_layers_mol=num_layers_mol
         self.dropout=rep_dropout
@@ -127,36 +131,38 @@ class AFP(Module):
                 out_dim = mlp_out_hidden[0]
 
 
+        # Initialize AttentiveFP layers
         self.AFP_layers = AttentiveFP(
             in_channels=node_in_dim,
-            edge_dim= edge_in_dim,
+            edge_dim=edge_in_dim,
             hidden_channels=hidden_dim,
             out_channels=out_dim,
             num_layers=num_layers_atom,
             num_timesteps=num_layers_mol,
             dropout=dropout,
         )
-
         if self.regressor:
             if isinstance(mlp_out_hidden, int):
                 self.mlp_out = nn.Sequential(
                     nn.ReLU(),
                     nn.Linear(mlp_out_hidden + self.num_global_feats, mlp_out_hidden//2),
                     nn.ReLU(),
-                    nn.Linear(mlp_out_hidden//2, 1)
+                    nn.Linear(mlp_out_hidden//2, self.out_dim)
                 )
             else:
+                # Handle case with custom MLP layer sizes
                 self.mlp_out = []
                 for i in range(len(mlp_out_hidden)):
                     self.mlp_out.append(nn.ReLU())
                     if i == len(mlp_out_hidden)-1:
-                        # Added condition if there are global features but only one MLP layer
+                        # Last layer
                         hidden_temp = mlp_out_hidden[i]+self.num_global_feats if i == 0 else mlp_out_hidden[i]
-                        self.mlp_out.append(nn.Linear(hidden_temp, 1))
+                        self.mlp_out.append(nn.Linear(hidden_temp, self.out_dim))
                     elif i == 0:
                         self.mlp_out.append(nn.Linear(mlp_out_hidden[i]+self.num_global_feats, mlp_out_hidden[i + 1]))
                     else:
                         self.mlp_out.append(nn.Linear(mlp_out_hidden[i], mlp_out_hidden[i+1]))
+                print("Size MLP: self.mlp_out: ", self.mlp_out, "mlp out hidden: ", mlp_out_hidden)
                 self.mlp_out = nn.Sequential(*self.mlp_out)
         else:
             self.mlp_out = lambda x: x
@@ -167,32 +173,26 @@ class AFP(Module):
         if self.regressor:
             reset_weights(self.mlp_out)
 
-
     def forward(self, data, return_lats:bool=False):
         x, edge_index, edge_attr, batch = data.x, data.edge_index, data.edge_attr, data.batch
         out = self.AFP_layers(x, edge_index, edge_attr, batch)
 
         if return_lats:
             return out
-
+        
         # Dropout
         out = self.rep_dropout(out)
 
         ### Check if global features are present
         if self.num_global_feats > 0:
-            if data.global_feats.dim() == 1:
-                # If global_feats is 1D, reshape it to (batch_size, 1)
-                global_feats = data.global_feats.unsqueeze(1)
-            else:
-                # Ensure global_feats is nD (batch_size, num_global_feats)
-                global_feats = data.global_feats
-            
-            # Concatenate along the feature dimension
-            out = torch.cat((out, global_feats), dim=1)
-
-
+            # Ensure that global_feats is not empty and concatenate appropriately
+            if data.global_feats.ndim == 1:  # Case where global_feats is 1D (1 global feature per graph)
+                out = torch.concat((out, data.global_feats[:, None]), dim=1)
+            elif data.global_feats.ndim > 1:  # Case where global_feats is nD (multiple global features)
+                out = torch.concat((out, data.global_feats), dim=1)
         if self.regressor:
             out = self.mlp_out(out)
-        out = self.bn(out)
+        if self.out_dim > 1:
+            return out
         return out.view(-1)
     
