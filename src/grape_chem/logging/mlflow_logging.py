@@ -2,18 +2,29 @@ import mlflow
 from typing import Dict
 import pandas as pd
 import os
-
+import datetime
 
 def setup_run_name(config: Dict):
-    run_name = config.get('run_name', '')
+    time = datetime.datetime.now().strftime("%d-%m-%Y-%H")
+    run_name = config.get('run_name')
+    run_name = run_name + f"_{time}" if run_name else time
 
     # Add data name to run_name if 'data_path' exists
-    data_name = os.path.splitext(os.path.basename(config.get('data_path', '')))[0]
+    if len(config['data_labels']) > 1:
+        data_name = "_".join(config['data_labels'])
+    elif len(config['data_labels']) == 1:
+        data_name = config['data_labels'][0] 
+    else:
+        ValueError("No data labels found in config['data_labels']")
+    
     if data_name:
         run_name = f"{data_name}_{run_name}"
 
     # Determine model name
     model_name = config['model_name'].lower()
+    model_name = model_name + f"_{time}" if model_name else time
+    config['model_name'] = model_name
+
 
     # Update the run_name based on the model type
     if 'originaldmpnn' in model_name:
@@ -35,6 +46,7 @@ def setup_mlflow(config:Dict):
     setup_run_name(config)
     mlflow.set_tracking_uri('http://localhost:5000')
     mlflow.set_experiment(config['experiment_name'])
+    
     print(f"Current experiment: {mlflow.get_experiment_by_name(config['experiment_name'])}")
     return mlflow.start_run(run_name=config['run_name'])
 
