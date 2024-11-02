@@ -6,6 +6,7 @@ from torch.nn import Module, Sequential
 from torch.optim import lr_scheduler
 from numpy import ndarray
 import numpy as np
+from matplotlib import pyplot as plt
 from torch_geometric.loader import DataLoader
 from torch_geometric.data import Data
 from torch_geometric.data import Batch
@@ -1182,6 +1183,34 @@ def pred_metric(prediction: Union[Tensor, ndarray], target: Union[Tensor, ndarra
 
     return results
 
+#######################################################################################################
+#################################### Learning curve visualizer ########################################
+#######################################################################################################
+class learning_curve_producer:
+    def __init__(self):
+        self.train_losses = []
+        self.val_losses = []
+
+    def update(self, train_loss, val_loss=None):
+        self.train_losses.append(train_loss)
+        if val_loss is not None:
+            self.val_losses.append(val_loss)
+
+    def print_losses(self):
+        print('Training losses:', self.train_losses)
+        if self.val_losses:
+            print('Validation losses:', self.val_losses)
+
+    def display_learning_curve(self):
+        plt.figure(figsize=(8, 6))
+        plt.plot(self.train_losses, label='Training Loss')
+        if self.val_losses:
+            plt.plot(self.val_losses, label='Validation Loss')
+        plt.xlabel('Epoch')
+        plt.ylabel('Loss')
+        plt.title('Learning Curve')
+        plt.legend()
+        plt.show()
 
 #######################################################################################################
 #################################### General tools ####################################################
