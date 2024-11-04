@@ -140,42 +140,61 @@ class Ensemble:
         targets = [target.cpu().detach() for target in target_list]
         metrics = []
         num_targets = targets[0].shape[1] if targets[0].ndim > 1 else 1
+        rescaled_preds = [[] for _ in range(num_targets)]
+        rescaled_targets = [[] for _ in range(num_targets)]
+        pred = None
+        t = None
         for prediction, target in zip(preds, targets):
             for i in range(num_targets):
                 if num_targets > 1:
                     pred = prediction[:, i].cpu().detach()  # Get predictions for the ith target
                     t = target[:, i].cpu().detach()  # Get corresponding true targets
-                else:
-                    pred = prediction.cpu().detach()  # No need to slice for single target
-                    t = target.cpu().detach()  # Single target
-
-                if num_targets > 1:
                     mask = ~torch.isnan(t)  # Mask to filter out NaN values
                     pred = pred[mask]
                     t = t[mask]
+                    pred = dataset.rescale_data(pred, index=i)
+                    t = dataset.rescale_data(t, index=i)
+                else:
+                    pred = prediction.cpu().detach()  # No need to slice for single target
+                    t = target.cpu().detach()  # Single target
+                    pred = dataset.rescale_data(pred)
+                    t = dataset.rescale_data(t)
                 
-                pred = dataset.rescale_data(pred)
-                t = dataset.rescale_data(t)
+                rescaled_preds[i].append(pred)
+                rescaled_targets[i].append(t)                    
 
                 if torch.isnan(pred).any():
                    print("Predictions contain NaN values.")
                 if torch.isnan(t).any():
                    print("Targets contain NaN values.")
-                
                 metrics.append(pred_metric(pred, t, metrics='all', print_out=False))
+        
         calculate_std_metrics(metrics, self.technique)
         
-        
         # Take one sample of the targets
-        target = targets[0]
         if num_targets == 1:
-            print("Preds: ", preds)
-            plot_confidence_interval(self, preds)
+            plot_confidence_interval(self, rescaled_preds[0])
             # Calc the average predictions
-            avg_predictions = torch.mean(torch.stack(preds), dim=0)
-            self.log_and_plot_ensemble_uq_metrics(avg_predictions.cpu().detach(), target.cpu().detach())
+            rescaled_avg_predictions = torch.mean(torch.stack(rescaled_preds[0]), dim=0)
+            
+            target = rescaled_targets[0][0]
+            print("Average Predictions: ", rescaled_avg_predictions)
+            self.log_and_plot_ensemble_uq_metrics(rescaled_avg_predictions.cpu().detach(), target.cpu().detach())
         else:
-            print("No working plots for multiple targets")
+            for i in range(num_targets):
+                plot_confidence_interval(self, rescaled_preds[i], label=i)
+                
+                target = rescaled_targets[i][0]
+                rescaled_avg_predictions = torch.mean(torch.stack(rescaled_preds[i]), dim=0)
+                metrics = pred_metric(rescaled_avg_predictions, target, metrics='all', print_out=False)
+                # Update the metrics keys
+                updated_metrics = {f"{self.hyperparams['data_labels'][i]}_{self.technique}_{key}": value for key, value in metrics.items()}
+                mlflow.log_metrics(updated_metrics)
+                
+                rescaled_avg_predictions = torch.mean(torch.stack(rescaled_preds[0]), dim=0)
+            # print("rescaled_preds: ", rescaled_preds)  
+            # for i in range(num_targets):
+            #     plot_confidence_interval(self, rescaled_preds[i], label=i)
 
     def create_samples(self):
         raise NotImplementedError("Subclasses should implement this method")
