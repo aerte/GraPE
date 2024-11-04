@@ -5,8 +5,8 @@ from grape_chem.models import AFP, DMPNN
 from torch_geometric.data import Data
 from grape_chem.utils import train_model, test_model, pred_metric, EarlyStopping
 from grape_chem.utils.data import DataSet
-from grape_chem.utils.model_utils import set_seed
-from grape_chem.plots.ensemble_plots import calculate_nll, calculate_calibrated_nll, calculate_mca, calculate_spearman_rank
+from grape_chem.utils.model_utils import set_seed, return_hidden_layers
+from grape_chem.plots.ensemble_plots import calculate_nll, calculate_calibrated_nll, calculate_mca, calculate_spearman_rank, plot_confidence_interval
 from sklearn.utils import resample
 import numpy as np
 
@@ -94,12 +94,16 @@ class Ensemble:
     
     ## Training functions
     def create_model(self):
+        # Get MLP hidden layers from configuration
+        mlp = return_hidden_layers(self.hyperparams['mlp_layers'])
         if self.hyperparams['model'] == 'afp':
             if self.train_data[0].y.dim() > 1: 
                 out_dim = self.train_data[0].y.shape[1]
             elif self.train_data[0].y.dim() == 1:
                 out_dim = 1
-            return AFP(node_in_dim=self.node_in_dim, edge_in_dim=self.edge_in_dim, out_dim=out_dim).to(self.device)
+            return AFP(node_in_dim=self.node_in_dim, edge_in_dim=self.edge_in_dim, out_dim=out_dim, hidden_dim=self.hyperparams['hidden_dim'],
+                       mlp_out_hidden=mlp, num_layers_atom=self.hyperparams['num_layers_atom'],
+                       num_layers_mol=self.hyperparams['num_layers_mol'], dropout=self.hyperparams['dropout']).to(self.device)   
         elif self.hyperparams['model'] == 'dmpnn':
             return DMPNN(node_in_dim=self.node_in_dim, edge_in_dim=self.edge_in_dim).to(self.device)
         else:
@@ -131,7 +135,7 @@ class Ensemble:
         
         prediction_list, target_list = self.get_preds_and_targets_ensemble(models) 
         
-        # Rescale predictions and targets using list comprehensions
+        # predictions and targets are lists of tensors 
         preds = [prediction.cpu().detach() for prediction in prediction_list]
         targets = [target.cpu().detach() for target in target_list]
         metrics = []
@@ -161,11 +165,14 @@ class Ensemble:
                 metrics.append(pred_metric(pred, t, metrics='all', print_out=False))
         calculate_std_metrics(metrics, self.technique)
         
+        
         # Take one sample of the targets
         target = targets[0]
-        # Calc the average predictions
-        avg_predictions = torch.mean(torch.stack(preds), dim=0)
         if num_targets == 1:
+            print("Preds: ", preds)
+            plot_confidence_interval(self, preds)
+            # Calc the average predictions
+            avg_predictions = torch.mean(torch.stack(preds), dim=0)
             self.log_and_plot_ensemble_uq_metrics(avg_predictions.cpu().detach(), target.cpu().detach())
         else:
             print("No working plots for multiple targets")
@@ -223,7 +230,7 @@ class Jackknife(Ensemble):
 
         reference_model = self.create_model()
         criterion = MSELoss()
-        optimizer = Adam(reference_model.parameters(), lr=self.hyperparams['learning_rate'])
+        optimizer = Adam(reference_model.parameters(), lr=self.hyperparams['learning_rate'], weight_decay=self.hyperparams['weight_decay'])
         early_stopping = EarlyStopping(patience=self.hyperparams['early_stopping_patience'])
         train_model(model=reference_model, loss_func=criterion, optimizer=optimizer, train_data_loader=self.train_data,
                     val_data_loader=self.val_data, epochs=self.hyperparams['epochs'], device=self.device, batch_size=self.hyperparams['batch_size'], early_stopper=early_stopping)
