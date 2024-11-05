@@ -9,36 +9,34 @@ class GroupGAT_Ensemble(nn.Module):
     the base code for the "coupled single task"
     architecture
     """
-    def __init__(self, net_params, num_targets, fn=None,):
+
+    def __init__(self, net_params_per_model):
         super().__init__()
-        # self.models = nn.ModuleList([
-        #     GroupGAT.GCGAT_v4pro_jit(net_params) for _ in range(num_targets)
-        # ])
-        # ^ If you want a model with variable number of coeffs, though it won't be jittable
-        self.device = net_params['device']
-        A_model = GroupGAT.GCGAT_v4pro(net_params)
-        B_model = GroupGAT.GCGAT_v4pro(net_params)
-        C_model = GroupGAT.GCGAT_v4pro(net_params)
-        D_model = GroupGAT.GCGAT_v4pro(net_params)
-        E_model = GroupGAT.GCGAT_v4pro(net_params)
-        self.models = nn.ModuleDict({
-            'A': A_model,
-            'B': B_model,
-            'C': C_model,
-            'D': D_model,
-            'E': E_model
-        })
+        self.device = net_params_per_model['A']['device']
+        self.models = nn.ModuleDict()
+        for model_name, net_params in net_params_per_model.items():
+            model = GroupGAT.GCGAT_v4pro(net_params)
+            self.models[model_name] = model
+        self.cp_layer = CpLayer()
+
+        self.A = None
+        self.B = None
+        self.C = None
+        self.D = None
+        self.E = None
 
     def forward(self, data):
         T = data.global_feats.to(self.device)
-        outputs = []
-        A = self.models['A'](data)
-        B = self.models['B'](data)
-        C = self.models['C'](data)
-        D = self.models['D'](data)
-        E = self.models['E'](data)
+        outputs = {}
+        for model_name, model in self.models.items():
+            outputs[model_name] = model(data)
+        self.A = outputs['A']
+        self.B = outputs['B']
+        self.C = outputs['C']
+        self.D = outputs['D']
+        self.E = outputs['E']
         Cp = CpLayer()
-        return Cp(A, B, C, D, E, T)
+        return Cp(self.A, self.B, self.C, self.D, self.E, T)
         
 class CpLayer(nn.Module):
     def __init__(self):

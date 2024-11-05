@@ -400,9 +400,10 @@ def test_model_jit_with_parity(
 
                 # Collect predictions and targets
 
-                out_unscaled = unstandardize(out.detach().cpu(), mean_target, std_target)
-                target_unscaled = unstandardize(batch.y.detach().cpu(), mean_target, std_target)
-
+                #out_unscaled = unstandardize(out.detach().cpu(), mean_target, std_target)
+                #target_unscaled = unstandardize(batch.y.detach().cpu(), mean_target, std_target)
+                out_unscaled = out.detach().cpu()
+                target_unscaled = batch.y.detach().cpu()
                 preds_list.append(out_unscaled)
                 targets_list.append(target_unscaled)
 
@@ -534,28 +535,28 @@ train_targets_external_tensor = torch.tensor(train_targets_external, dtype=torch
 val_targets_external_tensor = torch.tensor(val_targets_external, dtype=torch.float32)
 test_targets_external_tensor = torch.tensor(test_targets_external, dtype=torch.float32)
 
-print("\n=== External Predictions Metrics ===")
-print("\nPaper Train Set Metrics:")
-train_external_metrics = pred_metric(
-    prediction=train_external_preds_tensor,
-    target=train_targets_external_tensor,
-    metrics='all',
-    print_out=True
-)
-print("\nPaper Validation Set Metrics:")
-val_external_metrics = pred_metric(
-    prediction=val_external_preds_tensor,
-    target=val_targets_external_tensor,
-    metrics='all',
-    print_out=True
-)
-print("\nPaper Test Set Metrics:")
-test_external_metrics = pred_metric(
-    prediction=test_external_preds_tensor,
-    target=test_targets_external_tensor,
-    metrics='all',
-    print_out=True
-)
+# print("\n=== External Predictions Metrics ===")
+# print("\nPaper Train Set Metrics:")
+# train_external_metrics = pred_metric(
+#     prediction=train_external_preds_tensor,
+#     target=train_targets_external_tensor,
+#     metrics='all',
+#     print_out=True
+# )
+# print("\nPaper Validation Set Metrics:")
+# val_external_metrics = pred_metric(
+#     prediction=val_external_preds_tensor,
+#     target=val_targets_external_tensor,
+#     metrics='all',
+#     print_out=True
+# )
+# print("\nPaper Test Set Metrics:")
+# test_external_metrics = pred_metric(
+#     prediction=test_external_preds_tensor,
+#     target=test_targets_external_tensor,
+#     metrics='all',
+#     print_out=True
+# )
 
 # Compute overall metrics
 all_external_preds = torch.cat([train_external_preds_tensor, val_external_preds_tensor, test_external_preds_tensor], dim=0)

@@ -158,7 +158,7 @@ else:
 
 # ---------------------------------------------------------------------------------------
 
-new_smiles = ['O=C(O)c1ccc(N)cc1', 'O=C(O)c1cc(N)ccc1']
+new_smiles = ['C1=CC(=CC=C1C(=O)O)N', 'C1=CC(=CC(=C1)N)C(=O)O',]
 
 # Since we don't have actual target values, we'll use placeholders
 new_targets = np.zeros(len(new_smiles))
@@ -309,7 +309,8 @@ def test_model_jit_with_parity(
 
                 out_unscaled = unstandardize(out.detach().cpu(), mean_target, std_target)
                 target_unscaled = unstandardize(batch.y.detach().cpu(), mean_target, std_target)
-
+                out_unscaled = out.detach().cpu()
+                target_unscaled = batch.y.detach().cpu()
                 preds_list.append(out_unscaled)
                 targets_list.append(target_unscaled)
 
@@ -335,6 +336,7 @@ preds, _ = test_model_jit_with_parity(
 
 # Print the predictions
 for i, smile in enumerate(new_smiles):
+    breakpoint()
     print(f"SMILES: {smile}, Predicted value: {unstandardize(preds[i].item(), mean_target, std_target)}")
 
 ####### Example for rescaling the MAE prediction ##########
