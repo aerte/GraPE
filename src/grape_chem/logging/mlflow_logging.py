@@ -4,6 +4,8 @@ import pandas as pd
 import os
 import datetime
 
+from grape_chem.utils.data import save_splits_to_csv
+
 def setup_run_name(config: Dict):
     time = datetime.datetime.now().strftime("%d-%m-%Y-%H")
     run_name = config.get('run_name')
@@ -64,3 +66,34 @@ def log_latents(latents, file_path, log_latent_batch_index=0):
     if mlflow.active_run():
         # Log the latent representation as an artifact
         mlflow.log_artifact(latent_file_path)
+
+def track_params(config: Dict, data_bundle: Dict):
+    """Log hyperparameters and dataset information to MLflow."""
+    if mlflow.active_run():
+        mlflow.log_params(config)
+
+        df, train_data, val_data, test_data, data = (
+            data_bundle['df'], data_bundle['train_data'], 
+            data_bundle['val_data'], data_bundle['test_data'], 
+            data_bundle['data']
+        )
+        index = len(data)//2 if (len(data)) % 2 == 0 else (len(data))//2 + 1
+        mlflow.log_param("Target", config['target'])
+        mlflow.log_param("Global Features", config['global_features'])
+        mlflow.log_param("Learning Rate", config['learning_rate'])
+        mlflow.log_param("smile_example", data.smiles[index])
+        mlflow.log_param("atom_example", data[index].x)
+        mlflow.log_param("bond_example", data[index].edge_attr)
+        mlflow.log_params({
+            "dataset_length": len(data),
+            "train_size": len(train_data),
+            "val_size": len(val_data),
+            "test_size": len(test_data)
+        })
+
+        if config['save_splits']:
+            print("Saving dataset splits now...")
+            mlflow.log_artifact(save_splits_to_csv(df, train_data, val_data, test_data, config['save_path']))
+    
+    else:
+        print("No active MLflow run. Skipping logging of hyperparameters and dataset information.") 
