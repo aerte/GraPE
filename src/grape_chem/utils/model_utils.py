@@ -587,16 +587,25 @@ def train_epoch(model: torch.nn.Module, loss_func: Callable, optimizer: torch.op
     loss = 0.
     it = 0.
 
-    for idx, batch in enumerate(train_loader):
+    for _, batch in enumerate(train_loader):
         optimizer.zero_grad()
         out = model(batch.to(device))
-        loss_train = loss_func(batch.y, out)
+        if out.dim() == 2:
+            by = batch.y.view(out.shape[0], out.shape[1]).to(device)
+        else:
+            by = batch.y.to(device)
+
+        loss_train = loss_func(by, out)
 
         loss += loss_train.detach().cpu().numpy()
         it += 1.
 
         loss_train.backward()
         optimizer.step()
+
+        # specifically for the single task ensemble GroupGAT during Hyperparam optimization
+        del loss_train, out, by
+        torch.cuda.empty_cache()
 
     return loss/it
 
@@ -609,9 +618,13 @@ def val_epoch(model: torch.nn.Module, loss_func: Callable, val_loader, device: s
     loss = 0.
     it = 0.
 
-    for idx, batch in enumerate(val_loader):
+    for _, batch in enumerate(val_loader):
         out = model(batch.to(device))
-        loss_val = loss_func(batch.y, out)
+        if out.dim() == 2:
+            by = batch.y.view(out.shape[0], out.shape[1]).to(device)
+        else:
+            by = batch.y.to(device)
+        loss_val = loss_func(by, out)
         loss += loss_val.detach().cpu().numpy()
         it += 1.
 
