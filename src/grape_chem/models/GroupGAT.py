@@ -178,8 +178,11 @@ class GCGAT_v4pro(nn.Module):
         concat_dim = net_params['L1_hidden_dim'] + net_params['L2_hidden_dim'] + net_params['L3_hidden_dim']
         concat_dim_debug = net_params['L3_hidden_dim']
         #linear_dim_1 = int(concat_dim / 2)
-        if net_params['global_features']:
-            concat_dim += 1
+        self.use_global_feats = False
+        if hasattr(net_params, 'use_global_features'):
+            self.use_global_feats = net_params['use_global_features']
+            if self.use_global_feats:
+                concat_dim += 1
         self.linear_predict1 = nn.Sequential(
             nn.Dropout(net_params['final_dropout']),
             nn.Linear(concat_dim, int(concat_dim / 2), bias=True),
@@ -220,11 +223,13 @@ class GCGAT_v4pro(nn.Module):
 
         #motifs_series = global_add_pool(junction_data.x, junction_data.batch) if get_attention else torch.zeros((graph_frag.x.size(0), 0), device=graph_frag.x.device)
         # 2. concat the output from different channels
-
+    
         concat_features = torch.cat([graph_origin, frag_res, super_new_graph], dim=-1) #, motifs_series
-        if hasattr(data, 'global_feats') and data.global_feats is not None:
-            global_feats = data.global_feats.to(concat_features.device).unsqueeze(-1)
-            concat_features = torch.cat([concat_features, global_feats], dim=-1)
+
+        if self.use_global_feats:
+            if hasattr(data, 'global_feats') and data.global_feats is not None:
+                global_feats = data.global_feats.to(concat_features.device).unsqueeze(-1)
+                concat_features = torch.cat([concat_features, global_feats], dim=-1)
         descriptors = self.linear_predict1(concat_features)
         output = self.linear_predict2(descriptors)
         
