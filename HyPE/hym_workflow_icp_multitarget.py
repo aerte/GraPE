@@ -35,23 +35,24 @@ atom_layers = 3
 mol_layers = 3
 
 # Change to your own specifications
-root = './env/ICP.xlsx'
+root = './env/params_prediction.xlsx'
 sheet_name = ''
 
 df = pd.read_excel(root)
 # Read SMILES and target properties A, B, C, D
 smiles = df['SMILES'].to_numpy()
-target_columns = ['A', 'B', 'C', 'D']
+target_columns = ['A0', 'B0', 'C0', 'D0', 'E0']
 targets = df[target_columns].to_numpy()  # Shape: (num_samples, 4)
 
 # Read tags for custom splits
-tags = df['Subset'].to_numpy()
+tags = df['bin'].to_numpy()
 unique_tags = np.unique(tags)
-tag_to_int = {'Training': 0, 'Validation': 1, 'Test': 2}
+#tag_to_int = {'Training': 0, 'Validation': 1, 'Test': 2}
+tag_to_int = {'train': 0, 'val': 1, 'test': 2}
 custom_split = np.array([tag_to_int[tag] for tag in tags])
 
 # Global features
-global_feats = df['T'].to_numpy()
+# global_feats = df['T'].to_numpy()
 
 # Standardize targets separately
 mean_targets = np.mean(targets, axis=0)  # Shape: (4,)
@@ -59,9 +60,9 @@ std_targets = np.std(targets, axis=0)
 targets_standardized = (targets - mean_targets) / std_targets  # Shape: (num_samples, 4)
 
 # Standardize global features
-mean_global_feats = np.mean(global_feats)
-std_global_feats = np.std(global_feats)
-global_feats = standardize(global_feats, mean_global_feats, std_global_feats)
+#mean_global_feats = np.mean(global_feats)
+#std_global_feats = np.std(global_feats)
+#global_feats = standardize(global_feats, mean_global_feats, std_global_feats)
 
 ########################## Fragmentation #########################################
 fragmentation_scheme = "MG_plus_reference"
@@ -71,7 +72,7 @@ frag_dim = fragmentation.frag_dim
 print("Done.")
 
 ########################### DataSet Creation ######################################
-data = DataSet(smiles=smiles, target=targets_standardized, global_features=global_feats, filter=True, fragmentation=fragmentation, )
+data = DataSet(smiles=smiles, target=targets_standardized, global_features=None, filter=True, fragmentation=fragmentation, )
 
 # Split data using custom splits
 train, val, test = split_data(data, split_type='custom', custom_split=custom_split)

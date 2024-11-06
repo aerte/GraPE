@@ -443,7 +443,17 @@ def train_model_jit(
                 else:
                     by = batch.y.to(device)
             
-                loss_train = loss_func(by, out)
+                if hasattr(batch, 'mask') and batch.mask is not None:
+                    mask = batch.mask.to(device)
+                    if mask.sum() == 0:
+                        continue  # Skip this batch
+
+                    loss_per_element = loss_func(out, by, reduction='none')
+                    loss_per_element = loss_per_element * mask
+                    loss_train = loss_per_element.sum() / mask.sum()
+                else:
+                    # no mask; all targets assumed present
+                    loss_train = loss_func(out, by)
 
                 temp[idx] = loss_train.detach().cpu().numpy()
 
@@ -541,7 +551,17 @@ def train_model_jit(
                         by = batch.y.view(out.shape[0], out.shape[1]).to(device)
                     else:
                         by = batch.y.to(device)
-                    temp[idx] = loss_func(by, out).detach().cpu().numpy()
+                    if hasattr(batch, 'mask') and batch.mask is not None:
+                        mask = batch.mask.to(device)
+                        if mask.sum() == 0:
+                            continue  # Skip this batch
+
+                        loss_per_element = loss_func(out, by, reduction='none')
+                        loss_per_element = loss_per_element * mask
+                        loss_val = loss_per_element.sum() / mask.sum()
+                    else:
+                        loss_val = loss_func(out, by)
+                    temp[idx] = loss_val.detach().cpu().numpy()
 
             loss_val = np.mean(temp)
             val_loss.append(loss_val)

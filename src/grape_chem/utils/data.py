@@ -289,12 +289,14 @@ class DataSet(DataLoad):
         it's passed in here to avoid recomputing the split after filtering. Default: None
     target_columns: list of str
         In the case of multi dimensional targets, columns that contain them. Default: None
-
+    mask: list of bool
+        In the case of multi-task learning, a mask that indicates which targets are missing. Default: None
     """
     def __init__(self, file_path: str = None, smiles: list[str] = None, target: Union[list[int], list[float],
     ndarray] = None, global_features:Union[list[float], ndarray] = None, filter: bool=True,allowed_atoms:list[str] = None,
     only_organic: bool = True, atom_feature_list: list[str] = None, bond_feature_list: list[str] = None,
-    log: bool = False, root: str = None, indices:list[int] = None, fragmentation=None, custom_split=None, target_columns=None):
+    log: bool = False, root: str = None, indices:list[int] = None, fragmentation=None, custom_split=None, 
+    target_columns=None, mask=None):
         assert (file_path is not None) or (smiles is not None and target is not None),'path or (smiles and target) must given.'
         super().__int__(root)
 
@@ -314,7 +316,6 @@ class DataSet(DataLoad):
             self.graphs = list(df.graphs)
             
             self.target_columns = target_columns
-
         else:
             if filter:
                 self.smiles, self.raw_target, self.global_features, self.custom_split = filter_smiles(smiles, target,
@@ -347,10 +348,12 @@ class DataSet(DataLoad):
         self.num_edge_features = self.graphs[0].num_edge_features
         self.data_name=None
         self.mean, self.std = None, None
-
+        
         self.mol_weights = np.zeros(len(self.smiles))
         for i in range(len(self.smiles)):
             self.mol_weights[i] = mol_weight(Chem.MolFromSmiles(self.smiles[i]))
+        
+        self.mask = mask
 
         if fragmentation is not None:
             self.fragmentation = fragmentation
@@ -514,6 +517,13 @@ class DataSet(DataLoad):
         if self.fragmentation.save_file_path is not None:
             with open(self.fragmentation.save_file_path, 'wb') as save_frags:
                 pickle.dump(frag_data, save_frags)
+
+    def _prepare_mask(self):
+        """
+        TODO: implement
+        for the multi-task case, produce a mask for when targets are missing
+        """
+        pass
 
     def indices(self):
         return range(len(self.graphs)) if self._indices is None else self._indices
