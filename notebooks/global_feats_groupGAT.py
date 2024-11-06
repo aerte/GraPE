@@ -37,20 +37,20 @@ mol_layers = 3
 
 
 # Change to your own specifications
-root = './env/ICP.xlsx'
-#root = './env/Solvation__splits.csv'
+#root = './env/ICP.xlsx'
+root = './env/Solvation_splits.csv'
 #in solvation the global feat is ['Temperature'], target is ['Energy'], subset is ['Split']
 sheet_name = ''
 
-df = pd.read_excel(root,)#.iloc[:25]
+df = pd.read_csv(root,)#.iloc[:25]
 #df = pd.read_csv(root)
 smiles = df['SMILES'].to_numpy()
-target = df['Value'].to_numpy()
+target = df['Energy'].to_numpy()
 
 #specific to one xlsx with a "Tag" column
-tags = df['Subset'].to_numpy()
+tags = df['Split'].to_numpy()
 unique_tags = np.unique(tags)
-tag_to_int = {'Training': 0, 'Validation': 1, 'Test': 2}
+tag_to_int = {'train': 0, 'val': 1, 'test': 2}
 #tag_to_int = {'train': 0, 'val': 1, 'test': 2}
 custom_split = np.array([tag_to_int[tag] for tag in tags])
 
@@ -59,7 +59,7 @@ custom_split = np.array([tag_to_int[tag] for tag in tags])
 
 #### REMOVE, just for testing ####
 #global_feats = np.random.randn(len(smiles))
-global_feats = df['T'].to_numpy()
+global_feats = df['Temperature'].to_numpy()
 ############ We need to standardize BEFORE loading it into a DataSet #############
 mean_target, std_target = np.mean(target), np.std(target)
 target = standardize(target, mean_target, std_target)
@@ -69,7 +69,7 @@ global_feats = standardize(global_feats, mean_global_feats, std_global_feats)
 ########################## fragmentation #########################################
 fragmentation_scheme = "MG_plus_reference"
 print("initializing frag...")
-fragmentation = JT_SubGraph(scheme=fragmentation_scheme)
+fragmentation = JT_SubGraph(scheme=fragmentation_scheme, save_file_path='./env/fragmentation_data_solvation.pth')
 frag_dim = fragmentation.frag_dim
 print("done.")
 
@@ -147,7 +147,7 @@ loss_func = torch.nn.functional.mse_loss
 model.to(device)
 
 # Define model filename
-model_filename = 'gcgat_gloabl_feats_latest.pth'
+model_filename = 'gcgat_global_feats_solvation_latest.pth'
 
 # Check if the model file exists
 if os.path.exists(model_filename):

@@ -43,13 +43,13 @@ atom_layers = 3
 mol_layers = 3
 
 # Change to your own specifications
-root = './env/params_prediction.xlsx'
+root = './env/critprop_expt_data_train_random_fold0.csv'
 sheet_name = ''
 
-df = pd.read_excel(root)
+df = pd.read_csv(root)
 # Read SMILES and target properties
-smiles = df['SMILES'].to_numpy()
-target_columns = ['A0', 'B0', 'C0', 'D0', 'E0']
+smiles = df['smiles'].to_numpy()
+target_columns = ["Tc","Pc","rhoc","omega","Tb","Tm","dHvap","dHfus"]
 targets_df = df[target_columns]  # You can have any number of targets here
 num_targets = targets_df.shape[1]
 target_names = targets_df.columns.tolist()
@@ -59,7 +59,7 @@ targets = targets_df.to_numpy()  # Shape: (num_samples, num_targets)
 tags = df['bin'].to_numpy()
 unique_tags = np.unique(tags)
 tag_to_int = {'train': 0, 'val': 1, 'test': 2}
-custom_split = np.array([tag_to_int[tag] for tag in tags])
+#custom_split = np.array([tag_to_int[tag] for tag in tags])
 
 # Check if there are any missing targets
 if np.isnan(targets).any():
@@ -110,7 +110,7 @@ data = DataSet(
 )
 
 # Split data using custom splits
-train, val, test = split_data(data, split_type='custom', custom_split=custom_split)
+train, val, test = split_data(data, split_type='consecutive', split_frac=(0.8, 0.1, 0.1))
 
 ############################################################################################
 
