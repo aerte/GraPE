@@ -57,6 +57,37 @@ Now, there are two options:
     ```
 of course replacing your dtu ID and path where relevant
 
-### Hyperparameter optimization
-!!TODO!!<br>
-(this requires modification of the code to use environment variables or hardcode absolute paths on the cluster)
+## Hyperparameter optimization
+### setting up the optimization script
+keep the output of `pwd` from the directory where GraPE will be run.<br>
+from the root of GraPE:
+```
+cp notebooks/set_env_vars_cluster.sh set_env_vars_cluster.sh
+```
+use your favorite terminal based editor (e.g. vi, nano, or vim - they are all on the cluster) to edit the file:
+
+```
+vim set_env_vars_cluster.sh
+```
+
+and change the `export BASE_R_DIR=` to contain your own root directory variable
+If your hyperparam optimization script is using any additional environment variables, 
+it is in this file that you should add and set them.<br>
+
+run the script to set environment variables:
+```
+chmod +x set_env_vars_cluster.sh
+source set_env_vars_cluster.sh
+```
+Now, you should be ready to run hyperperameter optimizations, as a quick check you can perform
+```
+python notebooks/optimization_test.py --samples 100 pka
+```
+Wait for a few samples to finish, if no errors are being printed, your script is ready to be sumbitted to the job queue, so Ctrl-C a bunch times to stop it and move on to the next section.
+
+### creating the job and submitting it to the queue
+make sure you're on a GPU-node, for example
+```
+a110sh
+```
+**TODO**: finish

@@ -168,6 +168,7 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+set_env_vars_cluster.sh
 
 # Spyder project settings
 .spyderproject
