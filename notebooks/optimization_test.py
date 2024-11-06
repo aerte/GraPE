@@ -23,8 +23,8 @@ from ray.train import Checkpoint, ScalingConfig
 from ray.train.torch import TorchTrainer
 
 #root = '/zhome/4a/a/156124/GraPE/notebooks/data_splits.xlsx'
-root = 'env/data_splits.xlsx'
-ray.init(_temp_dir="/media/paul/external_drive/tmp_ray")
+root = os.environ.get('DATA_SPLITS_PATH', 'env/data_splits.xlsx')
+ray.init(_temp_dir=os.environ.get('RAY_TEMP_DIR', "/media/paul/external_drive/tmp_ray"))
 
 def set_seed(seed):
     os.environ['PYTHONHASHSEED'] = str(seed)
@@ -339,16 +339,6 @@ if __name__ == '__main__':
         device = torch.device("cpu")
         gpu = 0
 
-
-    # if model_name == "GroupGAT":
-    #     from grape_chem.utils import JT_SubGraph
-    #     #script_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    #     #fragmentation_scheme_file_path = os.path.join(script_dir, 'env', 'MG_plus_reference')
-    #     fragmentation_scheme_file_path = 'MG_plus_reference'
-    #     fragmentation = JT_SubGraph(scheme=fragmentation_scheme_file_path)
-    # else:
-    #     fragmentation = None
-
     if data_name == 'pka':
         dataset = 'pKa'
     elif data_name == 'free':
@@ -495,7 +485,7 @@ if __name__ == '__main__':
 
     #file_name = "/zhome/4a/a/156124/GraPE/notebooks/results/new_best_hyperparameters_" + model_name + "_" + dataset + ".json"
 
-    directory = os.path.join("env", "bohb_results")
+    directory = os.environ.get('BOHB_RESULTS_DIR', os.path.join("env", "bohb_results"))
     file_name = os.path.join(directory, f"new_best_hyperparameters_{model_name}_{dataset}.json")
     os.makedirs(directory, exist_ok=True)
     with open(file_name, "w") as file:
