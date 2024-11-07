@@ -3,6 +3,7 @@
 - you have a way to login to the node over ssh, and your keys are stored in `~/.ssh/gbar`
 - git and pip are installed on the node and up to date (should be the case by default)
 - you have access your own copy of the datasets you want to use
+- you are running on a compute node, i.e. one of the GPU nodes like `a100sh`, `voltash`, etc, or at the very least `linuxsh`
 - you are on a fresh environment, or do not have conflicting versions of pytorch, pytroch-geometric, or similar installed.
 This guide assumes python `3.9.18`
 
@@ -56,6 +57,13 @@ Now, there are two options:
     scp -i ~/.ssh/gbar path/to/your/file <your-dtu-ID>@transfer.gbar.dtu.dk:/zhome/your/path/123456/GraPE/env/
     ```
 of course replacing your dtu ID and path where relevant
+
+#### Fragmentation
+If you plan on using models that require fragmentation, you also need a file where the SMARTs are defined to be in `env/`<br>
+We provide one with this repository, so from the root run:
+```
+cp notebooks/data_files/MG_plus_reference.csv env/MG_plus_reference.csv
+```
 
 ## Hyperparameter optimization
 ### setting up the optimization script
