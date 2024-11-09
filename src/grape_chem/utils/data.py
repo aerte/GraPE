@@ -469,7 +469,7 @@ class DataSet(DataLoad):
 
         return list(map(lambda x: MolFromSmiles(x), self.smiles))
 
-    def _prepare_frag_data(self, log_progress=True, log_every=100):
+    def _prepare_frag_data(self, log_progress=True, log_every=1):
         """
         return a list of frag_graphs and motif_graphs based on the fragmentation
         passed-in when initializing the datatset

@@ -38,15 +38,15 @@ mol_layers = 3
 
 # Change to your own specifications
 #root = './env/ICP.xlsx'
-root = './env/Solvation_splits.csv'
+root = './env/Solvation_splits_new.csv'
 #in solvation the global feat is ['Temperature'], target is ['Energy'], subset is ['Split']
 sheet_name = ''
 
-df = pd.read_csv(root,)#.iloc[:25]
+df = pd.read_csv(root,).iloc[10100:] #10198
 #df = pd.read_csv(root)
 smiles = df['SMILES'].to_numpy()
 target = df['Energy'].to_numpy()
-
+breakpoint()
 #specific to one xlsx with a "Tag" column
 tags = df['Split'].to_numpy()
 unique_tags = np.unique(tags)
