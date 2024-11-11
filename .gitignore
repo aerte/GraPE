@@ -218,8 +218,6 @@ mlflow.db
 *.png
 *.svg
 
-# Ignore config files
-*.yaml
 
 #Data folder
 data/

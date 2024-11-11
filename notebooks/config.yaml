@@ -1,0 +1,23 @@
+experiment_name: "Solvation AFP parity Ray Molecular Property Prediction Training"
+smiles: "SMILES"
+target: "Energy"  # Energy # Const_Value
+global_features: ['Temperature'] #['Temperature', 'Pressure', 'pH', 'Concentration']
+
+# Change the data_files and data_labels to match the number of targets in the dataset
+data_files: ["../data/Solvation.csv"] # , "../data/Pc_bar.csv","../data/Tc.csv" List of dataset paths
+data_labels: ["t-dep solv"]  # , "Pc", "Tc" Corresponding labels for targets in datasets / Needs to be as many as there are targets
+
+model_name: "AFP"
+run_name: "Model Training"
+model_path: "."
+save_path: "C:/Users/Thoma/code/GraPE/log/"
+# allowed_atoms: ['H', 'He', 'Li', 'Be', 'B', 'C', 'N', 'O', 'F', 'Ne', 'Na', 'Mg', 'Al', 'Si', 'P', 'S', 'Cl', 'Ar', 'K', 'Ca', 'Sc', 'Ti', 'V', 'Cr', 'Mn', 'Fe', 'Co', 'Ni', 'Cu', 'Zn', 'Ga', 'Ge', 'As', 'Se', 'Br', 'Kr', 'I']
+# atom_feature_list: ["chemprop_atom_features"]
+# bond_feature_list: ["chemprop_bond_features"]
+pip_requirements: "../requirements.txt"
+split_type: "consecutive" #['consecutive', 'random', 'molecular weight', 'scaffold', 'stratified', 'butina_realistic', 'butina','custom']
+save_splits: True
+seed : 42
+# Ray tune will use these resources per trial
+cpu: 1
+gpu: 1
