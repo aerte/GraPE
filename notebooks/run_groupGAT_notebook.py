@@ -12,6 +12,7 @@ from tqdm import tqdm
 from typing import Union, List, Tuple
 from torch import Tensor
 import os
+import copy
 
 ## Install GraPE with: pip install "git+https://github.com/aerte/GraPE.git#subdirectory=python"
 
@@ -163,12 +164,12 @@ else:
     print(f"Model saved to '{model_filename}'.")
 
 ####### Generating prediction tensor for the TEST set (Not rescaled) #########
+
+
 pred = test_model_jit(model=model, test_data_loader=test, device=device, batch_size=batch_size) #TODO: make it able to take a loss func
 pred_metric(prediction=pred, target=test.y, metrics='all', print_out=True)
 
 # ---------------------------------------------------------------------------------------
-
-breakpoint()
 
 ####### Example for rescaling the MAE prediction ##########
 
@@ -264,6 +265,108 @@ def test_model_with_parity(model: torch.nn.Module, test_data_loader: Union[list,
         return preds, targets, latents
     return preds, targets
 
+# Function to freeze all layers except the last two
+def freeze_model_layers_groupgat(model):
+    # Freeze all parameters first
+    for param in model.parameters():
+        param.requires_grad = False
+    # Unfreeze the last two layers for transfer learning
+    for param in model.linear_predict1.parameters():
+        param.requires_grad = True
+    for param in model.linear_predict2.parameters():
+        param.requires_grad = True
+
+# Function to perform transfer learning on the model
+def transfer_learning_loop(
+    base_model,
+    train_loader,
+    val_loader,
+    num_iterations=5,
+    epochs=10,
+    learning_rate=0.001,
+    weight_decay=1e-6,
+    patience=5
+):
+    # Initialize a list to store results for each iteration
+    results = []
+
+    # Loop for multiple transfer learning iterations
+    for i in range(num_iterations):
+        print(f"\nTransfer Learning Iteration {i + 1}/{num_iterations}")
+
+        # Clone the base model for each transfer learning iteration
+        model = copy.deepcopy(base_model)
+        model.to(device)
+
+        # Freeze all layers except the last two
+        freeze_model_layers(model)
+        breakpoint()
+        # Define a new optimizer for the un-frozen parameters
+        optimizer = torch.optim.Adam(
+            filter(lambda p: p.requires_grad, model.parameters()),
+            lr=learning_rate,
+            weight_decay=weight_decay
+        )
+
+        # Set up early stopping for each iteration
+        early_stopper = EarlyStopping(
+            patience=patience,
+            model_name=f"transfer_learning_model_{i}",
+            skip_save=True
+        )
+
+        # Train the model for the specified number of epochs
+        train_model_jit(
+            model=model,
+            loss_func=loss_func,
+            optimizer=optimizer,
+            train_data_loader=train_loader,
+            val_data_loader=val_loader,
+            epochs=epochs,
+            device=device,
+            batch_size=batch_size,
+            scheduler=scheduler,
+            early_stopper=early_stopper,
+            model_needs_frag=True,
+            net_params=net_params
+        )
+
+        # Evaluate the model
+        val_preds = test_model_jit(
+            model=model,
+            test_data_loader=val_loader,
+            device=device,
+            batch_size=batch_size,
+            model_needs_frag=True
+        )
+        val_mae = pred_metric(
+            prediction=val_preds,
+            target=torch.cat([data.y for data in val_loader], dim=0),
+            metrics='mae',
+            print_out=False
+        )['mae']
+        print(f"Validation MAE after transfer learning iteration {i+1}: {val_mae}")
+
+        # Store results
+        results.append({
+            'iteration': i + 1,
+            'model': model,
+            'val_mae': val_mae
+        })
+
+    return results
+
+
+results = transfer_learning_loop(
+    base_model=model,
+    train_loader=train,
+    val_loader=val,
+    num_iterations=5,
+    epochs=300,
+    learning_rate=0.001,
+    weight_decay=1e-6,
+    patience=5
+)
 
 def test_model_jit_with_parity(
     model: torch.nn.Module,
@@ -304,7 +407,6 @@ def test_model_jit_with_parity(
     """
 
     device = torch.device('cpu') if device is None else torch.device(device)
-    breakpoint()
     if not isinstance(test_data_loader, DataLoader):
         test_data_loader = DataLoader([data for data in test_data_loader], batch_size=batch_size)
 
@@ -437,88 +539,21 @@ test_preds, test_targets = test_model_jit_with_parity(
     model_needs_frag=True
 )
 
-####### Creating Parity Plot #########
-
-# Convert tensors to numpy arrays
-train_preds_np = train_preds.cpu().numpy()
-train_targets_np = train_targets.cpu().numpy()
-val_preds_np = val_preds.cpu().numpy()
-val_targets_np = val_targets.cpu().numpy()
-test_preds_np = test_preds.cpu().numpy()
-test_targets_np = test_targets.cpu().numpy()
-
-# Concatenate predictions and targets
-all_preds = np.concatenate([train_preds_np, val_preds_np, test_preds_np], axis=0)
-all_targets = np.concatenate([train_targets_np, val_targets_np, test_targets_np], axis=0)
-
-# Create labels
-train_labels = np.array(['Train'] * len(train_preds_np))
-val_labels = np.array(['Validation'] * len(val_preds_np))
-test_labels = np.array(['Test'] * len(test_preds_np))
-all_labels = np.concatenate([train_labels, val_labels, test_labels])
-
-# Create a color map
-colors = {'Train': 'blue', 'Validation': 'green', 'Test': 'red'}
-color_list = [colors[label] for label in all_labels]
-
-# Create parity plot
-plt.figure(figsize=(8, 8))
-plt.scatter(all_targets, all_preds, c=color_list, alpha=0.6)
-
-# Plot y=x line
-min_val = min(all_targets.min(), all_preds.min())
-max_val = max(all_targets.max(), all_preds.max())
-plt.plot([min_val, max_val], [min_val, max_val], 'k--')
-
-# Set limits with buffer
-buffer = (max_val - min_val) * 0.05
-plt.xlim([min_val - buffer, max_val + buffer])
-plt.ylim([min_val - buffer, max_val + buffer])
-
-# Labels and title
-plt.xlabel('Actual')
-plt.ylabel('Predicted')
-plt.title('Parity Plot')
-plt.legend(handles=[
-    plt.Line2D([], [], marker='o', color='w', label='Train', markerfacecolor='blue', markersize=10),
-    plt.Line2D([], [], marker='o', color='w', label='Validation', markerfacecolor='green', markersize=10),
-    plt.Line2D([], [], marker='o', color='w', label='Test', markerfacecolor='red', markersize=10)
-])
-plt.show()
 
 if False:
-    ####### Generating predictions and targets for all datasets #########
-
-    # Obtain predictions and targets for train, val, and test sets
-    train_preds, train_targets = test_model_with_parity(model=model, test_data_loader=train, device=device,
-                                            batch_size=batch_size, model_needs_frag=True)
-    val_preds, val_targets = test_model_with_parity(model=model, test_data_loader=val, device=device,
-                                        batch_size=batch_size, model_needs_frag=True)
-    test_preds, test_targets = test_model_with_parity(model=model, test_data_loader=test, device=device,
-                                        batch_size=batch_size, model_needs_frag=True)
-
-    ####### Calculating Metrics #########
-
-    train_mae = pred_metric(prediction=train_preds, target=train_targets, metrics='mae', print_out=False)['mae']
-    val_mae = pred_metric(prediction=val_preds, target=val_targets, metrics='mae', print_out=False)['mae']
-    test_mae = pred_metric(prediction=test_preds, target=test_targets, metrics='mae', print_out=False)['mae']
-
-    overall_mae = (train_mae + val_mae + test_mae) / 3  # Assuming targets are not scaled
-    print(f'Overall MAE {overall_mae:.3f}')
-
     ####### Creating Parity Plot #########
 
     # Convert tensors to numpy arrays
-    train_preds_np = train_preds.cpu().detach().numpy()
-    train_targets_np = train_targets.cpu().detach().numpy()
-    val_preds_np = val_preds.cpu().detach().numpy()
-    val_targets_np = val_targets.cpu().detach().numpy()
-    test_preds_np = test_preds.cpu().detach().numpy()
-    test_targets_np = test_targets.cpu().detach().numpy()
+    train_preds_np = train_preds.cpu().numpy()
+    train_targets_np = train_targets.cpu().numpy()
+    val_preds_np = val_preds.cpu().numpy()
+    val_targets_np = val_targets.cpu().numpy()
+    test_preds_np = test_preds.cpu().numpy()
+    test_targets_np = test_targets.cpu().numpy()
 
     # Concatenate predictions and targets
-    all_preds = np.concatenate([train_preds_np, val_preds_np, test_preds_np])
-    all_targets = np.concatenate([train_targets_np, val_targets_np, test_targets_np])
+    all_preds = np.concatenate([train_preds_np, val_preds_np, test_preds_np], axis=0)
+    all_targets = np.concatenate([train_targets_np, val_targets_np, test_targets_np], axis=0)
 
     # Create labels
     train_labels = np.array(['Train'] * len(train_preds_np))
@@ -548,7 +583,76 @@ if False:
     plt.xlabel('Actual')
     plt.ylabel('Predicted')
     plt.title('Parity Plot')
-    plt.legend(handles=[plt.Line2D([], [], marker='o', color='w', label='Train', markerfacecolor='blue', markersize=10),
-                        plt.Line2D([], [], marker='o', color='w', label='Validation', markerfacecolor='green', markersize=10),
-                        plt.Line2D([], [], marker='o', color='w', label='Test', markerfacecolor='red', markersize=10)])
+    plt.legend(handles=[
+        plt.Line2D([], [], marker='o', color='w', label='Train', markerfacecolor='blue', markersize=10),
+        plt.Line2D([], [], marker='o', color='w', label='Validation', markerfacecolor='green', markersize=10),
+        plt.Line2D([], [], marker='o', color='w', label='Test', markerfacecolor='red', markersize=10)
+    ])
     plt.show()
+
+    if False:
+        ####### Generating predictions and targets for all datasets #########
+
+        # Obtain predictions and targets for train, val, and test sets
+        train_preds, train_targets = test_model_with_parity(model=model, test_data_loader=train, device=device,
+                                                batch_size=batch_size, model_needs_frag=True)
+        val_preds, val_targets = test_model_with_parity(model=model, test_data_loader=val, device=device,
+                                            batch_size=batch_size, model_needs_frag=True)
+        test_preds, test_targets = test_model_with_parity(model=model, test_data_loader=test, device=device,
+                                            batch_size=batch_size, model_needs_frag=True)
+
+        ####### Calculating Metrics #########
+
+        train_mae = pred_metric(prediction=train_preds, target=train_targets, metrics='mae', print_out=False)['mae']
+        val_mae = pred_metric(prediction=val_preds, target=val_targets, metrics='mae', print_out=False)['mae']
+        test_mae = pred_metric(prediction=test_preds, target=test_targets, metrics='mae', print_out=False)['mae']
+
+        overall_mae = (train_mae + val_mae + test_mae) / 3  # Assuming targets are not scaled
+        print(f'Overall MAE {overall_mae:.3f}')
+
+        ####### Creating Parity Plot #########
+
+        # Convert tensors to numpy arrays
+        train_preds_np = train_preds.cpu().detach().numpy()
+        train_targets_np = train_targets.cpu().detach().numpy()
+        val_preds_np = val_preds.cpu().detach().numpy()
+        val_targets_np = val_targets.cpu().detach().numpy()
+        test_preds_np = test_preds.cpu().detach().numpy()
+        test_targets_np = test_targets.cpu().detach().numpy()
+
+        # Concatenate predictions and targets
+        all_preds = np.concatenate([train_preds_np, val_preds_np, test_preds_np])
+        all_targets = np.concatenate([train_targets_np, val_targets_np, test_targets_np])
+
+        # Create labels
+        train_labels = np.array(['Train'] * len(train_preds_np))
+        val_labels = np.array(['Validation'] * len(val_preds_np))
+        test_labels = np.array(['Test'] * len(test_preds_np))
+        all_labels = np.concatenate([train_labels, val_labels, test_labels])
+
+        # Create a color map
+        colors = {'Train': 'blue', 'Validation': 'green', 'Test': 'red'}
+        color_list = [colors[label] for label in all_labels]
+
+        # Create parity plot
+        plt.figure(figsize=(8, 8))
+        plt.scatter(all_targets, all_preds, c=color_list, alpha=0.6)
+
+        # Plot y=x line
+        min_val = min(all_targets.min(), all_preds.min())
+        max_val = max(all_targets.max(), all_preds.max())
+        plt.plot([min_val, max_val], [min_val, max_val], 'k--')
+
+        # Set limits with buffer
+        buffer = (max_val - min_val) * 0.05
+        plt.xlim([min_val - buffer, max_val + buffer])
+        plt.ylim([min_val - buffer, max_val + buffer])
+
+        # Labels and title
+        plt.xlabel('Actual')
+        plt.ylabel('Predicted')
+        plt.title('Parity Plot')
+        plt.legend(handles=[plt.Line2D([], [], marker='o', color='w', label='Train', markerfacecolor='blue', markersize=10),
+                            plt.Line2D([], [], marker='o', color='w', label='Validation', markerfacecolor='green', markersize=10),
+                            plt.Line2D([], [], marker='o', color='w', label='Test', markerfacecolor='red', markersize=10)])
+        plt.show()

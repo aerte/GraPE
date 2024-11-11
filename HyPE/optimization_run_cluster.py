@@ -109,8 +109,9 @@ def load_dataset_from_file(data_config):
         unique_splits = np.unique(split_values)
         split_mapping = {split: idx for idx, split in enumerate(unique_splits)}
         custom_split = np.array([split_mapping[split] for split in split_values])
+
     else:
-        # If no split column provided, split randomly
+        # If no split column provided, split using ratio
         split_ratios = data_config.get('split_ratios', [0.8, 0.1, 0.1])
         assert sum(split_ratios) == 1.0, "Split ratios must sum to 1.0"
         from sklearn.model_selection import train_test_split
@@ -121,19 +122,26 @@ def load_dataset_from_file(data_config):
         custom_split[val_idx] = 1
         custom_split[test_idx] = 2
 
+    # Hacky way to filter things out
+    # the filter function is not working properly,
+    # so we use a dataset without fragmentation to filter out the data.
+
     # Initialize dataset
     data = DataSet(
         smiles=smiles,
         target=target,
         global_features=global_feats,
-        filter=False,
+        filter=True,
         fragmentation=fragmentation,
         custom_split=custom_split
     )
-
+    print("len(smiles):", len(smiles))
+    print("len(target):", len(target))
+    print("len(global_feats):", len(global_feats))
+    print("len(custom_split):", len(custom_split))
     # Split data
     train_set, val_set, test_set = split_data(
-        data, split_type='custom', custom_split=custom_split
+        data, split_type='custom', custom_split=data.custom_split
     )
 
     return train_set, val_set, test_set, mean_target, std_target
@@ -309,12 +317,11 @@ if __name__ == '__main__':
     config_space.add(CS.UniformIntegerHyperparameter("MLP_layers", lower=1, upper=4))
 
     # Additional parameters for GroupGAT
-    config_space.add(CS.UniformIntegerHyperparameter("hidden_dim", lower=64, upper=512))
+    config_space.add(CS.UniformIntegerHyperparameter("hidden_dim", lower=64, upper=256))
     config_space.add(CS.UniformIntegerHyperparameter("num_layers_atom", lower=1, upper=5))
     config_space.add(CS.UniformIntegerHyperparameter("num_layers_mol", lower=1, upper=5))
     config_space.add(CS.UniformFloatHyperparameter("final_dropout", lower=0.0, upper=0.5))
     config_space.add(CS.UniformIntegerHyperparameter("num_heads", lower=1, upper=4))
-    config_space.add(CS.UniformIntegerHyperparameter("MLP_layers", lower=1, upper=3))
     # L1:
     config_space.add(CS.UniformIntegerHyperparameter("L1_layers_atom", lower=1, upper=5))
     config_space.add(CS.UniformIntegerHyperparameter("L1_layers_mol", lower=1, upper=5))

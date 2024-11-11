@@ -42,23 +42,25 @@ mlp_layers = 2
 atom_layers = 3
 mol_layers = 3
 
+# ICP: SMILES	T	Value	Predicted	Subset
+
 # Change to your own specifications
-root = './env/critprop_expt_data_train_random_fold0.csv'
+root = './env/critprop_expt_data_train_random_fold0_test.xlsx'
 sheet_name = ''
 
-df = pd.read_csv(root)
+df = pd.read_excel(root,)
 # Read SMILES and target properties
 smiles = df['smiles'].to_numpy()
-target_columns = ["Tc","Pc","rhoc","omega","Tb","Tm","dHvap","dHfus"]
+target_columns = ["Tc", "Pc", "rho_c", "omega"]
 targets_df = df[target_columns]  # You can have any number of targets here
 num_targets = targets_df.shape[1]
 target_names = targets_df.columns.tolist()
 targets = targets_df.to_numpy()  # Shape: (num_samples, num_targets)
 
 # Read tags for custom splits
-tags = df['bin'].to_numpy()
-unique_tags = np.unique(tags)
-tag_to_int = {'train': 0, 'val': 1, 'test': 2}
+#tags = df['bin'].to_numpy()
+#unique_tags = np.unique(tags)
+#tag_to_int = {'train': 0, 'val': 1, 'test': 2}
 #custom_split = np.array([tag_to_int[tag] for tag in tags])
 
 # Check if there are any missing targets
@@ -93,7 +95,7 @@ else:
 ########################## Fragmentation #########################################
 fragmentation_scheme = "MG_plus_reference"
 print("Initializing fragmentation...")
-fragmentation = JT_SubGraph(scheme=fragmentation_scheme, save_file_path="env/multitask_groupGAT_frag_critprop.pth")
+fragmentation = JT_SubGraph(scheme=fragmentation_scheme, save_file_path="env/multitask_groupGAT_masking_critprop_test.pth")
 frag_dim = fragmentation.frag_dim
 print("Done.")
 
@@ -167,7 +169,7 @@ scheduler = lr_scheduler.ReduceLROnPlateau(
 loss_func = torch.nn.functional.mse_loss
 
 # Define model filename
-model_filename = 'gcgat_jitted_latest.pth'
+model_filename = 'gcgat_jitted_critprop_masking.pth'
 
 # Check if the model file exists
 if os.path.exists(model_filename):
@@ -235,7 +237,7 @@ def compute_metrics(preds_rescaled, targets_rescaled, mask=None, dataset_name='T
             pred_prop = pred_prop[mask_prop == 1]
             target_prop = target_prop[mask_prop == 1]
         # Call pred_metric to compute desired metrics
-        results = pred_metric(pred_prop, target_prop, metrics='all', print_out=False)
+        results = pred_metric(pred_prop, target_prop, metrics=['mae','r2'], print_out=False)
         print(f"Metrics for property {prop} on {dataset_name} set:")
         for metric_name, value in results.items():
             print(f"{metric_name.upper()}: {value:.4f}")
@@ -269,17 +271,5 @@ val_preds_rescaled = val_preds * std_targets + mean_targets
 val_targets_rescaled = val.y * std_targets + mean_targets
 
 # Calculate metrics for train and validation sets
-train_maes, train_overall_mae = calculate_mae(train_preds_rescaled, train_targets_rescaled, getattr(train, 'mask', None), dataset_name='Train')
-val_maes, val_overall_mae = calculate_mae(val_preds_rescaled, val_targets_rescaled, getattr(val, 'mask', None), dataset_name='Validation')
-
-# Adjust overall MAE across all datasets
-overall_mae_per_property = []
-for i in range(num_targets):
-    overall_mae = (train_maes[i] + val_maes[i] + test_maes[i]) / 3
-    overall_prop = target_columns[i]
-    print(f'Overall MAE for property {overall_prop}: {overall_mae:.4f}')
-    overall_mae_per_property.append(overall_mae)
-
-# Overall MAE across all properties and datasets
-overall_mae_all = (train_overall_mae + val_overall_mae + test_overall_mae) / 3
-print(f'Overall MAE across all properties and datasets: {overall_mae_all:.4f}')
+train_maes, train_overall_mae = compute_metrics(train_preds_rescaled, train_targets_rescaled, getattr(train, 'mask', None), dataset_name='Train')
+val_maes, val_overall_mae = compute_metrics(val_preds_rescaled, val_targets_rescaled, getattr(val, 'mask', None), dataset_name='Validation')
