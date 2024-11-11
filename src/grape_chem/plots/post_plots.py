@@ -143,21 +143,33 @@ def parity_plot(prediction: Union[Tensor, ndarray], target:  Union[Tensor, ndarr
 
     return ax
 
-def parity_plot_mlflow(plot_name, true_vals, predicted_vals, path):
+def parity_plot_mlflow(plot_name, true_vals, predicted_vals, path, metrics=None):
     plt.figure(figsize=(8, 8))
     plt.scatter(true_vals, predicted_vals, alpha=0.5)
     plt.plot([min(true_vals), max(true_vals)], [min(true_vals), max(true_vals)], 'r--') 
-    plt.xlabel("True Values")
-    plt.ylabel("Predicted Values")
+    plt.xlabel(f"Experimental")
+    plt.ylabel(f"Predicted")
     plt.title("Parity Plot")
     plt.grid(True)
+
+    # Calculate the number of samples
+    num_samples = len(true_vals)
     
-    # CHANGE THIS TO SAVE_PATH FROM CONFIG
+    # Display the number of samples and the metric, with each on a new line
+    metric_text = f"N: {num_samples}"
+    if metrics is not None:
+        metric_text += f"\nR2: {metrics['r2']:.2f}"
+        metric_text += f"\nRMSE: {metrics['rmse']:.2f}"
+        metric_text += f"\nMAE: {metrics['mae']:.2f}"
+
+    plt.text(0.05, 0.95, metric_text, transform=plt.gca().transAxes, 
+             verticalalignment='top', horizontalalignment='left', 
+             fontsize=12, bbox=dict(facecolor='white', alpha=0.7))
+    
     plt_path = os.path.join(path, f"{plot_name}.png")
     plt.savefig(plt_path)
     print(f"Parity plot saved as {plt_path}")
     return plt_path
-
 
 def residual_plot(prediction: Union[Tensor, ndarray], target: Union[Tensor, ndarray], fig_size: tuple = (10,5),
                     save_fig: bool = False, path_to_export: str = None, rescale_data: DataSet = None) -> plt.axes:

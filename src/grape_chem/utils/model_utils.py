@@ -14,18 +14,22 @@ import os
 import dgl
 import mlflow
 import mlflow.pytorch
-from ray import tune
-from ray import train
+
+# Evaluate model requires the defaultdict
+from collections import defaultdict
+from grape_chem.plots.post_plots import parity_plot_mlflow
 
 __all__ = [
     'EarlyStopping',
     'reset_weights',
     'load_model',
     'load_model_from_data',
+    'load_best_model',
     'train_model',
     'train_epoch',
     'val_epoch',
     'test_model',
+    'evaluate_model_mlflow',
     'pred_metric',
     'return_hidden_layers',
     'set_seed',
@@ -95,7 +99,7 @@ class EarlyStopping:
 
     def save_checkpoint(self, model: Module):
         model_name = self.model_name
-        print("Creating torch model save")
+        print(" -- Creating torch model save")
         if self.save_path is not None:
             model_name = os.path.join(self.save_path, model_name)
         if hasattr(model, 'dataset_dict') and model.dataset_dict is not None:
@@ -242,7 +246,7 @@ def load_model_from_data(data, config, device):
         out_dim = len(config["data_labels"])
         print("### out_dim: ", out_dim, "####")
         model = AFP(node_in_dim=node_in_dim, edge_in_dim=edge_in_dim, 
-                    out_dim=out_dim, hidden_dim=config["hidden_dim"], num_layers_atom=config["num_layers_atom"], num_layers_mol=config["num_layers_mol"], mlp_out_hidden=mlp, num_global_feats=num_global_feats, dataset_dict=dataset_dict)
+                    out_dim=out_dim, hidden_dim=config["hidden_dim"], num_layers_atom=config["num_layers_atom"], num_layers_mol=config["num_layers_mol"], dropout=config['dropout'], mlp_out_hidden=mlp, num_global_feats=num_global_feats, dataset_dict=dataset_dict)
 
         print(model)
     else:
@@ -263,6 +267,21 @@ def load_model_from_data(data, config, device):
     # Move model to the specified device (CPU or GPU)
     model = model.to(device)
 
+    return model
+
+def load_best_model(early_stopper, model, device, best_epoch):
+    """Load the best model saved by early stopping."""
+    if early_stopper.best_score is not np.inf and early_stopper.save_path and early_stopper.model_name:
+        print("Loading the best model from the early stopper. Best epoch: ", best_epoch)
+        model_filename = os.path.join(early_stopper.save_path, early_stopper.model_name)
+        if os.path.exists(model_filename):
+            print(f"Model file '{model_filename}' found. Loading the trained model.")
+            model.load_state_dict(torch.load(model_filename, map_location=device).get('model_state_dict'))
+            model.eval()
+        else:
+            print(f"Model file '{model_filename}' not found. Using the last model.")
+    else:
+        print("No model was saved by the early stopper. Using the last model.")
     return model
 
 ##########################################################################
@@ -349,7 +368,6 @@ def train_model(model: torch.nn.Module, loss_func: Union[Callable,str], optimize
                         batch.y = batch.y[mask]
                     elif batch.y.shape[1] == 1:
                         batch.y.flatten()
-                        
                 loss_train = loss_func(batch.y, out)
                 temp[idx] = loss_train.detach().cpu().numpy()
 
@@ -416,6 +434,7 @@ def train_model(model: torch.nn.Module, loss_func: Union[Callable,str], optimize
                 early_stopper.save_checkpoint(model)
 
     return train_loss, val_loss
+
 
 ##############################################################################################################
 ################ Epoch level train and val ###################################################################
@@ -542,6 +561,75 @@ def test_model(model: torch.nn.Module, test_data_loader: Union[list, Data, DataL
     return preds
 
 
+def evaluate_model_mlflow(model, data, test_data, device, config, name=None):
+    """
+    Evaluate the model on the test set and log metrics to MLflow.
+
+    This function handles single- and multi-target predictions by dynamically adjusting
+    the number of targets to evaluate. It computes and logs the metrics for each target,
+    handles any NaN values, and logs parity plots of predictions vs. targets.
+
+    Args:
+        model (torch.nn.Module): The trained model to evaluate.
+        data (object): Data object with mean and standard deviation attributes for rescaling.
+        test_data (object): Dataset or DataLoader containing test data with targets (`y` attribute).
+        device (torch.device): The device (e.g., 'cuda' or 'cpu') on which to perform evaluation.
+        batch_size (int): Batch size to use for testing.
+        config (dict): Configuration dictionary containing various settings, including:
+            - 'data_labels': List of target labels for multi-target scenarios.
+            - 'save_path': Path to save parity plots for MLflow logging.
+
+    Returns:
+        target_tensor (torch.Tensor): Tensor of target values used for testing, with shape 
+                                      matching the number of targets (N, T) where N is the 
+                                      number of samples and T is the number of targets.
+        metrics_by_type (dict): Dictionary containing calculated metrics by type, where each key
+                                is a metric name and the value is a list of values across targets.
+    """
+    pred = test_model(model=model, test_data_loader=test_data, device=device, batch_size=config['batch_size'], mlflow_log=True)
+    # print("test_data ", test_data)
+    # print("test.data[0]: ", test_data[0])
+    try:
+        targets = test_data.y
+    except:
+        targets = [[] for _ in range(len(test_data))]  # originally: targets = test_data.y
+        for i in range(len(test_data)):
+            targets[i] = test_data[i].y
+
+    target_tensor = torch.tensor(targets, dtype=torch.float32)
+    mean_tensor = torch.tensor(data.mean, dtype=torch.float32).to(pred.device)
+    std_tensor = torch.tensor(data.std, dtype=torch.float32).to(pred.device)
+    num_targets = target_tensor.shape[1] if target_tensor.dim() > 1 else 1
+    metrics_by_type = defaultdict(list)
+
+    for i in range(num_targets):
+        preds = pred[:, i].cpu().detach() if num_targets > 1 else pred.cpu().detach()
+        target = target_tensor[:, i].cpu().detach() if num_targets > 1 else target_tensor.cpu().detach()
+        mean = mean_tensor[i].cpu().detach() if num_targets > 1 else mean_tensor.cpu().detach()
+        std = std_tensor[i].cpu().detach() if num_targets > 1 else std_tensor.cpu().detach()
+        mask = ~torch.isnan(target) if num_targets > 1 else ~torch.isnan(target.squeeze())
+        preds = preds[mask]
+        target = target[mask]
+
+        pred_rescaled = (preds * std) + mean
+        target_rescaled = (target * std) + mean
+        if torch.isnan(pred_rescaled).any() or torch.isnan(target_rescaled).any():
+            print("Predictions or targets contain NaN values.")
+
+        metrics = pred_metric(pred_rescaled, target_rescaled, metrics='all')
+        for key, value in metrics.items():
+            mlflow.log_metric(f"{config['data_labels'][i]}_{key}", value) if num_targets > 1 else mlflow.log_metric(key, value)
+
+        parity_plot_name = f"{name}_predictions_vs_targets_{config['data_labels'][i]}" if num_targets > 1 else f"{name}_predictions_vs_targets"
+        plot_path = parity_plot_mlflow(parity_plot_name, target_rescaled, pred_rescaled.cpu().detach(), config['save_path'], metrics)
+        mlflow.log_artifact(plot_path)
+
+        for metric, value in metrics.items():
+            metrics_by_type[metric].append(value)
+
+    return target_tensor, metrics_by_type
+
+
 ##########################################################################
 ########### Prediction Metrics ###########################################
 ##########################################################################
@@ -644,6 +732,7 @@ def pred_metric(prediction: Union[Tensor, ndarray], target: Union[Tensor, ndarra
 
     for metric_ in metrics:
         if metric_ == 'mse':
+            print("shape target: ", target.shape, "shape prediction: ", prediction.shape)
             results['mse'] = mean_squared_error(target, prediction)
             prints.append(f'MSE: {results["mse"]:.3f}')
         elif metric_ == 'rmse':
@@ -660,7 +749,9 @@ def pred_metric(prediction: Union[Tensor, ndarray], target: Union[Tensor, ndarra
             tse = (len(target) - 1) * np.var(target, ddof=1)
             r2_custom = 1 - (sse / tse)
             print("R2 CUSTOM: ", r2_custom)
-            mlflow.log_metric("r2_custom", r2_custom)
+            # r2 needs to be float
+            #r2_custom = float(r2_custom)
+            #mlflow.log_metric("r2_custom", r2_custom)
             
             #print("R2 SKLEARN: ", results['r2'], "R2 CUSTOM: ",  1 - (sse / tse))
             # target_mean = np.mean(target)
@@ -765,8 +856,6 @@ def return_hidden_layers(num):
     [256, 128, 64]
     """
     return [2**i*32 for i in range(num, 0,-1)]
-
-
 
 
 

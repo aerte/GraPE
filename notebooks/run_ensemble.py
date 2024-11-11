@@ -31,7 +31,7 @@ def run_ensemble(config: Dict, data_bundle: Dict):
         techniques = {
             "Bagging": Bagging,
             "Random Initialization": RandomWeightInitialization,
-            #"Jackknife": Jackknife,
+            "Jackknife": Jackknife,
             "Weighted Bayesian Bootstrap": BayesianBootstrap
         }
 
@@ -50,21 +50,21 @@ def main():
     
     # Define configurations for the search space
     search_space = {
-        'epochs': 10,
+        'epochs': 1000,
         'batch_size': None,  # Set in setup_data tune.choice([1024,4096,8192])
-        'n_models': 4,
-        'early_stopping_patience': 25,
+        'n_models': 100,
+        'early_stopping_patience': 50,
         'scheduler_patience': 10,
         'scheduler_factor': 0.8,
-        'learning_rate': 0.0014486833887239338,
-        'weight_decay': 1.0005268542378315e-05,
-        'dropout': 0.03745401188473625,
+        'learning_rate': 0.00028485213085253686, # vc:  0.0014486833887239338
+        'weight_decay': 1.8092828411569835e-6,# vc: 1.0005268542378315e-05,
+        'dropout': 0.008748220955359088,
         'seed': 42,
         'weight_seed': 100,
-        'hidden_dim': 128,
+        'hidden_dim': 512,
         'mlp_layers': 2,
-        'num_layers_atom': 2,
-        'num_layers_mol': 2,
+        'num_layers_atom': 4,
+        'num_layers_mol': 4,
         'Print Metrics': False,
         'model': 'afp',  # 'afp' or 'dmpnn' REQUIRED FOR ensemble.py def create_model(self):
         'model_name': 'afp',

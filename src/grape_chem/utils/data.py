@@ -24,7 +24,7 @@ from torch_geometric.utils import dense_to_sparse
 
 from grape_chem.utils.featurizer import AtomFeaturizer, BondFeaturizer
 #from grape_chem.analysis import smiles_analysis
-from grape_chem.utils.split_utils import split_data
+from grape_chem.utils.split_utils import split_data, SubSet
 from grape_chem.utils.feature_func import mol_weight
 
 from sklearn.preprocessing import StandardScaler
@@ -42,7 +42,9 @@ __all__ = ['filter_smiles',
            'DataSet',
            'GraphDataSet',
            'load_dataset_from_excel',
-           'load_dataset_from_csv']
+           'load_dataset_from_csv',
+           'extract_data_from_dataframe',
+           'extract_data_from_multiple_dataframes']
 
 def standardize(x, mean, std):
     return (x - mean) / std
@@ -387,22 +389,22 @@ class DataSet(DataLoad):
     def rescale(target, mean, std):
         return (target *std) + mean
 
-    def rescale_data(self, target):
-        rescaled_target = np.zeros(len(target))
+    def rescale_data(self, target, index = None):
         num_targets = self.mean.shape[0] if self.mean.ndim > 0 else 1
         if num_targets > 1:  
-            for i in range(num_targets):
-                if self.mean is None or self.std is None:
-                    mean, std = np.mean(target), np.std(target)
-                else:
-                    mean, std = self.mean[i].item(), self.std[i].item()
-                rescaled_target = self.rescale(target, mean, std)
-            return rescaled_target
+            if self.mean is None or self.std is None:
+                mean, std = np.mean(target), np.std(target)
+            else:
+                mean, std = self.mean[index].item(), self.std[index].item()
+            return self.rescale(target, mean, std)
         else:
             if self.mean is None or self.std is None:
                 mean, std = np.mean(self.target), np.std(self.target)
             else:
                 mean, std = self.mean, self.std
+            print("Target: ", target)
+            print("Mean: ", mean)
+            print("Std: ", std)
             return self.rescale(target, mean, std)
         
 
@@ -726,12 +728,17 @@ class DataSet(DataLoad):
         split_type = 'random' if split_type is None else split_type
         split_frac = [0.8, 0.1, 0.1] if split_frac is None else split_frac
 
-        if scale is True:
+        if scale == True:
             train, val, test = split_data(data = self, split_type = split_type,
                                 split_frac = split_frac, custom_split = custom_split, **kwargs)
 
             # We use the training set for scaling
-            train_y, self.mean, self.std = self.standardize(train.y)
+            # allow for multidimensional targets
+            if train.y.ndim > 1:
+                self.mean, self.std = np.nanmean(train.y, axis=0), np.nanstd(train.y, axis=0)
+
+            else:
+                train_y, self.mean, self.std = self.standardize(train.y)
             self.target = self.scale_array(self.target, self.mean, self.std)
 
             if train.global_features is not None:
@@ -996,10 +1003,6 @@ def extract_data_from_dataframe(config: Dict, encodings = None, limit: int = Non
     if df is None:
         raise ValueError("Failed to read file with any encoding")
 
-    ############ We need to standardize BEFORE loading it into a DataSet ################
-    mean_target, std_target = np.mean(target), np.std(target)
-    target = standardize(target, mean_target, std_target)
-
     # Extract global features if they exist in the DataFrame
     if global_features_names and len(global_features_names) > 0:
         # Fetch the features from the dataframe
@@ -1028,7 +1031,7 @@ def extract_data_from_dataframe(config: Dict, encodings = None, limit: int = Non
         
     return df, smiles, target, global_features
     
-def extract_data_from_multiple_datasets(config: Dict, encodings = None, limit: int = None):
+def extract_data_from_multiple_dataframes(config: Dict, encodings = None, limit: int = None):
     if encodings is None:
         encodings = ['latin', 'utf-8', 'utf-8-sig', 'iso-8859-1', 'unicode_escape', 'cp1252']  # Default encodings
     
@@ -1036,8 +1039,13 @@ def extract_data_from_multiple_datasets(config: Dict, encodings = None, limit: i
     combined_df = pd.DataFrame()
 
     # Iterate over the dataset files specified in the config
-    for data, label in zip(config['data_files'], config['data_labels']):
-        print(f"Processing dataset: {data} with target name: {label}")
+    for index, data in enumerate(config['data_files']): 
+        if len(config['data_labels']) - 1 >= index:
+            label = config['data_labels'][index]
+        else:
+            label = 'No target'
+
+        print(f"Processing dataset: {data} with target label: {label}")
         df = None
         
         for encoding in encodings:
@@ -1061,7 +1069,7 @@ def extract_data_from_multiple_datasets(config: Dict, encodings = None, limit: i
                 df.dropna(subset=[config['target']], inplace=True)
                 print("shape of target:", df[config['target']].shape)
                 print(f"Dataframe for {data} loaded with encoding: {encoding}")
-                break  # Break if successful
+                break  # Break if successful to avoid trying other encodings
             except Exception as e:
                 print(f"Failed to read file {data} with encoding {encoding}. Error: {e}")
                 continue
@@ -1086,10 +1094,9 @@ def extract_data_from_multiple_datasets(config: Dict, encodings = None, limit: i
 
     # Apply filtering
     filtered_df = combined_df.groupby(config['smiles']).apply(filter_duplicates).reset_index(drop=True)
-
+    
     # Print the filtered DataFrame
     print("Filtered DataFrame:\n", filtered_df)
-
     # Fill in missing target values with NaN
     combined_df.fillna(np.nan, inplace=True)
     print("Dataframe: ", combined_df.head())
@@ -1149,38 +1156,144 @@ def load_dataset_from_excel(file_path: str, dataset:str, is_dmpnn=False, return_
     return train_set, val_set, test_set
 
 def load_dataset_from_csv(config: Dict, return_dataset: bool = False, return_df: bool = False, limit: int = None, encodings = None):
-    if ('data_files' in config and config['data_files'] is None) or ('data_files' in config and config['data_files'] is None) :
+    if ('data_files' in config and config['data_files'] is None) or ('data_files' not in config) :
         raise ValueError("File path not provided")
+    if ("data_labels" in config and config['data_labels'] is None) or ('data_labels' not in config):
+        raise ValueError("Data labels not provided")
     # Extract data from multiple CSV files
     #df, smiles, target, global_features = extract_combined_data(config, encodings, limit)
     if 'data_files' in config and len(config['data_files']) > 1:
-        df, smiles, target, global_features = extract_data_from_multiple_datasets(config, encodings, limit)
+        df, smiles, target, global_features = extract_data_from_multiple_dataframes(config, encodings, limit)
     else:    
          # Extract data from the CSV file
-         df, smiles, target, global_features = extract_data_from_dataframe(config, encodings, limit)
-    
-    ############ We need to standardize BEFORE loading it into a DataSet ################
-    mean, std = np.nanmean(target, axis=0), np.nanstd(target, axis=0)
-    target = standardize(target, mean, std)
+         df, smiles, target, global_features = extract_data_from_dataframe(config, encodings, limit)#
+    #print("target shape: ", target.shape)
+
+    if isinstance(target, torch.Tensor):
+        print("target is a tensor")
+        is_one_dimensional = target.dim() == 1
+    elif isinstance(target, np.ndarray):
+        print("target is a numpy array")
+        is_one_dimensional = target.shape[1] == 1
+    else:
+        is_one_dimensional = False
 
     if 'dmpnn' in str(config['model_name']).lower():
         is_dmpnn = True
     else:
         is_dmpnn = False
         
-    if 'allowed_atoms' in config and config['allowed_atoms'] is not None:
-        data = DataSet(smiles=smiles, target=target, global_features=global_features,#global_features[0] try this 
-                        allowed_atoms=config['allowed_atoms'], 
-                        atom_feature_list=config['atom_feature_list'], 
-                        bond_feature_list=config['bond_feature_list'], 
-                        log=False, only_organic=False, filter=True, allow_dupes=True, mean=mean, std=std)
-    else:
-        data = DataSet(smiles=smiles, target=target, global_features=global_features,
-                       log=False, only_organic=False, filter=True, allow_dupes=True, mean=mean, std=std)
     
-    print("######################### seed: ", config['seed'])
+    # this is solely to get the same exact splits for single and multi target results. Using the same datasets but only a single label. See config
+    if is_one_dimensional:
+        def ensure_same_splits(split_frac, target, smiles, global_features, config):
+            '''Ensure that the same splits are used for single and multi-target datasets
+            By splitting the df before the mask is applied, we can ensure that the same indices are used for both single and multi-target datasets
+            Args:
+                split_frac: list
+                target: np.array
+                smiles: np.array
+                global_features: np.array
+                config: dict
+            Returns:
+                train_indices: np.array
+                val_indices: np.array
+                test_indices: np.array       
+            '''
+            assert np.sum(split_frac) == 1, "Split fractions should add up to 1"
+            num_samples = len(smiles)
+            indices = np.arange(num_samples)
+            if config['split_type'] == 'random':
+                indices = np.random.permutation(indices)
+                target, smiles = target[indices], smiles[indices]
+                if global_features is not None:
+                    global_features = global_features[indices]
 
-    train_set, val_set, test_set = split_data(data, split_type='consecutive', split_frac=[0.8, 0.1, 0.1], seed=config['seed'], is_dmpnn=is_dmpnn)
+            # Apply the split based on fractions
+            train_idx = int(split_frac[0] * num_samples)
+            val_idx = int((split_frac[0] + split_frac[1]) * num_samples)
+            train_indices, val_indices, test_indices = indices[:train_idx], indices[train_idx:val_idx], indices[val_idx:]
+
+            return train_indices, val_indices, test_indices
+        split_frac = [0.8, 0.1, 0.1]
+        train_indices, val_indices, test_indices = ensure_same_splits(split_frac, target, smiles, global_features, config)
+        train_idx = len(train_indices)
+        val_idx = len(train_indices) + len(val_indices)
+        train_smiles, val_smiles, test_smiles = smiles[:train_idx], smiles[train_idx:val_idx], smiles[val_idx:]
+        train_target, val_target, test_target = target[:train_idx], target[train_idx:val_idx], target[val_idx:]
+
+        if global_features is not None:
+            train_global_features, val_global_features, test_global_features = global_features[:train_idx], global_features[train_idx:val_idx], global_features[val_idx:]
+        else:
+            train_global_features, val_global_features, test_global_features = None, None, None
+        ############ We need to standardize BEFORE loading targets into a DataSet ################
+        mean, std = np.nanmean(train_target, axis=0), np.nanstd(train_target, axis=0)
+        train_target, val_target, test_target = standardize(train_target, mean, std), standardize(val_target, mean, std), standardize(test_target, mean, std)
+        
+        # Remove the nan values from the target
+        train_target = train_target.squeeze()
+        val_target = val_target.squeeze()
+        test_target = test_target.squeeze()
+        
+        if global_features is not None:
+            train_global_features = train_global_features[~np.isnan(train_target)]
+            val_global_features = val_global_features[~np.isnan(val_target)]
+            test_global_features = test_global_features[~np.isnan(test_target)]
+        
+        train_smiles = train_smiles[~np.isnan(train_target)]
+        val_smiles = val_smiles[~np.isnan(val_target)]
+        test_smiles = test_smiles[~np.isnan(test_target)]
+        
+        train_target = train_target[~np.isnan(train_target)]
+        val_target = val_target[~np.isnan(val_target)]
+        test_target = test_target[~np.isnan(test_target)]
+
+        # set indices based on the train, val, test splits after mask
+        train_indices = np.arange(len(train_smiles))
+        val_indices = np.arange(len(train_smiles), len(train_smiles) + len(val_smiles))
+        test_indices = np.arange(len(train_smiles) + len(val_smiles), len(train_smiles) + len(val_smiles) + len(test_smiles))
+
+        target = np.concatenate([train_target, val_target, test_target])
+        smiles = np.concatenate([train_smiles, val_smiles, test_smiles])
+
+        if global_features is not None:
+            global_features = np.concatenate([train_global_features, val_global_features, test_global_features])
+        
+        if 'allowed_atoms' in config and config['allowed_atoms'] is not None:
+            data = DataSet(smiles=smiles, target=target, global_features=global_features,
+                    allowed_atoms=config['allowed_atoms'], 
+                    atom_feature_list=config['atom_feature_list'], 
+                    bond_feature_list=config['bond_feature_list'], 
+                    log=False, only_organic=False, filter=True, allow_dupes=True, mean=mean, std=std)
+        else:
+            data = DataSet(smiles=smiles, target=target, global_features=global_features,
+                        log=False, only_organic=False, filter=True, allow_dupes=True, mean=mean, std=std)
+            
+        print(" train indices: ", train_indices)
+        print(" val indices: ", val_indices)
+        print(" test indices: ", test_indices)
+        
+        train_set, val_set, test_set = SubSet(data, train_indices), SubSet(data, val_indices), SubSet(data, test_indices)
+        
+    elif not is_one_dimensional:
+        if 'allowed_atoms' in config and config['allowed_atoms'] is not None:
+            data = DataSet(smiles=smiles, target=target, global_features=global_features,
+                    allowed_atoms=config['allowed_atoms'], 
+                    atom_feature_list=config['atom_feature_list'], 
+                    bond_feature_list=config['bond_feature_list'], 
+                    log=False, only_organic=False, filter=True, allow_dupes=True)
+        else:
+            data = DataSet(smiles=smiles, target=target, global_features=global_features,
+                        log=False, only_organic=False, filter=True, allow_dupes=True)
+        
+        
+        # First split to get three separate sets    
+        train_set, val_set, test_set = data.split_and_scale(scale = True, split_type=config['split_type'], split_frac=[0.8, 0.1, 0.1], is_dmpnn=is_dmpnn)
+        print(data.mean, data.std)
+        # Standardize the target values based on the training set
+        # data.mean, data.std = np.nanmean(train_set.y, axis=0), np.nanstd(train_set.y, axis=0)
+        # data.target = data.scale_array(data.target, data.mean, data.std)
+        # train_set.y, val_set.y, test_set.y = data.scale_array(train_set.y, data.mean, data.std), data.scale_array(val_set.y, data.mean, data.std), data.scale_array(test_set.y, data.mean, data.std)
 
     # In case graphs for DMPNN has to be loaded:
     if is_dmpnn == True:
@@ -1215,6 +1328,7 @@ def save_splits_to_csv(df, train_set, val_set, test_set, save_folder=None):
     """
     if save_folder is None:
         save_folder = 'C:\\Users\\Thoma\\code\\GraPE\\notebooks'
+
 
     df['Split'] = ['train' if i in train_set.indices else 'val' if i in val_set.indices else 'test' for i in range(len(df))]
     path = os.path.join(save_folder, "__splits.csv")
