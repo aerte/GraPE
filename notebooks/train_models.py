@@ -163,25 +163,25 @@ def run_experiment(config: Dict, data_bundle: Dict):
 
     # Log validation metrics and report to raytune
     best_epoch = log_and_report_metrics(val_loss)
+    if mlflow.active_run():
+        # Load the best model and evaluate
+        model = load_best_model(early_stopper, model, device, best_epoch)
+        # Train
+        evaluate_model_mlflow(model, data, train_data, device, config, name='train')
+        # Val 
+        evaluate_model_mlflow(model, data, val_data, device, config, name='val')
+        # Test
+        test_targets, metrics_by_type = evaluate_model_mlflow(model, data, test_data, device, config, name='test')
 
-    # Load the best model and evaluate
-    model = load_best_model(early_stopper, model, device, best_epoch)
-    # Train
-    evaluate_model_mlflow(model, data, train_data, device, config, name='train')
-    # Val 
-    evaluate_model_mlflow(model, data, val_data, device, config, name='val')
-    # Test
-    test_targets, metrics_by_type = evaluate_model_mlflow(model, data, test_data, device, config, name='test')
+        # Creates barplot comparison over all metrics for multi target learning
+        if test_targets.dim() > 1:
+            create_barplot(metrics_by_type, config)
 
-    # Creates barplot comparison over all metrics for multi target learning
-    if test_targets.dim() > 1:
-        create_barplot(metrics_by_type, config)
+        # Save the final model
+        save_final_model(model, config)
 
-    # Save the final model
-    save_final_model(model, config)
-
-    # Log duration of the training process
-    log_duration(start_time)
+        # Log duration of the training process
+        log_duration(start_time)
 
 def main():
     set_seed(1)
