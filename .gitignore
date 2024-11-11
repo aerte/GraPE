@@ -205,7 +205,6 @@ Scripts/
 share/
 
 *.pt
-*.csv
 
 # Ignore mlflow artifacts and mlflow db
 mlruns/
@@ -217,10 +216,6 @@ mlflow.db
 # Ignore png and svg files
 *.png
 *.svg
-
-
-#Data folder
-data/
 
 # Results folder
 ray_results/
