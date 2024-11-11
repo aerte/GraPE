@@ -4,7 +4,7 @@ target: "Energy"  # Energy # Const_Value
 global_features: ['Temperature'] #['Temperature', 'Pressure', 'pH', 'Concentration']
 
 # Change the data_files and data_labels to match the number of targets in the dataset
-data_files: ["../data/Solvation.csv"] # , "../data/Pc_bar.csv","../data/Tc.csv" List of dataset paths
+data_files: ["../data/solvation.csv"] # , "../data/Pc_bar.csv","../data/Tc.csv" List of dataset paths
 data_labels: ["t-dep solv"]  # , "Pc", "Tc" Corresponding labels for targets in datasets / Needs to be as many as there are targets
 
 model_name: "AFP"
