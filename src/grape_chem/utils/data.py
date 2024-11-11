@@ -81,7 +81,7 @@ def filter_smiles(smiles: list[str], target: Union[list[str], list[float], ndarr
             df = pd.DataFrame({'smiles': smiles, 'target': target, 'global_feat': global_feats})
         else:
             df = pd.DataFrame({'smiles': smiles, 'target': target,})
-    else: #TODO: add support for multi targets and global feats 
+    else:
         target_df = pd.DataFrame(target, columns=target_columns)
         df = pd.DataFrame({'smiles': smiles})
         df = pd.concat([df.reset_index(drop=True), target_df.reset_index(drop=True)], axis=1)
@@ -91,50 +91,51 @@ def filter_smiles(smiles: list[str], target: Union[list[str], list[float], ndarr
 
     indices_to_drop = []
 
-    for element in smiles:
+    for idx, element in enumerate(df.smiles):
         mol = Chem.MolFromSmiles(element)
 
         if mol is None:
             if log:
-                print(f'SMILES {element} in index {list(df.smiles).index(element)} is not valid.')
-            indices_to_drop.append(list(df.smiles).index(element))
+                print(f'SMILES {element} in index {idx} is not valid.')
+            indices_to_drop.append(idx)
+            continue  # Move to the next SMILES
 
-        else:
-            if mol.GetNumHeavyAtoms() < 2:
+        if mol.GetNumHeavyAtoms() < 2:
+            if log:
+                print(f'SMILES {element} in index {idx} consists of less than 2 heavy atoms and will be ignored.')
+            indices_to_drop.append(idx)
+            continue
+
+        carbon_count = 0
+        invalid_atom = False
+        for atom in mol.GetAtoms():
+            if atom.GetSymbol() not in allowed_atoms:
                 if log:
-                    print(f'SMILES {element} in index {list(df.smiles).index(element)} consists of less than 2 heavy atoms'
-                        f' and will be ignored.')
-                #TODO: fix index issue, it does not handle cases where there are duplicates of the same mol which fits this condition
-                indices_to_drop.append(list(df.smiles).index(element)) 
+                    print(f'SMILES {element} in index {idx} contains the atom {atom.GetSymbol()} that is not permitted and will be ignored.')
+                indices_to_drop.append(idx)
+                invalid_atom = True
+                break  # No need to check further atoms
+            if atom.GetSymbol() == 'C':
+                carbon_count += 1
 
-            else:
-                carbon_count = 0
-                for atoms in mol.GetAtoms():
-                    if atoms.GetSymbol() not in allowed_atoms:
-                        if log:
-                            print(f'SMILES {element} in index {list(df.smiles).index(element)} contains the atom {atoms.GetSymbol()} that is not'
-                                f' permitted and will be ignored.')
-                        indices_to_drop.append(list(df.smiles).index(element))
-                    else:
-                        if atoms.GetSymbol() == 'C':
-                            carbon_count += 1
+        if invalid_atom:
+            continue  # Skip to the next SMILES
 
-                if carbon_count < 1 and only_organic:
-                    indices_to_drop.append(list(df.smiles).index(element))
-                    if log:
-                        print(f'SMILES {element} in index {list(df.smiles).index(element)} does not contain at least one'
-                            f' carbon and will be ignored.')
+        if carbon_count < 1 and only_organic:
+            indices_to_drop.append(idx)
+            if log:
+                print(f'SMILES {element} in index {idx} does not contain at least one carbon and will be ignored.')
 
     df.drop(indices_to_drop, inplace=True)
     df.reset_index(drop=True, inplace=True)
 
-    # map smiles to mol and back to ensure SMILE notation consistency
-    mols = df.smiles.map(lambda x: MolFromSmiles(x))
-    df.smiles = mols.map(lambda x: MolToSmiles(x))
+    # Map smiles to mol and back to ensure SMILES notation consistency
+    mols = df.smiles.map(lambda x: Chem.MolFromSmiles(x))
+    df.smiles = mols.map(lambda x: Chem.MolToSmiles(x))
 
     if not allow_dupes:
         df.drop_duplicates(subset='smiles', inplace=True)
-
+        df.reset_index(drop=True, inplace=True)
 
     smiles = np.array(df.smiles)
 
@@ -142,7 +143,6 @@ def filter_smiles(smiles: list[str], target: Union[list[str], list[float], ndarr
         target = np.array(df.target)
     else:
         target = np.array(df[target_columns])
-    
     global_feat = np.array(df.global_feat) if global_feats is not None else None
     split = np.array(df.split) if custom_split is not None else None
 
@@ -271,6 +271,8 @@ class DataSet(DataLoad):
         List of smiles to be made into a graph.
     target: list of in or float
         List of target values that will act as the graphs 'y'.
+    filter: bool
+        Decides if the smiles should be according to filtering defined in `filter_smiles`. Default: True
     allowed_atoms: list of str
         List of allowed atom symbols.
     only_organic: bool
@@ -323,10 +325,10 @@ class DataSet(DataLoad):
                                                                                     only_organic=only_organic, log=log,
                                                                                    global_feats=global_features, custom_split=custom_split,
                                                                                    allow_dupes=allow_dupes, target_columns=target_columns)
-
             else:
                 self.smiles, self.raw_target = np.array(smiles), np.array(target)
                 self.global_features = np.array(global_features) if global_features is not None else None
+                self.custom_split = custom_split
 
             self.target = self.raw_target
 
@@ -338,8 +340,7 @@ class DataSet(DataLoad):
                                             bond_feature_list = bond_feature_list)
             for g in self.graphs:
                 assert g.edge_index.shape[1] == g.edge_attr.shape[0], "Mismatch between edge_index and edge_attr dimensions"
-            self.global_features = global_features
-        
+            
         self.allowed_atoms = allowed_atoms
         self.atom_feature_list = atom_feature_list
         self.bond_feature_list = bond_feature_list
@@ -502,7 +503,10 @@ class DataSet(DataLoad):
             if log_progress:
                 if (i + 1) % log_every == 0:
                     print('Currently performing fragmentation on molecule {:d}/{:d}'.format(i + 1, len(self.smiles)))
-            frag_graphs, motif_graph, _, _ = graph_2_frag(s, self.graphs[i], self.fragmentation)
+            try:
+                frag_graphs, motif_graph, _, _ = graph_2_frag(s, self.graphs[i], self.fragmentation)
+            except:
+                breakpoint()
             if hasattr(motif_graph, 'atom_mask'):
                 del motif_graph.atom_mask #hacky, but necessary to avoid issues with pytorch geometric
             if frag_graphs is not None:
@@ -710,8 +714,11 @@ class DataSet(DataLoad):
         split_type = 'random' if split_type is None else split_type
         split_frac = [0.8, 0.1, 0.1] if split_frac is None else split_frac
 
+        if custom_split is None:
+            custom_split = self.custom_split
+
         return split_data(data = self, split_type = split_type,
-                            split_frac = split_frac, custom_split = custom_split, **kwargs)
+                            split_frac = split_frac, custom_split = self.custom_split, **kwargs)
 
     def generate_global_feats(self, seed:int = None):
         """Generates normally distributed random global features, fx. used for MEGNet. Subsequently,
@@ -770,6 +777,9 @@ class DataSet(DataLoad):
 
         split_type = 'random' if split_type is None else split_type
         split_frac = [0.8, 0.1, 0.1] if split_frac is None else split_frac
+
+        if custom_split is None:
+            custom_split = self.custom_split
 
         if scale is True:
             train, val, test = split_data(data = self, split_type = split_type,
