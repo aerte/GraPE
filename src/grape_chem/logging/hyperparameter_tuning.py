@@ -41,10 +41,14 @@ def hyperparameter_tuning(train_model_experiment, config, num_samples=10, storag
     )
 
     print("Best hyperparameters found: ", analysis.best_config)
-    # Save best hyperparameters to a file
-    with open("best_hyperparameters.txt", "w") as f:
-        f.write(str(analysis.best_config))
-    # save the file to config save path
-    with open(os.path.join(config['save_path'], f"best_hyperparameters_{config['experiment_name']}_{config['data_labels']}.txt"), "w") as f:
-        f.write(str(analysis.best_config))
+    # Check if file path exists
+    if not os.path.exists(config['save_path']):
+        os.makedirs(config['save_path'])
+    if 'data_labels' in config:
+        with open(os.path.join(config['save_path'], f"best_hyperparameters_{config['experiment_name']}_{config['data_labels']}.txt"), "w") as f:
+            f.write(str(analysis.best_config))
+    else:
+        # Save best hyperparameters to a file
+        with open(os.path.join(config['save_path'],"best_hyperparameters.txt"), "w") as f:
+            f.write(str(analysis.best_config))
     return analysis.best_config

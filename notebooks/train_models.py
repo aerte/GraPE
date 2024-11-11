@@ -192,7 +192,7 @@ def main():
     # Define configurations for Ray Tune
     search_space = {
             'epochs': tune.choice([10]), #1000
-            'batch_size': tune.choice([None]),#tune.choice([1024,4096,8192]), # None for full dataset
+            'batch_size': tune.choice([4096]),#tune.choice([1024,4096,8192]), # None for full dataset
             'hidden_dim': tune.choice([128,256,512,1024]), #tune.choice([47]),
             'dropout': tune.uniform(0.0, 0.1), # tune.uniform(0.0, 0.1),
             'patience': tune.choice([50]), #125
@@ -207,7 +207,7 @@ def main():
 
     config = {**base_config, **search_space}
     
-    df, train_data, val_data, test_data, data = load_dataset_from_csv(config, return_dataset=True, limit = 100) # None 100
+    df, train_data, val_data, test_data, data = load_dataset_from_csv(config, return_dataset=True, limit = None) # None 100
     # print("train_data.shape", len(train_data))
     # print("train_data[0] ", train_data[0])
     # print("train targets shape", train_data[0].y.shape)
@@ -221,7 +221,7 @@ def main():
         'data': data,
     }
     
-    hyperparameter_tuning(run_experiment, config, num_samples=1, storage_path=get_path(current_dir, '../ray_results'), data_bundle=data_bundle)
+    hyperparameter_tuning(run_experiment, config, num_samples=100, storage_path=get_path(current_dir, '../ray_results'), data_bundle=data_bundle)
 
 if __name__ == "__main__":
     main()
