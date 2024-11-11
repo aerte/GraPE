@@ -59,7 +59,7 @@ else:
 
 # Read SMILES and targets
 smiles = df[smiles_column].to_numpy()
-breakpoint()
+
 targets_df = df[target_columns]
 num_targets = targets_df.shape[1]
 target_names = targets_df.columns.tolist()
@@ -252,9 +252,16 @@ else:
 # Function to calculate and print metrics
 def compute_metrics(preds_rescaled, targets_rescaled, mask=None, dataset_name='Test'):
     metrics_per_property = []
+    num_targets = len(target_columns)
+    # Ensure preds_rescaled and targets_rescaled are at least 2D
+    if preds_rescaled.dim() == 1:
+        preds_rescaled = preds_rescaled.unsqueeze(1)
+        targets_rescaled = targets_rescaled.unsqueeze(1)
+        if mask is not None and mask.dim() == 1:
+            mask = mask.unsqueeze(1)
     for i, prop in enumerate(target_columns):
         pred_prop = preds_rescaled[:, i]
-        target_prop = targets_rescaled[:, i]
+        target_prop = targets_rescaled # CURRENTLY HARDCODED TO 1-D targets !!
         if mask is not None:
             mask_prop = mask[:, i]
             # Filter out missing targets
@@ -293,6 +300,11 @@ test_preds = test_model_jit(
 # Rescale predictions and targets
 test_preds_rescaled = test_preds * std_targets + mean_targets
 test_targets_rescaled = torch.cat([data.y for data in test_loader], dim=0) * std_targets + mean_targets
+
+# Ensure they are 2D tensors
+if test_preds_rescaled.dim() == 1:
+    test_preds_rescaled = test_preds_rescaled.unsqueeze(1)
+    test_targets_rescaled = test_targets_rescaled.unsqueeze(1)
 
 # Compute metrics
 test_metrics, test_overall_metrics = compute_metrics(
