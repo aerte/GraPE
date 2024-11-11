@@ -134,54 +134,54 @@ def run_experiment(config: Dict, data_bundle: Dict):
     Example Usage:
         run_experiment(config=config, data_bundle=data_bundle)
     """
-    with setup_mlflow(config):
-        start_time = datetime.datetime.now()
-        set_seed(config['seed'])
-        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        print(f"Device: {device}")
+    #with setup_mlflow(config):
+    start_time = datetime.datetime.now()
+    set_seed(config['seed'])
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    print(f"Device: {device}")
 
-        # Extract data
-        train_data, val_data, test_data, data = (
-            data_bundle['train_data'], data_bundle['val_data'], 
-            data_bundle['test_data'], data_bundle['data']
-        )
-        config['model_path'] = get_model_dir(current_dir, model_name=config['model_name'])
+    # Extract data
+    train_data, val_data, test_data, data = (
+        data_bundle['train_data'], data_bundle['val_data'], 
+        data_bundle['test_data'], data_bundle['data']
+    )
+    config['model_path'] = get_model_dir(current_dir, model_name=config['model_name'])
 
-        # Track parameters and initialize model
-        track_params(config, data_bundle)
-        model, optimizer = initialize_model_and_optimizer(config, data, device)
-        #mlflow.pytorch.log_model(model, artifact_path="model")
+    # Track parameters and initialize model
+    track_params(config, data_bundle)
+    model, optimizer = initialize_model_and_optimizer(config, data, device)
+    #mlflow.pytorch.log_model(model, artifact_path="model")
 
-        # Set up training environment
-        early_stopper, scheduler = setup_training_environment(config, optimizer)
+    # Set up training environment
+    early_stopper, scheduler = setup_training_environment(config, optimizer)
 
-        # Train and validate the model
-        train_loss, val_loss = train_and_validate_model(
-            model, optimizer, config, train_data, val_data, 
-            early_stopper, scheduler, device
-        )
+    # Train and validate the model
+    train_loss, val_loss = train_and_validate_model(
+        model, optimizer, config, train_data, val_data, 
+        early_stopper, scheduler, device
+    )
 
-        # Log validation metrics and report to raytune
-        best_epoch = log_and_report_metrics(val_loss)
+    # Log validation metrics and report to raytune
+    best_epoch = log_and_report_metrics(val_loss)
 
-        # Load the best model and evaluate
-        model = load_best_model(early_stopper, model, device, best_epoch)
-        # Train
-        evaluate_model_mlflow(model, data, train_data, device, config, name='train')
-        # Val 
-        evaluate_model_mlflow(model, data, val_data, device, config, name='val')
-        # Test
-        test_targets, metrics_by_type = evaluate_model_mlflow(model, data, test_data, device, config, name='test')
+    # Load the best model and evaluate
+    model = load_best_model(early_stopper, model, device, best_epoch)
+    # Train
+    evaluate_model_mlflow(model, data, train_data, device, config, name='train')
+    # Val 
+    evaluate_model_mlflow(model, data, val_data, device, config, name='val')
+    # Test
+    test_targets, metrics_by_type = evaluate_model_mlflow(model, data, test_data, device, config, name='test')
 
-        # Creates barplot comparison over all metrics for multi target learning
-        if test_targets.dim() > 1:
-            create_barplot(metrics_by_type, config)
+    # Creates barplot comparison over all metrics for multi target learning
+    if test_targets.dim() > 1:
+        create_barplot(metrics_by_type, config)
 
-        # Save the final model
-        save_final_model(model, config)
+    # Save the final model
+    save_final_model(model, config)
 
-        # Log duration of the training process
-        log_duration(start_time)
+    # Log duration of the training process
+    log_duration(start_time)
 
 def main():
     set_seed(1)
