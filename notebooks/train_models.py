@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 
 from grape_chem.utils import train_model
 from grape_chem.utils.data import load_dataset_from_csv, get_path, get_model_dir
-from grape_chem.utils.model_utils import set_seed, create_checkpoint, load_model_from_data, load_best_model, evaluate_model
+from grape_chem.utils.model_utils import set_seed, create_checkpoint, load_model_from_data, load_best_model, evaluate_model_mlflow
 from grape_chem.utils import EarlyStopping
 from grape_chem.logging.hyperparameter_tuning import hyperparameter_tuning, log_and_report_metrics
 from grape_chem.logging.mlflow_logging import setup_mlflow, track_params
@@ -150,7 +150,7 @@ def run_experiment(config: Dict, data_bundle: Dict):
         # Track parameters and initialize model
         track_params(config, data_bundle)
         model, optimizer = initialize_model_and_optimizer(config, data, device)
-        mlflow.pytorch.log_model(model, artifact_path="model")
+        #mlflow.pytorch.log_model(model, artifact_path="model")
 
         # Set up training environment
         early_stopper, scheduler = setup_training_environment(config, optimizer)
@@ -165,11 +165,16 @@ def run_experiment(config: Dict, data_bundle: Dict):
         best_epoch = log_and_report_metrics(val_loss)
 
         # Load the best model and evaluate
-        load_best_model(early_stopper, model, device, best_epoch)
-        targets, metrics_by_type = evaluate_model(model, data, test_data, device, config['batch_size'], config)
+        model = load_best_model(early_stopper, model, device, best_epoch)
+        # Train
+        evaluate_model_mlflow(model, data, train_data, device, config, name='train')
+        # Val 
+        evaluate_model_mlflow(model, data, val_data, device, config, name='val')
+        # Test
+        test_targets, metrics_by_type = evaluate_model_mlflow(model, data, test_data, device, config, name='test')
 
         # Creates barplot comparison over all metrics for multi target learning
-        if targets.dim() > 1:
+        if test_targets.dim() > 1:
             create_barplot(metrics_by_type, config)
 
         # Save the final model
@@ -186,22 +191,27 @@ def main():
     base_config = load_config(path)
     # Define configurations for Ray Tune
     search_space = {
-        'epochs': tune.choice([10]), #1000
-        'batch_size': tune.choice([None]),#tune.choice([1048,4192,8384]), # None for full dataset
-        'hidden_dim': tune.choice([32,128,256]), #tune.choice([47]),
-        'dropout': tune.uniform(0.0, 0.2),
-        'patience': tune.choice([50]), #125
-        'patience_scheduler': tune.choice([10]),
-        'learning_rate': tune.loguniform(1e-4, 1e-3), #tune.loguniform(1e-4, 1e-3), # tune.choice([0.0008927180304353635]), #tune.loguniform(1e-4, 1e-3), #4e-4 to 5e-4 same here #tune.loguniform(1e-5, 1e-2), #tune.choice([0.001054627]), tune.choice([0.0053708188433723904]) 0.0008927180304353635tune.loguniform(1e-4, 1e-3) tune.choice([0.00023273922280628748])
-        'weight_decay': tune.loguniform(1e-7, 1e-3), #tune.loguniform(1e-5, 1e-4), # 4e-5 to 5e-5 #tune.loguniform(1e-5, 1e-3),# tune.choice([1e-4]), #tune.choice([0.00045529597892867465]) tune.loguniform(1e-5, 1e-4) tune.choice([0.00006021310185147612])
-        'mlp_layers': tune.choice([2]), #tune.choice([2,3,4,5]), 2 4
-        'schedule_factor': tune.choice([0.8]), 
-        'num_layers_atom': tune.choice([5]), #tune.choice([2,3,4,5]), 3 2
-        'num_layers_mol': tune.choice([5]), #tune.choice([2,3,4,5]), 3 3
-    }
+            'epochs': tune.choice([10]), #1000
+            'batch_size': tune.choice([None]),#tune.choice([1024,4096,8192]), # None for full dataset
+            'hidden_dim': tune.choice([128,256,512,1024]), #tune.choice([47]),
+            'dropout': tune.uniform(0.0, 0.1), # tune.uniform(0.0, 0.1),
+            'patience': tune.choice([50]), #125
+            'patience_scheduler': tune.choice([10]),
+            'learning_rate': tune.loguniform(1e-4, 1e-2), #tune.loguniform(1e-4, 1e-2), # 0.007902619549708237 tune.loguniform(1e-4, 1e-2), #tune.loguniform(1e-4, 1e-2), #tune.loguniform(1e-4, 1e-3), # tune.choice([0.0008927180304353635]), #tune.loguniform(1e-4, 1e-3), #4e-4 to 5e-4 same here #tune.loguniform(1e-5, 1e-2), #tune.choice([0.001054627]), tune.choice([0.0053708188433723904]) 0.0008927180304353635tune.loguniform(1e-4, 1e-3) tune.choice([0.00023273922280628748])
+            'weight_decay': tune.loguniform(1e-7, 1e-3), #tune.loguniform(1e-7, 1e-3), #tune.loguniform(1e-7, 1e-3), #tune.loguniform(1e-5, 1e-4), # 4e-5 to 5e-5 #tune.loguniform(1e-5, 1e-3),# tune.choice([1e-4]), #tune.choice([0.00045529597892867465]) tune.loguniform(1e-5, 1e-4) tune.choice([0.00006021310185147612])
+            'schedule_factor': tune.choice([0.8]), 
+            'mlp_layers': tune.choice([2,3,4,5]), #tune.choice([2,3,4,5]), 2 4
+            'num_layers_atom': tune.choice([2,3,4,5]), #tune.choice([2,3,4,5]), 3 2
+            'num_layers_mol': tune.choice([2,3,4,5]), #tune.choice([2,3,4,5]), 3 3
+        }
+
     config = {**base_config, **search_space}
     
-    df, train_data, val_data, test_data, data = load_dataset_from_csv(config, return_dataset=True, limit = None) # None 100
+    df, train_data, val_data, test_data, data = load_dataset_from_csv(config, return_dataset=True, limit = 100) # None 100
+    # print("train_data.shape", len(train_data))
+    # print("train_data[0] ", train_data[0])
+    # print("train targets shape", train_data[0].y.shape)
+    # breakpoint()
     # Bundle the df & datasets into one variable
     data_bundle = {
         'df': df,
@@ -210,14 +220,27 @@ def main():
         'test_data': test_data,
         'data': data,
     }
-
+    
     hyperparameter_tuning(run_experiment, config, num_samples=1, storage_path=get_path(current_dir, '../ray_results'), data_bundle=data_bundle)
 
 if __name__ == "__main__":
     main()
 
 
-
+# search_space = {
+#         'epochs': tune.choice([1000]), #1000
+#         'batch_size': tune.choice([None]),#tune.choice([1024,4096,8192]), # None for full dataset
+#         'hidden_dim': tune.choice([128,256,512,1024]), #tune.choice([47]),
+#         'dropout': tune.uniform(0.0, 0.1), # tune.uniform(0.0, 0.1),
+#         'patience': tune.choice([50]), #125
+#         'patience_scheduler': tune.choice([10]),
+#         'learning_rate': tune.loguniform(1e-4, 1e-2), #tune.loguniform(1e-4, 1e-2), # 0.007902619549708237 tune.loguniform(1e-4, 1e-2), #tune.loguniform(1e-4, 1e-2), #tune.loguniform(1e-4, 1e-3), # tune.choice([0.0008927180304353635]), #tune.loguniform(1e-4, 1e-3), #4e-4 to 5e-4 same here #tune.loguniform(1e-5, 1e-2), #tune.choice([0.001054627]), tune.choice([0.0053708188433723904]) 0.0008927180304353635tune.loguniform(1e-4, 1e-3) tune.choice([0.00023273922280628748])
+#         'weight_decay': tune.loguniform(1e-7, 1e-3), #tune.loguniform(1e-7, 1e-3), #tune.loguniform(1e-7, 1e-3), #tune.loguniform(1e-5, 1e-4), # 4e-5 to 5e-5 #tune.loguniform(1e-5, 1e-3),# tune.choice([1e-4]), #tune.choice([0.00045529597892867465]) tune.loguniform(1e-5, 1e-4) tune.choice([0.00006021310185147612])
+#         'schedule_factor': tune.choice([0.8]), 
+#         'mlp_layers': tune.choice([2,3,4,5]), #tune.choice([2,3,4,5]), 2 4
+#         'num_layers_atom': tune.choice([2,3,4,5]), #tune.choice([2,3,4,5]), 3 2
+#         'num_layers_mol': tune.choice([2,3,4,5]), #tune.choice([2,3,4,5]), 3 3
+#     }
 
 
 # search_space = {
@@ -233,4 +256,19 @@ if __name__ == "__main__":
     #     'schedule_factor': tune.choice([0.8]), 
     #     'num_layers_atom': tune.choice([3]), #tune.choice([2,3,4,5]), 3 2
     #     'num_layers_mol': tune.choice([5]), #tune.choice([2,3,4,5]), 3 3
+    # }
+
+    # search_space = {
+    #     'epochs': tune.choice([1000]), #1000
+    #     'batch_size': tune.choice([None]),#tune.choice([1024,4096,8192]), # None for full dataset
+    #     'hidden_dim': tune.choice([512]), #tune.choice([47]),
+    #     'dropout': tune.choice([0.04822474052593628]), #tune.uniform(0.0, 0.1), # tune.uniform(0.0, 0.1), # tune.uniform(0.0, 0.1),
+    #     'patience': tune.choice([50]), #125
+    #     'patience_scheduler': tune.choice([10]),
+    #     'learning_rate': tune.choice([0.002186633528182565]), #tune.loguniform(1e-4, 1e-2), # tune.loguniform(1e-4, 1e-2), #tune.loguniform(1e-4, 1e-2), # 0.007902619549708237 tune.loguniform(1e-4, 1e-2), #tune.loguniform(1e-4, 1e-2), #tune.loguniform(1e-4, 1e-3), # tune.choice([0.0008927180304353635]), #tune.loguniform(1e-4, 1e-3), #4e-4 to 5e-4 same here #tune.loguniform(1e-5, 1e-2), #tune.choice([0.001054627]), tune.choice([0.0053708188433723904]) 0.0008927180304353635tune.loguniform(1e-4, 1e-3) tune.choice([0.00023273922280628748])
+    #     'weight_decay': tune.choice([0.00017831622822312622]), #tune.loguniform(1e-7, 1e-3), # tune.loguniform(1e-7, 1e-3),#tune.loguniform(1e-7, 1e-3), tune.loguniform(1e-7, 1e-3), #tune.loguniform(1e-7, 1e-3), #tune.loguniform(1e-5, 1e-4), # 4e-5 to 5e-5 #tune.loguniform(1e-5, 1e-3),# tune.choice([1e-4]), #tune.choice([0.00045529597892867465]) tune.loguniform(1e-5, 1e-4) tune.choice([0.00006021310185147612])
+    #     'schedule_factor': tune.choice([0.8]), 
+    #     'mlp_layers': tune.choice([2]), #tune.choice([2,3,4,5]), 2 4
+    #     'num_layers_atom': tune.choice([3]), #tune.choice([2,3,4,5]), 3 2
+    #     'num_layers_mol': tune.choice([3]), #tune.choice([2,3,4,5]), 3 3
     # }
