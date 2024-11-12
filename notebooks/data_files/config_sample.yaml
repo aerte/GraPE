@@ -1,16 +1,19 @@
 dataset_name: solvation
-file_name: /home/paul/Documents/spaghetti/GraPE/env/Solvation_splits_new.csv
+# root_path: /zhome/8c/5/143289/GraPE/env/
+root_path: /home/paul/Documents/spaghetti/GraPE/env/
+file_name: "{{ root_path }}Solvation_splits_new.csv"
 file_type: csv
 smiles_column: SMILES
 target_columns: ['Energy']
 global_features_column: Temperature
 split_column: Split
 split_ratios: [0.8, 0.1, 0.1]  # used if split_column is not provided
+model_save_path: "{{ root_path }}solvation_model.pth"
 
 fragmentation:
-  scheme: /home/paul/Documents/spaghetti/GraPE/env/MG_plus_reference # don't add .csv suffix !!
-  frag_save_file_path: /home/paul/Documents/spaghetti/GraPE/env/fragmentation_data_solvation.pth
-  transfer_learning_frag_save_file_path: /home/paul/Documents/spaghetti/GraPE/env/tl_fragmentation_data_solvation.pth
+  scheme: "{{ root_path }}MG_plus_reference"  # don't add .csv suffix !!
+  frag_save_file_path: "{{ root_path }}fragmentation_data_solvation.pth"
+  transfer_learning_frag_save_file_path: "{{ root_path }}tl_fragmentation_data_solvation.pth"
   verbose: False
 
 transfer_learning_dataset:
@@ -22,3 +25,4 @@ transfer_learning_dataset:
   split_column: Split
   sheet_name: ''
   split_ratios: [0.8, 0.1, 0.1]  # Optional, if no split column is provided
+  model_save_path: "{{ root_path }}transfer_learning_model.pth"

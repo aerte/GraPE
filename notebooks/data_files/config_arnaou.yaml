@@ -1,0 +1,26 @@
+dataset_name: omega
+# root_path: /zhome/8c/5/143289/GraPE/env/
+root_path: /zhome/b1/0/88900/GraPE/env/
+file_name: '{{ root_path }}icas_omega.xlsx'
+file_type: excel
+smiles_column: SMILES
+target_columns: ['Omega (-)']
+split_column:
+split_ratios: [0.85, 0.14, 0.01]  # used if split_column is not provided
+model_save_path: "{{ root_path }}omega_model.pth"
+
+fragmentation:
+  scheme: "{{ root_path }}MG_plus_reference"  # don't add .csv suffix !!
+  frag_save_file_path: "{{ root_path }}fragmentation_data_omega.pth"
+  transfer_learning_frag_save_file_path: "{{ root_path }}tl_fragmentation_data_omega.pth"
+  verbose: False
+
+transfer_learning_dataset:
+  file_name: '{{ root_path }}omega_splits.xlsx'
+  file_type: 'excel'
+  smiles_column: 'SMILES'
+  target_columns: ['Omega (-)']
+  split_column:
+  sheet_name: ''
+  split_ratios: [0.8, 0.1, 0.1]  # Optional, if no split column is provided
+  model_save_path: "{{ root_path }}transfer_learning_omega_model.pth"

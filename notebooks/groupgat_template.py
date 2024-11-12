@@ -23,6 +23,7 @@ import torch.nn.functional as F
 import matplotlib.pyplot as plt
 from torch_geometric.data import DataLoader, Batch, Data
 from tqdm import tqdm
+from jinja2 import Template
 
 # Function to standardize data
 def standardize(x, mean, std):
@@ -35,9 +36,20 @@ set_seed(42)
 #####################    Data Input and Preprocessing  ###################################
 ##########################################################################################
 
-# Load configuration from YAML file
+# Define the variables to be used in the template
 with open('config.yaml', 'r') as f:
-    data_config = yaml.safe_load(f)
+    f_config_unparsed = yaml.safe_load(f)
+    template_vars = {
+        'root_path': f_config_unparsed.get('root_path')
+    }
+
+# Load and render the YAML template
+with open('config.yaml', 'r') as f:
+    template = Template(f.read())
+    rendered_yaml = template.render(template_vars)
+
+# Now parse the rendered YAML
+data_config = yaml.safe_load(rendered_yaml)
 
 # Extract configurations for initial dataset
 file_name = data_config.get('file_name')
@@ -354,9 +366,9 @@ train_preds_rescaled = train_preds * std_targets + mean_targets
 train_targets_rescaled = torch.cat([data.y for data in train_loader], dim=0) * std_targets + mean_targets
 
 # Ensure they are 2D tensors
-if test_preds_rescaled.dim() == 1:
-    test_preds_rescaled = test_preds_rescaled.unsqueeze(1)
-    test_targets_rescaled = test_targets_rescaled.unsqueeze(1)
+if train_preds_rescaled.dim() == 1:
+    train_preds_rescaled = train_preds_rescaled.unsqueeze(1)
+    train_targets_rescaled = train_targets_rescaled.unsqueeze(1)
 
 np.save('train_pred', train_preds_rescaled)
 np.save('train_target', train_targets_rescaled)
@@ -489,14 +501,14 @@ if tl_data_config is not None:
     )
 
     # Create DataLoaders
-    tl_batch_size = data_config.get('batch_size',5000)
+    tl_batch_size = data_config.get('batch_size', 5000)
     tl_train_loader = DataLoader(tl_train_set, batch_size=tl_batch_size, shuffle=True)
     tl_val_loader = DataLoader(tl_val_set, batch_size=tl_batch_size, shuffle=False)
     tl_test_loader = DataLoader(tl_test_set, batch_size=tl_batch_size, shuffle=False)
 
-##########################################################################################
-#####################    Transfer Learning Loop  #########################################
-##########################################################################################
+    ##########################################################################################
+    #####################    Transfer Learning Loop  #########################################
+    ##########################################################################################
 
     # Function to perform transfer learning on the model
     def transfer_learning(
