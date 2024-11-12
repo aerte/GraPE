@@ -217,7 +217,7 @@ scheduler = lr_scheduler.ReduceLROnPlateau(
 early_stopper = EarlyStopping(patience=50, model_name='random', skip_save=True)
 loss_func = torch.nn.functional.mse_loss
 
-model_filename = data_config.get('model_filename', 'gcgat_jitted_model.pth')
+model_filename = data_config.get('model_save_path', 'gcgat_jitted_model.pth')
 
 # Load model if saved
 if os.path.exists(model_filename):
@@ -394,7 +394,7 @@ if tl_data_config is not None:
     tl_global_features_columns = tl_data_config.get('global_features_columns', None)
     tl_split_column = tl_data_config.get('split_column', None)
     tl_sheet_name = tl_data_config.get('sheet_name', 0)
-
+    tl_model_filename = tl_data_config.get('model_save_path', 'gcgat_jitted_GAT_layers_frozen.pth')
     # Load transfer learning dataset
     if tl_file_type == 'csv':
         tl_df = pd.read_csv(tl_file_name)
@@ -545,6 +545,10 @@ if tl_data_config is not None:
             model_needs_frag=True,
             net_params=net_params,
         )
+
+        # Save the transfer learned model
+        torch.save(model.state_dict(), tl_model_filename)
+        print(f"Transfer learned model saved to '{tl_model_filename}'.")
 
         # Evaluate the model
         val_preds = test_model_jit(
