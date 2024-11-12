@@ -150,7 +150,7 @@ data = DataSet(
 train_set, val_set, test_set = split_data(data, split_type='custom', custom_split=data.custom_split)
 
 # Create DataLoaders
-batch_size = data_config.get('batch_size', 64)
+batch_size = data_config.get('batch_size', 5000)
 train_loader = DataLoader(train_set, batch_size=batch_size, shuffle=True)
 val_loader = DataLoader(val_set, batch_size=batch_size, shuffle=False)
 test_loader = DataLoader(test_set, batch_size=batch_size, shuffle=False)
@@ -306,10 +306,62 @@ if test_preds_rescaled.dim() == 1:
     test_preds_rescaled = test_preds_rescaled.unsqueeze(1)
     test_targets_rescaled = test_targets_rescaled.unsqueeze(1)
 
+np.save('test_pred', test_preds_rescaled)
+np.save('test_target', test_targets_rescaled)
+
 # Compute metrics
 test_metrics, test_overall_metrics = compute_metrics(
     test_preds_rescaled, test_targets_rescaled, getattr(test_set, 'mask', None), dataset_name='Test'
 )
+
+# Evaluate on val set
+val_preds = test_model_jit(
+    model=model,
+    test_data_loader=val_loader,
+    device=device,
+    batch_size=batch_size,
+    model_needs_frag=True,
+    net_params=net_params,
+)
+
+# Rescale predictions and targets
+val_preds_rescaled = val_preds * std_targets + mean_targets
+val_targets_rescaled = torch.cat([data.y for data in val_loader], dim=0) * std_targets + mean_targets
+
+# Ensure they are 2D tensors
+if val_preds_rescaled.dim() == 1:
+    val_preds_rescaled = val_preds_rescaled.unsqueeze(1)
+    val_targets_rescaled = val_targets_rescaled.unsqueeze(1)
+
+np.save('val_pred', val_preds_rescaled)
+np.save('val_target', val_targets_rescaled)
+
+
+
+# Evaluate on train set
+train_preds = test_model_jit(
+    model=model,
+    test_data_loader=train_loader,
+    device=device,
+    batch_size=batch_size,
+    model_needs_frag=True,
+    net_params=net_params,
+)
+
+
+# Rescale predictions and targets
+train_preds_rescaled = train_preds * std_targets + mean_targets
+train_targets_rescaled = torch.cat([data.y for data in train_loader], dim=0) * std_targets + mean_targets
+
+# Ensure they are 2D tensors
+if test_preds_rescaled.dim() == 1:
+    test_preds_rescaled = test_preds_rescaled.unsqueeze(1)
+    test_targets_rescaled = test_targets_rescaled.unsqueeze(1)
+
+np.save('train_pred', train_preds_rescaled)
+np.save('train_target', train_targets_rescaled)
+
+
 
 ##########################################################################################
 #####################    Transfer Learning Functions  ####################################
@@ -373,8 +425,10 @@ if tl_data_config is not None:
         # Fill missing targets with zeros (since they'll be masked out during loss computation)
         tl_targets_filled = np.nan_to_num(tl_targets, nan=0.0)
         # Compute mean and std excluding NaNs
-        tl_mean_targets = np.nanmean(tl_targets, axis=0)  # Shape: (num_targets,)
-        tl_std_targets = np.nanstd(tl_targets, axis=0)
+        #tl_mean_targets = np.nanmean(tl_targets, axis=0)  # Shape: (num_targets,)
+        #tl_std_targets = np.nanstd(tl_targets, axis=0)
+        tl_mean_targets = mean_targets
+        tl_std_targets = std_targets
         # Standardize targets
         tl_targets_standardized = standardize(tl_targets, tl_mean_targets, tl_std_targets)
         # Replace NaNs with zeros
@@ -383,8 +437,10 @@ if tl_data_config is not None:
         tl_mask = None  # No mask needed when all targets are present
         tl_targets_filled = tl_targets
         # Compute mean and std normally
-        tl_mean_targets = np.mean(tl_targets, axis=0)
-        tl_std_targets = np.std(tl_targets, axis=0)
+        #tl_mean_targets = np.mean(tl_targets, axis=0)
+        #tl_std_targets = np.std(tl_targets, axis=0)
+        tl_mean_targets = mean_targets
+        tl_std_targets = std_targets
         # Standardize targets
         tl_targets_standardized = standardize(tl_targets, tl_mean_targets, tl_std_targets)
         tl_targets_standardized_filled = tl_targets_standardized
@@ -433,7 +489,7 @@ if tl_data_config is not None:
     )
 
     # Create DataLoaders
-    tl_batch_size = data_config.get('batch_size', 64)
+    tl_batch_size = data_config.get('batch_size',5000)
     tl_train_loader = DataLoader(tl_train_set, batch_size=tl_batch_size, shuffle=True)
     tl_val_loader = DataLoader(tl_val_set, batch_size=tl_batch_size, shuffle=False)
     tl_test_loader = DataLoader(tl_test_set, batch_size=tl_batch_size, shuffle=False)
@@ -544,6 +600,47 @@ if tl_data_config is not None:
     tl_test_targets_rescaled = (
         torch.cat([data.y for data in tl_test_loader], dim=0) * tl_std_targets + tl_mean_targets
     )
+
+    np.save('tl_test_pred', tl_test_preds_rescaled)
+    np.save('tl_test_target', tl_test_targets_rescaled)
+
+    # Evaluate on transfer learning val set
+    tl_val_preds = test_model_jit(
+        model=transfer_learned_model,
+        test_data_loader=tl_val_loader,
+        device=device,
+        batch_size=tl_batch_size,
+        model_needs_frag=True,
+        net_params=net_params,
+    )
+
+    # Rescale predictions and targets
+    tl_val_preds_rescaled = tl_val_preds * tl_std_targets + tl_mean_targets
+    tl_val_targets_rescaled = (
+            torch.cat([data.y for data in tl_val_loader], dim=0) * tl_std_targets + tl_mean_targets
+    )
+    np.save('tl_val_pred', tl_val_preds_rescaled)
+    np.save('tl_val_target', tl_val_targets_rescaled)
+
+    # Evaluate on transfer learning train set
+    tl_train_preds = test_model_jit(
+        model=transfer_learned_model,
+        test_data_loader=tl_train_loader,
+        device=device,
+        batch_size=tl_batch_size,
+        model_needs_frag=True,
+        net_params=net_params,
+    )
+
+    # Rescale predictions and targets
+    tl_train_preds_rescaled = tl_train_preds * tl_std_targets + tl_mean_targets
+    tl_train_targets_rescaled = (
+            torch.cat([data.y for data in tl_train_loader], dim=0) * tl_std_targets + tl_mean_targets
+    )
+    np.save('tl_train_pred', tl_train_preds_rescaled)
+    np.save('tl_train_target', tl_train_targets_rescaled)
+
+
 
     # Compute metrics
     tl_test_metrics, tl_test_overall_metrics = compute_metrics(
