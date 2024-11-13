@@ -52,7 +52,7 @@ def calculate_std_metrics(metrics_dict, technique, labels):
 
 
 class Ensemble:
-    def __init__(self, train_data, val_data, test_data, node_in_dim, edge_in_dim, device, hyperparams):
+    def __init__(self, train_data, val_data, test_data, node_in_dim, edge_in_dim, device, hyperparams, mean=None, std=None):
         self.train_data = train_data
         self.val_data = val_data
         self.test_data = test_data
@@ -61,6 +61,8 @@ class Ensemble:
         self.device = device
         self.hyperparams = hyperparams
         self.technique = self.__class__.__name__
+        self.mean = mean
+        self.std = std
         self.UQ_metrics = {
                                 'nll': [],
                                 'calibrated_nll': [],
@@ -76,9 +78,13 @@ class Ensemble:
         for i in range(self.hyperparams['n_models']):
             model = self.train_single_model(train_samples[i], val_samples[i], i)
             models.append(model)
+            torch.cuda.empty_cache()
+            print("Cleared cache")
         
         self.evaluate_ensemble(models, self.test_data, 'test') 
         print(f"################ FINISHED {self.technique} ################################################")
+        torch.cuda.empty_cache()
+        print("Cleared cache")
     
     def log_and_plot_ensemble_uq_metrics(self, predictions, targets):
         """Log and plot UQ metrics of the entire ensemble to MLflow."""
@@ -144,13 +150,17 @@ class Ensemble:
                     mask = ~torch.isnan(t)  # Mask to filter out NaN values
                     pred = pred[mask]
                     t = t[mask]
-                    pred = dataset.rescale_data(pred, index=i)
-                    t = dataset.rescale_data(t, index=i)
+                    #pred = dataset.rescale_data(pred, index=i)
+                    pred = (pred - self.mean[i]) / self.std[i]
+                    #t = dataset.rescale_data(t, index=i)
+                    t = (t - self.mean[i]) / self.std[i]
                 else:
                     pred = prediction.cpu().detach()  # No need to slice for single target
                     t = target.cpu().detach()  # Single target
-                    pred = dataset.rescale_data(pred)
-                    t = dataset.rescale_data(t)
+                    #pred = dataset.rescale_data(pred)
+                    pred = (pred - self.mean) / self.std
+                    #t = dataset.rescale_data(t)
+                    t = (t - self.mean) / self.std
                 
                 rescaled_preds[i].append(pred)
                 rescaled_targets[i].append(t)     
@@ -224,31 +234,37 @@ class Ensemble:
         # Loop over each target index
         for i in range(num_targets):
             # Std of metrics per entire ensemble
-            std_metrics = calculate_std_metrics(metrics[i], self.technique, self.hyperparams['data_labels'])
+            #std_metrics = calculate_std_metrics(metrics[i], self.technique, self.hyperparams['data_labels'])
             print("################################### BOXPLOTS ############################################")
-            print("std metrics: ", std_metrics) 
+            #print("std metrics: ", std_metrics) 
             # Initialize RMSE array: shape (num_models, num_targets)
+            # Initialize empty arrays for metrics
+            print("############### METRICS : ", metrics)
             RMSE = np.zeros((len(metrics[0]), num_targets))
             MAE = np.zeros((len(metrics[0]), num_targets))
             R2 = np.zeros((len(metrics[0]), num_targets))
-            print("############### METRICS : ", metrics)
+
             print("############### METRICS ############################")
-            # Retrieve RMSE values for each model for the current target
+
+            # Retrieve RMSE, MAE, and R2 values for each model for the current target
             for model_idx, model_metrics in enumerate(metrics[i]):
                 RMSE[model_idx, 0] = model_metrics['rmse']
                 MAE[model_idx, 0] = model_metrics['mae']
                 R2[model_idx, 0] = model_metrics['r2']
 
             if mlflow.active_run():
-                # log entire rmse array
-                print("RMSE: ", RMSE.squeeze(1))
-                print("MAE: ", MAE.squeeze(1))
-                print("R2: ", R2.squeeze(1))
-                # Create a DataFrame to save as CSV
+                # Determine the column index based on the number of targets
+                col_idx = 0 if num_targets == 1 else i
+
+                print("RMSE shape: ", RMSE.shape)
+                print("MAE shape: ", MAE.shape)
+                print("R2 shape: ", R2.shape)
+
+                # Create DataFrame to log metrics for the specified column index
                 metrics_df = pd.DataFrame({
-                    'RMSE': RMSE.squeeze(1),
-                    'MAE':  MAE.squeeze(1),
-                    'R2': R2.squeeze(1)
+                    'RMSE': RMSE[:, col_idx],
+                    'MAE': MAE[:, col_idx],
+                    'R2': R2[:, col_idx]
                 })
                 # Save to CSV
                 metrics_csv_path =f'{self.technique}_{self.hyperparams["data_labels"][i]}_{dataset_type}_ensemble metrics.csv'
@@ -259,6 +275,7 @@ class Ensemble:
             max_to_sum_plot(self, RMSE, label = i, dataset_type = dataset_type)
             max_to_sum_plot(self, MAE, label = i, dataset_type = dataset_type)
             max_to_sum_plot(self, R2, label = i, dataset_type = dataset_type)
+
             self.boxplot(RMSE, label = i, metric = 'rmse', dataset_type = dataset_type)
             self.boxplot(MAE, label = i, metric = 'mae', dataset_type = dataset_type)
             self.boxplot(R2, label = i, metric = 'r2' , dataset_type = dataset_type)
@@ -266,12 +283,12 @@ class Ensemble:
             plot_confidence_interval(self, rescaled_preds[i], label=i, dataset_type = dataset_type)
             target = rescaled_targets[i][0]
             # Compute average preds inside error vs uncertainty plot function
-            plot_error_vs_uncertainty(self, rescaled_preds[i], np.array(target), dataset_type)
+            plot_error_vs_uncertainty(self, rescaled_preds[i], np.array(target), label=i, dataset_type = dataset_type)
 
             rescaled_avg_predictions = torch.mean(torch.stack(rescaled_preds[i]), dim=0)
-            metrics = pred_metric(rescaled_avg_predictions, target, metrics='all', print_out=False)
+            metric_for_logging = pred_metric(rescaled_avg_predictions, target, metrics='all', print_out=False)
             # Update the metrics keys
-            updated_metrics = {f"{self.hyperparams['data_labels'][i]}_{self.technique}_{key}_{dataset_type}": value for key, value in metrics.items()}
+            updated_metrics = {f"{self.hyperparams['data_labels'][i]}_{self.technique}_{key}_{dataset_type}": value for key, value in metric_for_logging.items()}
             mlflow.log_metrics(updated_metrics)
             print("################################### BOXPLOTS done ############################################")
             # # Calc the average predictions

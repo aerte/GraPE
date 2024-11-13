@@ -1226,33 +1226,40 @@ def load_dataset_from_csv(config: Dict, return_dataset: bool = False, return_df:
             train_global_features, val_global_features, test_global_features = global_features[:train_idx], global_features[train_idx:val_idx], global_features[val_idx:]
         else:
             train_global_features, val_global_features, test_global_features = None, None, None
+
         ############ We need to standardize BEFORE loading targets into a DataSet ################
         mean, std = np.nanmean(train_target, axis=0), np.nanstd(train_target, axis=0)
-        train_target, val_target, test_target = standardize(train_target, mean, std), standardize(val_target, mean, std), standardize(test_target, mean, std)
         
         # Remove the nan values from the target
-        train_target = train_target.squeeze()
-        val_target = val_target.squeeze()
-        test_target = test_target.squeeze()
-        
-        if global_features is not None:
-            train_global_features = train_global_features[~np.isnan(train_target)]
-            val_global_features = val_global_features[~np.isnan(val_target)]
-            test_global_features = test_global_features[~np.isnan(test_target)]
-        
-        train_smiles = train_smiles[~np.isnan(train_target)]
-        val_smiles = val_smiles[~np.isnan(val_target)]
-        test_smiles = test_smiles[~np.isnan(test_target)]
-        
-        train_target = train_target[~np.isnan(train_target)]
-        val_target = val_target[~np.isnan(val_target)]
-        test_target = test_target[~np.isnan(test_target)]
+        # Squeeze target arrays to remove extra dimensions if any
+        train_target, val_target, test_target = train_target.squeeze(), val_target.squeeze(), test_target.squeeze()
 
-        # set indices based on the train, val, test splits after mask
+        # Define masks to remove NaN values from target arrays
+        train_mask = ~np.isnan(train_target)
+        val_mask = ~np.isnan(val_target)
+        test_mask = ~np.isnan(test_target)
+
+        # Apply the masks to targets, smiles, and global features if available
+        train_target, train_smiles = train_target[train_mask], train_smiles[train_mask]
+        val_target, val_smiles = val_target[val_mask], val_smiles[val_mask]
+        test_target, test_smiles = test_target[test_mask], test_smiles[test_mask]
+
+        if global_features is not None:
+            train_global_features = train_global_features[train_mask]
+            val_global_features = val_global_features[val_mask]
+            test_global_features = test_global_features[test_mask]
+        
+        # Apply scaling using the calculated mean and std
+        train_target = (train_target - mean) / std
+        val_target = (val_target - mean) / std
+        test_target = (test_target - mean) / std
+        
+        # Set indices based on the train, val, test splits after filtering
         train_indices = np.arange(len(train_smiles))
         val_indices = np.arange(len(train_smiles), len(train_smiles) + len(val_smiles))
         test_indices = np.arange(len(train_smiles) + len(val_smiles), len(train_smiles) + len(val_smiles) + len(test_smiles))
 
+        # Concatenate targets and smiles across splits
         target = np.concatenate([train_target, val_target, test_target])
         smiles = np.concatenate([train_smiles, val_smiles, test_smiles])
 
@@ -1274,6 +1281,7 @@ def load_dataset_from_csv(config: Dict, return_dataset: bool = False, return_df:
         print(" test indices: ", test_indices)
         
         train_set, val_set, test_set = SubSet(data, train_indices), SubSet(data, val_indices), SubSet(data, test_indices)
+
         
     elif not is_one_dimensional:
         if 'allowed_atoms' in config and config['allowed_atoms'] is not None:
@@ -1289,7 +1297,6 @@ def load_dataset_from_csv(config: Dict, return_dataset: bool = False, return_df:
         
         # First split to get three separate sets    
         train_set, val_set, test_set = data.split_and_scale(scale = True, split_type=config['split_type'], split_frac=[0.8, 0.1, 0.1], is_dmpnn=is_dmpnn)
-        print(data.mean, data.std)
         # Standardize the target values based on the training set
         # data.mean, data.std = np.nanmean(train_set.y, axis=0), np.nanstd(train_set.y, axis=0)
         # data.target = data.scale_array(data.target, data.mean, data.std)
@@ -1305,6 +1312,7 @@ def load_dataset_from_csv(config: Dict, return_dataset: bool = False, return_df:
         return df, train_set, val_set, test_set, data
     
     return df, train_set, val_set, test_set
+
 
 
 ##########################################################################
