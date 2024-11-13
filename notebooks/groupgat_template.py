@@ -51,6 +51,139 @@ with open('config.yaml', 'r') as f:
 # Now parse the rendered YAML
 data_config = yaml.safe_load(rendered_yaml)
 
+# Function to load and preprocess dataset
+def load_and_preprocess_dataset(
+    file_name,
+    file_type='csv',
+    smiles_column='SMILES',
+    target_columns=['Target'],
+    global_features_columns=None,
+    split_column=None,
+    sheet_name=0,
+    fragmentation=None,
+    custom_split_ratios=None,
+    mean_targets=None,
+    std_targets=None,
+    default_split='train',
+    custom_split_mapping=None,
+    use_mean_std_from=None,
+):
+    """
+    Loads and preprocesses a dataset.
+
+    Parameters:
+    - file_name: str, path to the dataset file
+    - file_type: 'csv' or 'excel'
+    - smiles_column: str, name of the column containing SMILES
+    - target_columns: list of str, names of the target columns
+    - global_features_columns: list of str or None, names of the global features columns
+    - split_column: str or None, name of the column containing split assignments
+    - sheet_name: sheet name or index for excel files
+    - fragmentation: Fragmentation object or None
+    - custom_split_ratios: list of float or None, ratios for train/val/test split if no split column provided
+    - mean_targets: numpy array or None, mean of targets for standardization
+    - std_targets: numpy array or None, std of targets for standardization
+    - default_split: str, default split assignment for molecules not specified in split_column
+    - custom_split_mapping: dict or None, mapping of split values to integers (0: train, 1: val, 2: test)
+    - use_mean_std_from: DataSet or None, if provided, use mean and std from this DataSet
+
+    Returns:
+    - data: DataSet object
+    - mean_targets: numpy array, mean of targets
+    - std_targets: numpy array, std of targets
+    """
+    # Load the dataset
+    if file_type == 'csv':
+        df = pd.read_csv(file_name)
+    elif file_type == 'excel':
+        df = pd.read_excel(file_name,)
+    else:
+        raise ValueError(f"Unsupported file type: {file_type}")
+
+    # Read SMILES and targets
+    smiles = df[smiles_column].to_numpy()
+    targets_df = df[target_columns]
+    num_targets = targets_df.shape[1]
+    target_names = targets_df.columns.tolist()
+    targets = targets_df.to_numpy()  # Shape: (num_samples, num_targets)
+
+    # Read global features if provided
+    if global_features_columns is not None:
+        global_feats = df[global_features_columns].to_numpy()
+    else:
+        global_feats = None
+
+    # Handle missing targets
+    if np.isnan(targets).any():
+        # Create mask: True where targets are present
+        mask = ~np.isnan(targets)  # Boolean array where True indicates presence
+        mask = mask.astype(np.float32)  # Convert to float32 for tensor operations
+        # Fill missing targets with zeros (since they'll be masked out during loss computation)
+        targets_filled = np.nan_to_num(targets, nan=0.0)
+        # Compute mean and std excluding NaNs if not provided
+        if mean_targets is None or std_targets is None:
+            mean_targets = np.nanmean(targets, axis=0)  # Shape: (num_targets,)
+            std_targets = np.nanstd(targets, axis=0)
+        # Standardize targets
+        targets_standardized = standardize(targets_filled, mean_targets, std_targets)
+    else:
+        mask = None  # No mask needed when all targets are present
+        targets_filled = targets
+        # Compute mean and std normally if not provided
+        if mean_targets is None or std_targets is None:
+            mean_targets = np.mean(targets, axis=0)
+            std_targets = np.std(targets, axis=0)
+        # Standardize targets
+        targets_standardized = standardize(targets, mean_targets, std_targets)
+
+    # Handle fragmentation
+    # Note: fragmentation should be provided
+    if fragmentation is not None:
+        frag_dim = fragmentation.frag_dim
+    else:
+        frag_dim = 0
+
+    # Handle custom splits
+    if split_column is not None and split_column in df.columns:
+        split_values = df[split_column].fillna(default_split).to_numpy()
+        # Map split values to integers
+        if custom_split_mapping is not None:
+            split_mapping = custom_split_mapping
+        else:
+            split_mapping = {'train': 0, 'val': 1, 'test': 2}
+        custom_split = np.array([split_mapping.get(split, split_mapping[default_split]) for split in split_values])
+    else:
+        # If no split column provided, split using ratio
+        if custom_split_ratios is not None:
+            assert sum(custom_split_ratios) == 1.0, "Split ratios must sum to 1.0"
+            from sklearn.model_selection import train_test_split
+
+            indices = np.arange(len(smiles))
+            train_idx, test_idx = train_test_split(indices, test_size=custom_split_ratios[2], random_state=42)
+            train_idx, val_idx = train_test_split(
+                train_idx, test_size=custom_split_ratios[1] / (custom_split_ratios[0] + custom_split_ratios[1]), random_state=42
+            )
+            custom_split = np.full(len(smiles), fill_value=0, dtype=int)
+            custom_split[val_idx] = 1
+            custom_split[test_idx] = 2
+        else:
+            # Assign all to default_split
+            custom_split = np.full(len(smiles), fill_value=0, dtype=int)  # Default to 'train'
+
+    # Create Dataset
+    data = DataSet(
+        smiles=smiles,
+        target=targets_standardized,
+        global_features=global_feats,
+        mask=mask,  # This can be None if no mask is needed
+        filter=True,
+        fragmentation=fragmentation,
+        target_columns=target_columns,
+        custom_split=custom_split,
+    )
+
+    return data, mean_targets, std_targets
+
 # Extract configurations for initial dataset
 file_name = data_config.get('file_name')
 file_type = data_config.get('file_type', 'csv')
@@ -61,53 +194,6 @@ split_column = data_config.get('split_column', None)
 sheet_name = data_config.get('sheet_name', 0)
 fragmentation_settings = data_config.get('fragmentation', None)
 
-# Load initial dataset
-if file_type == 'csv':
-    df = pd.read_csv(file_name)
-elif file_type == 'excel':
-    df = pd.read_excel(file_name, sheet_name=sheet_name)
-else:
-    raise ValueError(f"Unsupported file type: {file_type}")
-
-# Read SMILES and targets
-smiles = df[smiles_column].to_numpy()
-
-targets_df = df[target_columns]
-num_targets = targets_df.shape[1]
-target_names = targets_df.columns.tolist()
-targets = targets_df.to_numpy()  # Shape: (num_samples, num_targets)
-
-# Read global features if provided
-if global_features_columns is not None:
-    global_feats = df[global_features_columns].to_numpy()
-else:
-    global_feats = None
-
-# Handle missing targets
-# TODO: refactor this to a function in utils
-if np.isnan(targets).any():
-    # Create mask: True where targets are present
-    mask = ~np.isnan(targets)  # Boolean array where True indicates presence
-    mask = mask.astype(np.float32)  # Convert to float32 for tensor operations
-    # Fill missing targets with zeros (since they'll be masked out during loss computation)
-    targets_filled = np.nan_to_num(targets, nan=0.0)
-    # Compute mean and std excluding NaNs
-    mean_targets = np.nanmean(targets, axis=0)  # Shape: (num_targets,)
-    std_targets = np.nanstd(targets, axis=0)
-    # Standardize targets
-    targets_standardized = standardize(targets, mean_targets, std_targets)
-    # Replace NaNs with zeros
-    targets_standardized_filled = np.nan_to_num(targets_standardized, nan=0.0)
-else:
-    mask = None  # No mask needed when all targets are present
-    targets_filled = targets
-    # Compute mean and std normally
-    mean_targets = np.mean(targets, axis=0)
-    std_targets = np.std(targets, axis=0)
-    # Standardize targets
-    targets_standardized = standardize(targets, mean_targets, std_targets)
-    targets_standardized_filled = targets_standardized
-
 # Handle fragmentation
 if fragmentation_settings is not None:
     # Get fragmentation settings
@@ -115,47 +201,30 @@ if fragmentation_settings is not None:
     save_file_path = fragmentation_settings.get('frag_save_file_path', None)
     tl_save_file_path = fragmentation_settings.get('transfer_learning_frag_save_file_path', None)
     verbose = fragmentation_settings.get('verbose', False)
-    print("Initializing fragmentation...")
+    print("Initializing fragmentation for main dataset...")
     fragmentation = JT_SubGraph(scheme=scheme, save_file_path=save_file_path, verbose=verbose)
-    fragmentation_tl = JT_SubGraph(scheme=scheme, save_file_path=tl_save_file_path, verbose=verbose)
     frag_dim = fragmentation.frag_dim
+    print("Done.")
+
+    print("Initializing fragmentation for transfer learning dataset...")
+    tl_fragmentation = JT_SubGraph(scheme=scheme, save_file_path=tl_save_file_path, verbose=verbose)
     print("Done.")
 else:
     fragmentation = None
+    tl_fragmentation = None
     frag_dim = 0
 
-# Handle custom splits
-if split_column is not None:
-    split_values = df[split_column].to_numpy()
-    # Map split values to integers
-    unique_splits = np.unique(split_values)
-    split_mapping = {split: idx for idx, split in enumerate(unique_splits)}
-    custom_split = np.array([split_mapping[split] for split in split_values])
-else:
-    # If no split column provided, split using ratio
-    split_ratios = data_config.get('split_ratios', [0.8, 0.1, 0.1])
-    assert sum(split_ratios) == 1.0, "Split ratios must sum to 1.0"
-    from sklearn.model_selection import train_test_split
-
-    indices = np.arange(len(smiles))
-    train_idx, test_idx = train_test_split(indices, test_size=split_ratios[2], random_state=42)
-    train_idx, val_idx = train_test_split(
-        train_idx, test_size=split_ratios[1] / (split_ratios[0] + split_ratios[1]), random_state=42
-    )
-    custom_split = np.zeros(len(smiles), dtype=int)
-    custom_split[val_idx] = 1
-    custom_split[test_idx] = 2
-
-# Create Dataset
-data = DataSet(
-    smiles=smiles,
-    target=targets_standardized_filled,
-    global_features=global_feats,
-    mask=mask,  # This can be None if no mask is needed
-    filter=True,
-    fragmentation=fragmentation,
+# Load initial dataset using the function
+data, mean_targets, std_targets = load_and_preprocess_dataset(
+    file_name=file_name,
+    file_type=file_type,
+    smiles_column=smiles_column,
     target_columns=target_columns,
-    custom_split=custom_split,
+    global_features_columns=global_features_columns,
+    split_column=split_column,
+    sheet_name=sheet_name,
+    fragmentation=fragmentation,
+    custom_split_ratios=data_config.get('split_ratios', [0.8, 0.1, 0.1]),
 )
 
 # Split data
@@ -193,7 +262,7 @@ net_params = {
     "num_heads": model_config.get('num_heads', 1),
     "node_in_dim": model_config.get('node_in_dim', 44),
     "edge_in_dim": model_config.get('edge_in_dim', 12),
-    "num_global_feats": global_feats.shape[1] if global_feats is not None else 0,
+    "num_global_feats": data.global_features.shape[1] if data.global_features is not None else 0,
     "hidden_dim": model_config.get('hidden_dim', 47),
     "mlp_out_hidden": mlp,
     "num_layers_atom": model_config.get('num_layers_atom', 3),
@@ -210,7 +279,7 @@ net_params = {
     "L1_hidden_dim": model_config.get('L1_hidden_dim', 247),
     "L2_hidden_dim": model_config.get('L2_hidden_dim', 141),
     "L3_hidden_dim": model_config.get('L3_hidden_dim', 47),
-    "output_dim": num_targets,  # Number of target properties
+    "output_dim": len(target_columns),  # Number of target properties
 }
 
 # Initialize model
@@ -318,8 +387,8 @@ if test_preds_rescaled.dim() == 1:
     test_preds_rescaled = test_preds_rescaled.unsqueeze(1)
     test_targets_rescaled = test_targets_rescaled.unsqueeze(1)
 
-np.save('test_pred', test_preds_rescaled)
-np.save('test_target', test_targets_rescaled)
+np.save('test_pred', test_preds_rescaled.cpu().numpy())
+np.save('test_target', test_targets_rescaled.cpu().numpy())
 
 # Compute metrics
 test_metrics, test_overall_metrics = compute_metrics(
@@ -345,10 +414,8 @@ if val_preds_rescaled.dim() == 1:
     val_preds_rescaled = val_preds_rescaled.unsqueeze(1)
     val_targets_rescaled = val_targets_rescaled.unsqueeze(1)
 
-np.save('val_pred', val_preds_rescaled)
-np.save('val_target', val_targets_rescaled)
-
-
+np.save('val_pred', val_preds_rescaled.cpu().numpy())
+np.save('val_target', val_targets_rescaled.cpu().numpy())
 
 # Evaluate on train set
 train_preds = test_model_jit(
@@ -360,7 +427,6 @@ train_preds = test_model_jit(
     net_params=net_params,
 )
 
-
 # Rescale predictions and targets
 train_preds_rescaled = train_preds * std_targets + mean_targets
 train_targets_rescaled = torch.cat([data.y for data in train_loader], dim=0) * std_targets + mean_targets
@@ -370,10 +436,8 @@ if train_preds_rescaled.dim() == 1:
     train_preds_rescaled = train_preds_rescaled.unsqueeze(1)
     train_targets_rescaled = train_targets_rescaled.unsqueeze(1)
 
-np.save('train_pred', train_preds_rescaled)
-np.save('train_target', train_targets_rescaled)
-
-
+np.save('train_pred', train_preds_rescaled.cpu().numpy())
+np.save('train_target', train_targets_rescaled.cpu().numpy())
 
 ##########################################################################################
 #####################    Transfer Learning Functions  ####################################
@@ -398,102 +462,67 @@ def freeze_model_layers(model):
 tl_data_config = data_config.get('transfer_learning_dataset', None)
 
 if tl_data_config is not None:
-    # Extract parameters
-    tl_file_name = tl_data_config.get('file_name')
-    tl_file_type = tl_data_config.get('file_type', 'csv')
-    tl_smiles_column = tl_data_config.get('smiles_column', 'SMILES')
-    tl_target_columns = tl_data_config.get('target_columns', ['Target'])
-    tl_global_features_columns = tl_data_config.get('global_features_columns', None)
-    tl_split_column = tl_data_config.get('split_column', None)
-    tl_sheet_name = tl_data_config.get('sheet_name', 0)
-    tl_model_filename = tl_data_config.get('model_save_path', 'gcgat_jitted_GAT_layers_frozen.pth')
-    # Load transfer learning dataset
-    if tl_file_type == 'csv':
-        tl_df = pd.read_csv(tl_file_name)
-    elif tl_file_type == 'excel':
-        tl_df = pd.read_excel(tl_file_name, sheet_name=tl_sheet_name)
-    else:
-        raise ValueError(f"Unsupported file type: {tl_file_type}")
-
-    # Read SMILES and targets
-    tl_smiles = tl_df[tl_smiles_column].to_numpy()
-    tl_targets_df = tl_df[tl_target_columns]
-    tl_num_targets = tl_targets_df.shape[1]
-    tl_target_names = tl_targets_df.columns.tolist()
-    tl_targets = tl_targets_df.to_numpy()  # Shape: (num_samples, num_targets)
-
-    # Read global features if provided
-    if tl_global_features_columns is not None:
-        tl_global_feats = tl_df[tl_global_features_columns].to_numpy()
-    else:
-        tl_global_feats = None
-
-    # Handle missing targets
-    # TODO: refactor this to a function in utils
-    if np.isnan(tl_targets).any():
-        # Create mask: True where targets are present
-        tl_mask = ~np.isnan(tl_targets)  # Boolean array where True indicates presence
-        tl_mask = tl_mask.astype(np.float32)  # Convert to float32 for tensor operations
-        # Fill missing targets with zeros (since they'll be masked out during loss computation)
-        tl_targets_filled = np.nan_to_num(tl_targets, nan=0.0)
-        # Compute mean and std excluding NaNs
-        #tl_mean_targets = np.nanmean(tl_targets, axis=0)  # Shape: (num_targets,)
-        #tl_std_targets = np.nanstd(tl_targets, axis=0)
-        tl_mean_targets = mean_targets
-        tl_std_targets = std_targets
-        # Standardize targets
-        tl_targets_standardized = standardize(tl_targets, tl_mean_targets, tl_std_targets)
-        # Replace NaNs with zeros
-        tl_targets_standardized_filled = np.nan_to_num(tl_targets_standardized, nan=0.0)
-    else:
-        tl_mask = None  # No mask needed when all targets are present
-        tl_targets_filled = tl_targets
-        # Compute mean and std normally
-        #tl_mean_targets = np.mean(tl_targets, axis=0)
-        #tl_std_targets = np.std(tl_targets, axis=0)
-        tl_mean_targets = mean_targets
-        tl_std_targets = std_targets
-        # Standardize targets
-        tl_targets_standardized = standardize(tl_targets, tl_mean_targets, tl_std_targets)
-        tl_targets_standardized_filled = tl_targets_standardized
-
-    # Handle custom splits
-    if tl_split_column is not None:
-        tl_split_values = tl_df[tl_split_column].to_numpy()
-        # Map split values to integers
-        unique_splits = np.unique(tl_split_values)
-        split_mapping = {split: idx for idx, split in enumerate(unique_splits)}
-        tl_custom_split = np.array([split_mapping[split] for split in tl_split_values])
-    else:
-        # If no split column provided, split using ratio
-        tl_split_ratios = tl_data_config.get('split_ratios', [0.8, 0.1, 0.1])
-        assert sum(tl_split_ratios) == 1.0, "Split ratios must sum to 1.0"
-        from sklearn.model_selection import train_test_split
-
-        tl_indices = np.arange(len(tl_smiles))
-        tl_train_idx, tl_test_idx = train_test_split(
-            tl_indices, test_size=tl_split_ratios[2], random_state=42
-        )
-        tl_train_idx, tl_val_idx = train_test_split(
-            tl_train_idx,
-            test_size=tl_split_ratios[1] / (tl_split_ratios[0] + tl_split_ratios[1]),
-            random_state=42,
-        )
-        tl_custom_split = np.zeros(len(tl_smiles), dtype=int)
-        tl_custom_split[tl_val_idx] = 1
-        tl_custom_split[tl_test_idx] = 2
-
-    # Create Dataset for transfer learning
-    tl_data = DataSet(
-        smiles=tl_smiles,
-        target=tl_targets_standardized_filled,
-        global_features=tl_global_feats,
-        mask=tl_mask,  # This can be None if no mask is needed
-        filter=True,
-        fragmentation=fragmentation,  # Use the same fragmentation
-        target_columns=tl_target_columns,
-        custom_split=tl_custom_split,
+    # Load training data
+    tl_training_data_config = tl_data_config.get('training_data')
+    tl_train_data, _, _ = load_and_preprocess_dataset(
+        file_name=tl_training_data_config.get('file_name'),
+        file_type=tl_training_data_config.get('file_type', 'csv'),
+        smiles_column=tl_training_data_config.get('smiles_column', 'SMILES'),
+        target_columns=tl_training_data_config.get('target_columns', ['Target']),
+        global_features_columns=tl_training_data_config.get('global_features_columns', None),
+        split_column=tl_training_data_config.get('split_column', None),
+        sheet_name=tl_training_data_config.get('sheet_name', 0),
+        fragmentation=tl_fragmentation,  # Use tl_fragmentation for training data
+        mean_targets=mean_targets,
+        std_targets=std_targets,
+        default_split='train',
     )
+
+    # Load validation and test data
+    tl_val_test_data_config = tl_data_config.get('validation_test_data')
+    tl_val_test_data, _, _ = load_and_preprocess_dataset(
+        file_name=tl_val_test_data_config.get('file_name'),
+        file_type=tl_val_test_data_config.get('file_type', 'csv'),
+        smiles_column=tl_val_test_data_config.get('smiles_column', 'SMILES'),
+        target_columns=tl_val_test_data_config.get('target_columns', ['Target']),
+        global_features_columns=tl_val_test_data_config.get('global_features_columns', None),
+        split_column=tl_val_test_data_config.get('split_column', None),
+        sheet_name=tl_val_test_data_config.get('sheet_name', 0),
+        fragmentation=fragmentation,  # Use original fragmentation for val/test data
+        mean_targets=mean_targets,
+        std_targets=std_targets,
+        default_split='train',
+    )
+
+    # Combine datasets properly
+    # Concatenate the data lists and other attributes
+    combined_smiles = np.concatenate([tl_train_data.smiles, tl_val_test_data.smiles])
+    combined_targets = np.concatenate([tl_train_data.target, tl_val_test_data.target])
+    combined_global_feats = None
+    if tl_train_data.global_features is not None and tl_val_test_data.global_features is not None:
+        combined_global_feats = np.concatenate([tl_train_data.global_features, tl_val_test_data.global_features])
+    combined_masks = None
+    if tl_train_data.mask is not None and tl_val_test_data.mask is not None:
+        combined_masks = np.concatenate([tl_train_data.mask, tl_val_test_data.mask])
+    combined_custom_split = np.concatenate([tl_train_data.custom_split, tl_val_test_data.custom_split])
+
+    # Create a new DataSet with the combined data
+    breakpoint()
+    tl_data = DataSet(
+        smiles=combined_smiles,
+        target=combined_targets.squeeze(),
+        global_features=combined_global_feats,
+        mask=combined_masks,
+        filter=False,
+        fragmentation=None,  # No need to fragment again
+        custom_split=combined_custom_split,
+    )
+    combined_graphs = tl_train_data.graphs + tl_val_test_data.graphs
+    tl_data.graphs = combined_graphs
+
+    # Manually set the fragmentation data for each data point
+    # Since we used different fragmentation objects, we need to ensure the fragmentation data is correctly set
+    #tl_data.fragmentation_data = tl_train_data.fragmentation_data + tl_val_test_data.fragmentation_data
 
     # Split data
     tl_train_set, tl_val_set, tl_test_set = split_data(
@@ -505,6 +534,8 @@ if tl_data_config is not None:
     tl_train_loader = DataLoader(tl_train_set, batch_size=tl_batch_size, shuffle=True)
     tl_val_loader = DataLoader(tl_val_set, batch_size=tl_batch_size, shuffle=False)
     tl_test_loader = DataLoader(tl_test_set, batch_size=tl_batch_size, shuffle=False)
+
+    tl_model_filename = tl_data_config.get('model_save_path', 'gcgat_jitted_GAT_layers_frozen.pth')
 
     ##########################################################################################
     #####################    Transfer Learning Loop  #########################################
@@ -572,9 +603,9 @@ if tl_data_config is not None:
             net_params=net_params,
         )
         val_targets_rescaled = (
-            torch.cat([data.y for data in val_loader], dim=0) * tl_std_targets + tl_mean_targets
+            torch.cat([data.y for data in val_loader], dim=0) * std_targets + mean_targets
         )
-        val_preds_rescaled = val_preds * tl_std_targets + tl_mean_targets
+        val_preds_rescaled = val_preds * std_targets + mean_targets
 
         val_mae = pred_metric(
             prediction=val_preds_rescaled,
@@ -612,13 +643,21 @@ if tl_data_config is not None:
     )
 
     # Rescale predictions and targets
-    tl_test_preds_rescaled = tl_test_preds * tl_std_targets + tl_mean_targets
+    tl_test_preds_rescaled = tl_test_preds * std_targets + mean_targets
     tl_test_targets_rescaled = (
-        torch.cat([data.y for data in tl_test_loader], dim=0) * tl_std_targets + tl_mean_targets
+        torch.cat([data.y for data in tl_test_loader], dim=0) * std_targets + mean_targets
     )
 
-    np.save('tl_test_pred', tl_test_preds_rescaled)
-    np.save('tl_test_target', tl_test_targets_rescaled)
+    np.save('tl_test_pred', tl_test_preds_rescaled.cpu().numpy())
+    np.save('tl_test_target', tl_test_targets_rescaled.cpu().numpy())
+
+    # Compute metrics
+    tl_test_metrics, tl_test_overall_metrics = compute_metrics(
+        tl_test_preds_rescaled,
+        tl_test_targets_rescaled,
+        getattr(tl_test_set, 'mask', None),
+        dataset_name='Transfer Learning Test',
+    )
 
     # Evaluate on transfer learning val set
     tl_val_preds = test_model_jit(
@@ -631,12 +670,12 @@ if tl_data_config is not None:
     )
 
     # Rescale predictions and targets
-    tl_val_preds_rescaled = tl_val_preds * tl_std_targets + tl_mean_targets
+    tl_val_preds_rescaled = tl_val_preds * std_targets + mean_targets
     tl_val_targets_rescaled = (
-            torch.cat([data.y for data in tl_val_loader], dim=0) * tl_std_targets + tl_mean_targets
+            torch.cat([data.y for data in tl_val_loader], dim=0) * std_targets + mean_targets
     )
-    np.save('tl_val_pred', tl_val_preds_rescaled)
-    np.save('tl_val_target', tl_val_targets_rescaled)
+    np.save('tl_val_pred', tl_val_preds_rescaled.cpu().numpy())
+    np.save('tl_val_target', tl_val_targets_rescaled.cpu().numpy())
 
     # Evaluate on transfer learning train set
     tl_train_preds = test_model_jit(
@@ -649,21 +688,28 @@ if tl_data_config is not None:
     )
 
     # Rescale predictions and targets
-    tl_train_preds_rescaled = tl_train_preds * tl_std_targets + tl_mean_targets
+    tl_train_preds_rescaled = tl_train_preds * std_targets + mean_targets
     tl_train_targets_rescaled = (
-            torch.cat([data.y for data in tl_train_loader], dim=0) * tl_std_targets + tl_mean_targets
+            torch.cat([data.y for data in tl_train_loader], dim=0) * std_targets + mean_targets
     )
-    np.save('tl_train_pred', tl_train_preds_rescaled)
-    np.save('tl_train_target', tl_train_targets_rescaled)
+    np.save('tl_train_pred', tl_train_preds_rescaled.cpu().numpy())
+    np.save('tl_train_target', tl_train_targets_rescaled.cpu().numpy())
 
-
-
-    # Compute metrics
-    tl_test_metrics, tl_test_overall_metrics = compute_metrics(
-        tl_test_preds_rescaled,
-        tl_test_targets_rescaled,
-        getattr(tl_test_set, 'mask', None),
-        dataset_name='Transfer Learning Test',
+    # Compute metrics for transfer learning train set
+    tl_train_metrics, tl_train_overall_metrics = compute_metrics(
+        tl_train_preds_rescaled,
+        tl_train_targets_rescaled,
+        getattr(tl_train_set, 'mask', None),
+        dataset_name='Transfer Learning Train',
     )
+
+    # Compute metrics for transfer learning validation set
+    tl_val_metrics, tl_val_overall_metrics = compute_metrics(
+        tl_val_preds_rescaled,
+        tl_val_targets_rescaled,
+        getattr(tl_val_set, 'mask', None),
+        dataset_name='Transfer Learning Validation',
+    )
+
 else:
     print("No transfer learning dataset specified in the configuration file.")

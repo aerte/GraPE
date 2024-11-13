@@ -503,10 +503,7 @@ class DataSet(DataLoad):
             if log_progress:
                 if (i + 1) % log_every == 0:
                     print('Currently performing fragmentation on molecule {:d}/{:d}'.format(i + 1, len(self.smiles)))
-            try:
-                frag_graphs, motif_graph, _, _ = graph_2_frag(s, self.graphs[i], self.fragmentation)
-            except:
-                breakpoint()
+            frag_graphs, motif_graph, _, _ = graph_2_frag(s, self.graphs[i], self.fragmentation)
             if hasattr(motif_graph, 'atom_mask'):
                 del motif_graph.atom_mask #hacky, but necessary to avoid issues with pytorch geometric
             if frag_graphs is not None:

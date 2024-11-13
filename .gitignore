@@ -209,7 +209,8 @@ gcgat_jitted_latest.pth
 *.pth
 # saved models
 gcgat_jitted_latest.pth
-
+# saved predictions
+*.npy
 
 ## Ignore venv directory
 pyvenv.cfg
