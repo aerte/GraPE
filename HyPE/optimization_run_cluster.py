@@ -360,7 +360,7 @@ if __name__ == '__main__':
         metric_columns=["epoch", "train_loss", "val_loss", "mse_loss"]
     )
 
-    local_dir = resume_from_path if resume_from_path else None
+    storage_path = resume_from_path if resume_from_path else None
 
     if args.resume_from_checkpoint_if_present and resume_from_path:
         # Restore the tuner from the previous experiment
@@ -380,11 +380,11 @@ if __name__ == '__main__':
                 metric="mse_loss",
                 num_samples=n_samples
             ),
-            run_config=train.RunConfig(
+            run_config=RunConfig(
                 name="bo_exp",
                 stop={"epoch": 600},
                 progress_reporter=reporter,
-                local_dir=local_dir,
+                storage_path=storage_path,  # Use storage_path instead of local_dir
             ),
         )
 
