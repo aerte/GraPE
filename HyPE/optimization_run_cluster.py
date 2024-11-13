@@ -8,6 +8,7 @@ from torch.optim import lr_scheduler
 from torch_geometric.loader import DataLoader
 from functools import partial
 from grape_chem.utils import DataSet, split_data, train_epoch_jittable, val_epoch_jittable
+from grape_chem.utils import JT_SubGraph
 from grape_chem.models import AFP, MPNN, DMPNN, MEGNet, GroupGAT_jittable
 from grape_chem.utils import EarlyStopping
 import ConfigSpace as CS
@@ -93,7 +94,6 @@ def load_dataset_from_file(data_config):
     # Handle fragmentation
     fragmentation_settings = data_config.get('fragmentation', None)
     if fragmentation_settings is not None:
-        from grape_chem.utils import JT_SubGraph
         # Get fragmentation settings
         scheme = fragmentation_settings.get('scheme', None)
         save_file_path = fragmentation_settings.get('save_file_path', None)
@@ -204,8 +204,7 @@ def load_model(model_name, config, device=None):
         return GroupGAT_jittable.GCGAT_v4pro_jit(net_params)
 
 def trainable(config, data_config=None, model_name: str = None, is_dmpnn: bool = False,
-              device: torch.device = None, is_megnet: bool = False, is_groupgat: bool = True,
-              fragmentation=None):
+              device: torch.device = None, is_megnet: bool = False, is_groupgat: bool = True,):
     """
     The trainable for Ray Tune.
 
@@ -287,12 +286,18 @@ if __name__ == '__main__':
     parser.add_argument('--config_file', type=str, default='config.yaml', help='Path to the config file')
     parser.add_argument('--samples', type=int, default=100,
                         help='the number of samples/instances that will be running (default: %(default)s)')
+    # Add the new resume flag
+    parser.add_argument('--resume_from_checkpoint_if_present', action='store_true',
+                        help='Resume the experiment from checkpoint if this flag is set')
     args = parser.parse_args()
     n_samples = args.samples
 
     # Read the configuration file
     with open(args.config_file, 'r') as f:
         data_config = yaml.safe_load(f)
+
+    # Extract the resume path from the config file if it exists
+    resume_from_path = data_config.get('resume_from_path', None)
 
     # Set up model and device configurations
     model_name = "GroupGAT"
@@ -307,35 +312,32 @@ if __name__ == '__main__':
         device = torch.device("cpu")
         gpu = 0
 
-    # Define the configuration space for hyperparameter optimization
+# Define the configuration space for hyperparameter optimisation
     config_space = CS.ConfigurationSpace()
-    config_space.add(CS.UniformIntegerHyperparameter("depth", lower=1, upper=5))
-    config_space.add(CS.UniformFloatHyperparameter('initial_lr', lower=1e-5, upper=1e-1))
-    config_space.add(CS.UniformFloatHyperparameter("weight_decay", lower=1e-6, upper=1e-1))
-    config_space.add(CS.UniformFloatHyperparameter("lr_reduction_factor", lower=0.4, upper=0.99))
+    config_space.add(CS.UniformIntegerHyperparameter("depth", lower=1, upper=4))
+    config_space.add(CS.UniformFloatHyperparameter('initial_lr', lower=1e-4, upper=1e-1))
+    config_space.add(CS.UniformFloatHyperparameter("weight_decay", lower=1e-6, upper=1e-2))
+    config_space.add(CS.UniformFloatHyperparameter("lr_reduction_factor", lower=0.4, upper=0.95))
     config_space.add(CS.UniformFloatHyperparameter("dropout", lower=0.0, upper=0.15))
-    config_space.add(CS.UniformIntegerHyperparameter("MLP_layers", lower=1, upper=4))
-
+    config_space.add(CS.UniformIntegerHyperparameter("MLP_layers", lower=1, upper=3))
     # Additional parameters for GroupGAT
     config_space.add(CS.UniformIntegerHyperparameter("hidden_dim", lower=64, upper=256))
-    config_space.add(CS.UniformIntegerHyperparameter("num_layers_atom", lower=1, upper=5))
-    config_space.add(CS.UniformIntegerHyperparameter("num_layers_mol", lower=1, upper=5))
-    config_space.add(CS.UniformFloatHyperparameter("final_dropout", lower=0.0, upper=0.5))
+    config_space.add(CS.UniformIntegerHyperparameter("num_layers_atom", lower=1, upper=4))
+    config_space.add(CS.UniformIntegerHyperparameter("num_layers_mol", lower=1, upper=4))
+    config_space.add(CS.UniformFloatHyperparameter("final_dropout", lower=0.0, upper=0.15))
     config_space.add(CS.UniformIntegerHyperparameter("num_heads", lower=1, upper=4))
     # L1:
-    config_space.add(CS.UniformIntegerHyperparameter("L1_layers_atom", lower=1, upper=5))
-    config_space.add(CS.UniformIntegerHyperparameter("L1_layers_mol", lower=1, upper=5))
-    config_space.add(CS.UniformFloatHyperparameter("L1_dropout", lower=0.0, upper=0.5))
+    config_space.add(CS.UniformIntegerHyperparameter("L1_layers_atom", lower=1, upper=4))
+    config_space.add(CS.UniformIntegerHyperparameter("L1_layers_mol", lower=1, upper=4))
+    config_space.add(CS.UniformFloatHyperparameter("L1_dropout", lower=0.0, upper=0.15))
     config_space.add(CS.UniformIntegerHyperparameter("L1_hidden_dim", lower=32, upper=256))
-
-    config_space.add(CS.UniformIntegerHyperparameter("L2_layers_atom", lower=1, upper=5))
-    config_space.add(CS.UniformIntegerHyperparameter("L2_layers_mol", lower=1, upper=5))
-    config_space.add(CS.UniformFloatHyperparameter("L2_dropout", lower=0.0, upper=0.5))
+    config_space.add(CS.UniformIntegerHyperparameter("L2_layers_atom", lower=1, upper=4))
+    config_space.add(CS.UniformIntegerHyperparameter("L2_layers_mol", lower=1, upper=4))
+    config_space.add(CS.UniformFloatHyperparameter("L2_dropout", lower=0.0, upper=0.15))
     config_space.add(CS.UniformIntegerHyperparameter("L2_hidden_dim", lower=32, upper=256))
-
-    config_space.add(CS.UniformIntegerHyperparameter("L3_layers_atom", lower=1, upper=5))
-    config_space.add(CS.UniformIntegerHyperparameter("L3_layers_mol", lower=1, upper=5))
-    config_space.add(CS.UniformFloatHyperparameter("L3_dropout", lower=0.0, upper=0.5))
+    config_space.add(CS.UniformIntegerHyperparameter("L3_layers_atom", lower=1, upper=4))
+    config_space.add(CS.UniformIntegerHyperparameter("L3_layers_mol", lower=1, upper=4))
+    config_space.add(CS.UniformFloatHyperparameter("L3_dropout", lower=0.0, upper=0.15))
     config_space.add(CS.UniformIntegerHyperparameter("L3_hidden_dim", lower=32, upper=256))
 
     # Prepare the trainable function with partial
@@ -358,22 +360,33 @@ if __name__ == '__main__':
         metric_columns=["epoch", "train_loss", "val_loss", "mse_loss"]
     )
 
-    # Initialize the tuner
-    tuner = Tuner(
-        trainable_with_resources,
-        tune_config=tune.TuneConfig(
-            scheduler=scheduler,
-            search_alg=algo,
-            mode='min',
-            metric="mse_loss",
-            num_samples=n_samples
-        ),
-        run_config=train.RunConfig(
-            name="bo_exp",
-            stop={"epoch": 600},
-            progress_reporter=reporter
-        ),
-    )
+    local_dir = resume_from_path if resume_from_path else None
+
+    if args.resume_from_checkpoint_if_present and resume_from_path:
+        # Restore the tuner from the previous experiment
+        tuner = Tuner.restore(
+            path=resume_from_path,
+            trainable=trainable_with_resources,
+            resume_errored=True,  # Optional: resumes any errored trials
+        )
+    else:
+        # Initialize a new tuner
+        tuner = Tuner(
+            trainable_with_resources,
+            tune_config=tune.TuneConfig(
+                scheduler=scheduler,
+                search_alg=algo,
+                mode='min',
+                metric="mse_loss",
+                num_samples=n_samples
+            ),
+            run_config=train.RunConfig(
+                name="bo_exp",
+                stop={"epoch": 600},
+                progress_reporter=reporter,
+                local_dir=local_dir,
+            ),
+        )
 
     result = tuner.fit()
 
