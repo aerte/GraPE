@@ -914,16 +914,15 @@ def test_model_jit(
     return_latents: bool = False,
     model_needs_frag: bool = False,
     net_params: dict = None,
-    output_csv: str = None,
-    mean: Union[float, np.ndarray] = None,
-    std: Union[float, np.ndarray] = None,
 ) -> Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]:
     """
     Auxiliary function to test a trained JIT-compiled model and return the predictions as well as the latent node
     representations. Can initialize DataLoaders if only a list of Data objects is given.
+
     Notes
     -----
     This function is designed for JIT-compiled models that require individual tensors as input.
+
     Parameters
     ----------
     model : torch.nn.Module
@@ -941,27 +940,24 @@ def test_model_jit(
         Whether the model needs fragment graphs or not. Default is False.
     net_params : dict, optional
         A dictionary containing network parameters, used for dimension matching if necessary.
-    output_csv : str, optional
-        Path to save predictions to a CSV file. If None, does not save predictions.
-    mean : float or np.ndarray, optional
-        Mean value(s) for rescaling predictions. If predictions are multi-dimensional, provide an array of means.
-    std : float or np.ndarray, optional
-        Standard deviation value(s) for rescaling predictions. If predictions are multi-dimensional, provide an array of stds.
+
     Returns
     -------
     Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]
         Predictions, and optionally latents if `return_latents` is True.
     """
-    import pandas as pd  # Import pandas for handling CSV output
-
     device = torch.device('cpu') if device is None else torch.device(device)
+
     # Exclude fragmentation keys if the model doesn't need them
     exclude_keys = None
     if not model_needs_frag:
         exclude_keys = ["frag_graphs", "motif_graphs"]
+
     if not isinstance(test_data_loader, DataLoader):
-        test_data_loader = DataLoader([data for data in test_data_loader], batch_size=batch_size)
+        test_data_loader = DataLoader([data for data in test_data_loader], batch_size = batch_size)
+
     model.eval()
+
     with torch.no_grad():
         with tqdm(total=len(test_data_loader)) as pbar:
             preds_list = []
@@ -973,6 +969,7 @@ def test_model_jit(
                 data_edge_index = batch.edge_index.to(device)
                 data_edge_attr = batch.edge_attr.to(device)
                 data_batch = batch.batch.to(device)
+
                 # Fragment graphs
                 frag_graphs = batch.frag_graphs  # List[Data]
                 frag_batch_list = []
@@ -988,10 +985,12 @@ def test_model_jit(
                     frag_edge_index_list.append(adjusted_edge_index.to(device))
                     frag_edge_attr_list.append(frag.edge_attr.to(device))
                     node_offset += num_nodes
+
                 frag_x = torch.cat(frag_x_list, dim=0)
                 frag_edge_index = torch.cat(frag_edge_index_list, dim=1)
                 frag_edge_attr = torch.cat(frag_edge_attr_list, dim=0)
                 frag_batch = torch.cat(frag_batch_list, dim=0)
+
                 # Junction graphs (motif graphs)
                 motif_graphs = batch.motif_graphs  # List[Data]
                 junction_batch_list = []
@@ -1007,14 +1006,20 @@ def test_model_jit(
                     junction_edge_index_list.append(adjusted_edge_index.to(device))
                     junction_edge_attr_list.append(motif.edge_attr.to(device))
                     node_offset += num_nodes
+
                 junction_x = torch.cat(junction_x_list, dim=0)
                 junction_edge_index = torch.cat(junction_edge_index_list, dim=1)
                 junction_edge_attr = torch.cat(junction_edge_attr_list, dim=0)
                 junction_batch = torch.cat(junction_batch_list, dim=0)
+
+                frag_batch = Batch.from_data_list(batch.frag_graphs).to(device).batch #moved this computation to training loop
+                motif_nodes = Batch.from_data_list(batch.frag_graphs).to(device).x
+
                 if hasattr(batch, 'global_feats'):
                     global_feats = batch.global_feats.to(device)
                 else:
                     global_feats = torch.empty(0).to(device)
+
                 # Forward pass
                 if return_latents:
                     # Assuming the model's forward method supports `return_lats` parameter
@@ -1031,6 +1036,7 @@ def test_model_jit(
                         junction_edge_index,
                         junction_edge_attr,
                         junction_batch,
+                        motif_nodes,
                         global_feats
                     )
                     lat = lat.detach().cpu()
@@ -1049,33 +1055,22 @@ def test_model_jit(
                         junction_edge_index,
                         junction_edge_attr,
                         junction_batch,
+                        motif_nodes,
                         global_feats
                     )
+
                 out = out.detach().cpu()
                 preds_list.append(out)
+
                 pbar.update(1)
-        # Concatenate predictions and latents
-        preds = torch.cat(preds_list, dim=0)
-        if output_csv is not None:
-            # Rescale predictions if mean and std are provided
-            if mean is not None and std is not None:
-                # Ensure mean and std are tensors of correct shape
-                mean_tensor = torch.tensor(mean, dtype=preds.dtype).view(1, -1)
-                std_tensor = torch.tensor(std, dtype=preds.dtype).view(1, -1)
-                preds_rescaled = preds * std_tensor + mean_tensor
-            else:
-                preds_rescaled = preds
-            # Convert to numpy array
-            preds_array = preds_rescaled.numpy()
-            # Create DataFrame
-            preds_df = pd.DataFrame(preds_array)
-            # Save to CSV
-            preds_df.to_csv(output_csv, index=False)
-        if return_latents:
-            latents = torch.cat(latents_list, dim=0)
-            return preds, latents
-        else:
-            return preds
+
+    # Concatenate predictions and latents
+    preds = torch.cat(preds_list, dim=0)
+    if return_latents:
+        latents = torch.cat(latents_list, dim=0)
+        return preds, latents
+    else:
+        return preds
     
 ##########################################################################
 ########### Prediction Metrics ###########################################
