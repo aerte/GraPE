@@ -246,12 +246,13 @@ omega_train_set, omega_val_set, omega_test_set = split_data(val_data, split_type
 # For initial training, use train_data as train_set, and omega_val_set as val_set
 train_set = train_data
 val_set = omega_val_set  # Use omega validation set for initial validation
-test_set = None  # No test set during initial training
+test_set = omega_test_set  # No test set during initial training
 
 # Create DataLoaders
 batch_size = data_config.get('batch_size', 5000)
 train_loader = DataLoader(train_set, batch_size=batch_size, shuffle=True)
 val_loader = DataLoader(val_set, batch_size=batch_size, shuffle=False)
+test_loader = DataLoader(test_set, batch_size=batch_size, shuffle=False)
 
 ##########################################################################################
 #####################    Model Setup and Training  #######################################
@@ -304,11 +305,11 @@ model.to(device)
 epochs = data_config.get('epochs', 1000)
 learning_rate = data_config.get('learning_rate', 0.001054627)
 weight_decay = data_config.get('weight_decay', 1e-4)
-patience = data_config.get('patience', 30)
+patience = data_config.get('patience', 19)
 
 optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
 scheduler = lr_scheduler.ReduceLROnPlateau(
-    optimizer, mode='min', factor=0.7, min_lr=1.00E-09, patience=15
+    optimizer, mode='min', factor=0.7, min_lr=1.00E-09, patience=30
 )
 early_stopper = EarlyStopping(patience=50, model_name='random', skip_save=True)
 loss_func = torch.nn.functional.mse_loss
@@ -342,8 +343,8 @@ else:
 ##########################################################################################
 #####################    Evaluation and Metrics After Initial Training ###################
 ##########################################################################################
-
-# Evaluate the model on the validation set
+breakpoint()
+# Evaluate the model on the validation and test sets
 val_preds = test_model_jit(
     model=model,
     test_data_loader=val_loader,
@@ -353,11 +354,32 @@ val_preds = test_model_jit(
     net_params=net_params,
 )
 
+test_preds = test_model_jit(
+    model=model,
+    test_data_loader=test_loader,
+    device=device,
+    batch_size=batch_size,
+    model_needs_frag=True,
+    net_params=net_params,
+)
+
+
 # Rescale predictions and targets using mean and std from synthetic data
 val_preds_rescaled = val_preds * std_targets + mean_targets
 val_targets_rescaled = (
     torch.cat([data.y for data in val_loader], dim=0) * std_targets + mean_targets
 )
+
+# Rescale predictions and targets using mean and std from synthetic data
+test_preds_rescaled = test_preds * std_targets + mean_targets
+test_targets_rescaled = (
+    torch.cat([data.y for data in test_loader], dim=0) * std_targets + mean_targets
+)
+
+########################################################################
+################# Metrics computation and printing #####################
+########################################################################
+
 
 # Compute metrics
 def compute_metrics(preds_rescaled, targets_rescaled, mask=None, dataset_name='Test', target_columns=None):
@@ -391,19 +413,29 @@ def compute_metrics(preds_rescaled, targets_rescaled, mask=None, dataset_name='T
     else:
         overall_pred = preds_rescaled.view(-1)
         overall_target = targets_rescaled.view(-1)
-    overall_results = pred_metric(overall_pred, overall_target, metrics='all', print_out=False)
+    overall_results = pred_metric(overall_pred, overall_target, metrics=['mae', 'r2'], print_out=False)
     print(f"Overall metrics across all properties on {dataset_name} set:")
     for metric_name, value in overall_results.items():
         print(f"{metric_name.upper()}: {value:.4f}")
     return metrics_per_property, overall_results
 
 # Compute and print metrics after initial training
-print("Metrics after training full model on synthetic data and validating on real data:")
+print("Metrics after training full model on synthetic data and validating on real data (Val)")
 initial_val_metrics, initial_val_overall_metrics = compute_metrics(
     val_preds_rescaled,
     val_targets_rescaled,
     getattr(val_set, 'mask', None),
     dataset_name='Validation',
+    target_columns=target_columns,
+)
+
+# Compute and print metrics after initial training on test set
+print("\nMetrics after training full model on synthetic data and testing on real data (Test)")
+initial_test_metrics, initial_test_overall_metrics = compute_metrics(
+    test_preds_rescaled,
+    test_targets_rescaled,
+    getattr(test_set, 'mask', None),
+    dataset_name='Test',
     target_columns=target_columns,
 )
 
@@ -494,7 +526,7 @@ transfer_learned_model = transfer_learning(
     base_model=model,
     train_loader=tl_train_loader,
     val_loader=tl_val_loader,
-    epochs=600,
+    epochs=1200,
     learning_rate=0.001,
     weight_decay=1e-6,
     patience=40,
