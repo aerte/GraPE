@@ -204,6 +204,9 @@ pyvenv.cfg
 Scripts/
 share/
 
+# Ignore data
+data/
+
 *.pt
 
 # Ignore mlflow artifacts and mlflow db
@@ -219,3 +222,5 @@ mlflow.db
 
 # Results folder
 ray_results/
+
+*.csv
