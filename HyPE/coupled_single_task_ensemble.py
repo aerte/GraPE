@@ -1,18 +1,18 @@
 import torch
-import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
-from torch_geometric.loader import DataLoader
-from tqdm import tqdm
-import os
-
+import torch.nn as nn
 from grape_chem.models import GroupGAT_Ensemble
 from grape_chem.utils import (
-    DataSet, train_model, EarlyStopping, split_data,
-    test_model, pred_metric, return_hidden_layers,
-    set_seed, JT_SubGraph
+    DataSet, EarlyStopping, train_model, test_model,
+    set_seed, JT_SubGraph, pred_metric
 )
+from torch_geometric.loader import DataLoader
 from torch.optim import lr_scheduler
+import numpy as np
+import pandas as pd
+import os
+
+# Set seed for reproducibility
+set_seed(42)
 
 def standardize(x, mean, std):
     return (x - mean) / std
@@ -22,7 +22,6 @@ def split_data_by_indices(data, train_idx, val_idx, test_idx):
     val = [data[i] for i in val_idx]
     test = [data[i] for i in test_idx]
     return train, val, test
-
 
 def train_and_evaluate_model(
     target_name, smiles, target_values, fragmentation,
@@ -170,182 +169,164 @@ def train_and_evaluate_model(
 
     return results
 
+def load_icp_dataset(fragmentation):
+    # Get the directory of the current script
+    script_dir = os.path.dirname(os.getcwd())
+    # Construct the absolute path to ICP.xlsx
+    root = '/home/paul/Documents/spaghetti/GraPE/env/ICP.xlsx'
+    print(f"Loading data from: {root}")
+    df = pd.read_excel(root)
 
-##########################################################################################
-############################### Main Code ################################################
-##########################################################################################
+    smiles = df['SMILES'].to_numpy()
+    targets = df['Value'].to_numpy()
 
-# Set seed for reproducibility
-set_seed(42)
+    tags = df['Subset'].to_numpy()
+    tag_to_int = {'Training': 0, 'Validation': 1, 'Test': 2}
+    custom_split = np.array([tag_to_int[tag] for tag in tags])
 
-# Hyperparameters
-epochs = 1000
-batch_size = 700
-patience = 30
-hidden_dim = 47
-learning_rate = 0.001054627
-weight_decay = 1e-4
-mlp_layers = 2
-atom_layers = 3
-mol_layers = 3
-scheduler_patience = 15  # For learning rate scheduler
+    global_feats = df['T'].to_numpy()
 
-# Device configuration
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    train_indices = np.where(custom_split == 0)[0]
+    val_indices = np.where(custom_split == 1)[0]
+    test_indices = np.where(custom_split == 2)[0]
 
-# Change to your own specifications
-root = './env/ICP.xlsx'
-sheet_name = ''
+    # Standardize target
+    mean_target = np.mean(targets)
+    std_target = np.std(targets)
+    target_standardized = standardize(targets, mean_target, std_target)
+    global_feats_standardized = standardize(global_feats, np.mean(global_feats), np.std(global_feats))
 
-df = pd.read_excel(root)
-# Read SMILES and target properties A, B, C, D
-smiles = df['SMILES'].to_numpy()
-targets = df['Value'].to_numpy()
+    # Create DataSet
+    data = DataSet(
+        smiles=smiles,
+        target=target_standardized,
+        global_features=global_feats_standardized,
+        filter=True,
+        fragmentation=fragmentation
+    )
 
-# Read tags for custom splits
-tags = df['Subset'].to_numpy()
-unique_tags = np.unique(tags)
-tag_to_int = {'Training': 0, 'Validation': 1, 'Test': 2}
-custom_split = np.array([tag_to_int[tag] for tag in tags])
+    # Split data
+    train_data, val_data, test_data = split_data_by_indices(
+        data, train_indices, val_indices, test_indices
+    )
 
-# Global features
-global_feats = df['T'].to_numpy()
+    return train_data, val_data, test_data, mean_target, std_target
 
-# Get indices for splits
-train_indices = np.where(custom_split == 0)[0]
-val_indices = np.where(custom_split == 1)[0]
-test_indices = np.where(custom_split == 2)[0]
-custom_split_indices = (train_indices, val_indices, test_indices)
+def return_hidden_layers(num):
+    return [2 ** i * 32 for i in range(num, 0, -1)]
 
-# Global features (if any)
-# global_feats = df['T'].to_numpy()
-# Standardize global features if using
-# mean_global_feats = np.mean(global_feats)
-# std_global_feats = np.std(global_feats)
-# global_feats = standardize(global_feats, mean_global_feats, std_global_feats)
+def get_net_params_per_model(config, device, frag_dim):
+    net_params_per_model = {}
+    model_names = ['A', 'B', 'C', 'D', 'E']
+    for model in model_names:
+        net_params = {
+            "device": device,
+            "num_atom_type": 44,
+            "num_bond_type": 12,
+            "dropout": config[f"{model}_dropout"],
+            "MLP_layers": int(config[f"{model}_MLP_layers"]),
+            "frag_dim": frag_dim,
+            "final_dropout": config[f"{model}_final_dropout"],
+            "num_heads": 1,  # If you wish, you can make this a hyperparameter
+            "node_in_dim": 44,
+            "edge_in_dim": 12,
+            "num_global_feats": 1,
+            "hidden_dim": int(config[f"{model}_hidden_dim"]),
+            "mlp_out_hidden": return_hidden_layers(int(config[f"{model}_MLP_layers"])),
+            "num_layers_atom": int(config[f"{model}_num_layers_atom"]),
+            "num_layers_mol": int(config[f"{model}_num_layers_mol"]),
+            # L1 parameters
+            "L1_layers_atom": int(config[f"{model}_L1_layers_atom"]),
+            "L1_layers_mol": int(config[f"{model}_L1_layers_mol"]),
+            "L1_dropout": config[f"{model}_L1_dropout"],
+            "L1_hidden_dim": int(config[f"{model}_L1_hidden_dim"]),
+            # L2 parameters
+            "L2_layers_atom": int(config[f"{model}_L2_layers_atom"]),
+            "L2_layers_mol": int(config[f"{model}_L2_layers_mol"]),
+            "L2_dropout": config[f"{model}_L2_dropout"],
+            "L2_hidden_dim": int(config[f"{model}_L2_hidden_dim"]),
+            # L3 parameters
+            "L3_layers_atom": int(config[f"{model}_L3_layers_atom"]),
+            "L3_layers_mol": int(config[f"{model}_L3_layers_mol"]),
+            "L3_dropout": config[f"{model}_L3_dropout"],
+            "L3_hidden_dim": int(config[f"{model}_L3_hidden_dim"]),
+            "output_dim": 1,
+            #disable global feats for the individual models
+            "use_global_features": False,
+            "num_global_feats": 0,
+        }
+        net_params_per_model[model] = net_params
+    return net_params_per_model
 
-########################## Fragmentation #########################################
-fragmentation_scheme = "MG_plus_reference"
-print("Initializing fragmentation...")
-fragmentation = JT_SubGraph(scheme=fragmentation_scheme, save_file_path='env/ICP_fragmentation.pth')
-frag_dim = fragmentation.frag_dim
-print("Done.")
+def load_model(config, device, frag_dim):
+    net_params_per_model = get_net_params_per_model(config, device, frag_dim)
+    return GroupGAT_Ensemble(net_params_per_model).to(device)
 
-###################### train and eval model 
+if __name__ == '__main__':
+    # Device configuration
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+    # Initialize fragmentation
+    fragmentation_scheme = "MG_plus_reference"
+    print("Initializing fragmentation...")
+    fragmentation = JT_SubGraph(scheme=fragmentation_scheme, save_file_path='/home/paul/Documents/spaghetti/GraPE/env/ICP_fragmentation.pth')
+    print("Done.")
+
+    # Load the ICP dataset
+    train_data, val_data, test_data, mean_target, std_target = load_icp_dataset(fragmentation)
+
+    # Prepare the configuration dictionary
+    config = {
+        'initial_lr': 0.001,
+        'weight_decay': 1e-5,
+        'lr_reduction_factor': 0.5,
+        'batch_size': 32,
+    }
+
+    model_names = ['A', 'B', 'C', 'D', 'E']
+    for model in model_names:
+        config[f"{model}_dropout"] = 0.1
+        config[f"{model}_MLP_layers"] = 2
+        config[f"{model}_final_dropout"] = 0.1
+        config[f"{model}_hidden_dim"] = 128
+        config[f"{model}_num_layers_atom"] = 3
+        config[f"{model}_num_layers_mol"] = 3
+        config[f"{model}_L1_layers_atom"] = 2
+        config[f"{model}_L1_layers_mol"] = 2
+        config[f"{model}_L1_dropout"] = 0.1
+        config[f"{model}_L1_hidden_dim"] = 64
+        config[f"{model}_L2_layers_atom"] = 2
+        config[f"{model}_L2_layers_mol"] = 2
+        config[f"{model}_L2_dropout"] = 0.1
+        config[f"{model}_L2_hidden_dim"] = 64
+        config[f"{model}_L3_layers_atom"] = 2
+        config[f"{model}_L3_layers_mol"] = 2
+        config[f"{model}_L3_dropout"] = 0.1
+        config[f"{model}_L3_hidden_dim"] = 64
+
+    # Load the model
+    frag_dim = fragmentation.frag_dim
+    model = load_model(config, device, frag_dim)
+    model.to(device)
+
+    # Set up optimizer, scheduler, and early stopper
+    optimizer = torch.optim.Adam(model.parameters(), lr=config['initial_lr'], weight_decay=config['weight_decay'])
+    early_stopper = EarlyStopping(patience=30, model_name='GroupGAT_Ensemble', skip_save=False)
+    scheduler = lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=config['lr_reduction_factor'], min_lr=1e-10, patience=10)
+    loss_function = torch.nn.functional.mse_loss
+
+    # Create data loaders
+    batch_size = config.get('batch_size', len(train_data))  # Adjust batch size if necessary
+    train_loader = DataLoader(train_data, batch_size=batch_size, shuffle=True)
+    val_loader = DataLoader(val_data, batch_size=batch_size)
+    test_loader = DataLoader(test_data, batch_size=batch_size)
+
+    iterations = 3000  # Adjust as necessary
+    start_epoch = 0
 
 
 
-############################## workflow ##########################################
-# Define network parameters
-mlp = return_hidden_layers(mlp_layers)
-net_params = {
-    "device": device,  # Shouldn't be passed in this way, but best we have for now
-    "num_atom_type": 44,  # Should match your featurizer's output
-    "num_bond_type": 12,  # Should match your featurizer's output
-    "dropout": 0.0,
-    "MLP_layers": mlp_layers,
-    "frag_dim": frag_dim,
-    "final_dropout": 0.119,
-    "use_global_features": False,
-    "global_features": 1,
-    # For origins:
-    "num_heads": 1,
-    # For AFP:
-    "node_in_dim": 44,
-    "edge_in_dim": 12,
-    "num_global_feats": 1,
-    "hidden_dim": hidden_dim,  # Important: check matches with `L1_hidden_dim`
-    "mlp_out_hidden": mlp,
-    "num_layers_atom": atom_layers,
-    "num_layers_mol": mol_layers,
-    # For channels:
-    "L1_layers_atom": 4,  # L1_layers
-    "L1_layers_mol": 1,   # L1_depth
-    "L1_dropout": 0.142,
-    "L2_layers_atom": 2,  # L2_layers
-    "L2_layers_mol": 3,   # L2_depth
-    "L2_dropout": 0.255,
-    "L3_layers_atom": 1,  # L3_layers
-    "L3_layers_mol": 4,   # L3_depth
-    "L3_dropout": 0.026,
-    "L1_hidden_dim": 247,
-    "L2_hidden_dim": 141,
-    "L3_hidden_dim": 47,
-    "output_dim": 1,      # Output dimension is 1 for each model
-}
-
-# Initialize the ensemble model
-num_models = 5  # Number of models in the ensemble
-# Ensure each model has its own parameters if needed
-model = GroupGAT_Ensemble(net_params, num_models).to(device)
-
-# Training the ensemble model
-results = train_and_evaluate_model(
-    target_name="ICP",
-    smiles=smiles,
-    target_values=targets,
-    fragmentation=fragmentation,
-    custom_split_indices=custom_split_indices,
-    net_params=net_params,
-    device=device,
-    batch_size=batch_size,
-    epochs=epochs,
-    learning_rate=learning_rate,
-    weight_decay=weight_decay,
-    scheduler_patience=scheduler_patience,
-    global_feats=global_feats
-)
-
-# Create parity plot for the overall predictions
-def create_parity_plot(results_dict, target_name):
-    train_preds_np = results_dict['train_pred']
-    val_preds_np = results_dict['val_pred']
-    test_preds_np = results_dict['test_pred']
-
-    train_targets_np = results_dict['train_target']
-    val_targets_np = results_dict['val_target']
-    test_targets_np = results_dict['test_target']
-
-    # Concatenate predictions and targets
-    all_preds = np.concatenate([train_preds_np, val_preds_np, test_preds_np])
-    all_targets = np.concatenate([train_targets_np, val_targets_np, test_targets_np])
-
-    # Create labels
-    train_labels = np.array(['Train'] * len(train_preds_np))
-    val_labels = np.array(['Validation'] * len(val_preds_np))
-    test_labels = np.array(['Test'] * len(test_preds_np))
-    all_labels = np.concatenate([train_labels, val_labels, test_labels])
-
-    # Create a color map
-    colors = {'Train': 'blue', 'Validation': 'green', 'Test': 'red'}
-    color_list = [colors[label] for label in all_labels]
-
-    # Create parity plot
-    plt.figure(figsize=(8, 8))
-    plt.scatter(all_targets, all_preds, c=color_list, alpha=0.6)
-
-    # Plot y=x line
-    min_val = min(all_targets.min(), all_preds.min())
-    max_val = max(all_targets.max(), all_preds.max())
-    plt.plot([min_val, max_val], [min_val, max_val], 'k--')
-
-    # Set limits with buffer
-    buffer = (max_val - min_val) * 0.05
-    plt.xlim([min_val - buffer, max_val + buffer])
-    plt.ylim([min_val - buffer, max_val + buffer])
-    target_name = "C_p"
-    # Labels and title
-    plt.xlabel('Actual')
-    plt.ylabel('Predicted')
-    plt.title(f'Parity Plot for Property {target_name}')
-    plt.legend(handles=[
-        plt.Line2D([], [], marker='o', color='w', label='Train', markerfacecolor='blue', markersize=10),
-        plt.Line2D([], [], marker='o', color='w', label='Validation', markerfacecolor='green', markersize=10),
-        plt.Line2D([], [], marker='o', color='w', label='Test', markerfacecolor='red', markersize=10)
-    ])
-    plt.show()
-target_name = "C_p"
-# Create parity plot
-print(f"\nCreating parity plot for target: {target_name}")
-create_parity_plot(results, target_name)
-
+    # Evaluate on test set
+    model.eval()
+    test_loss = val_epoch(model=model, loss_func=loss_function, val_loader=test_loader, device=device)
+    print(f"Test Loss: {test_loss:.4f}")

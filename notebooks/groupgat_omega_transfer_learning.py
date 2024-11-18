@@ -529,7 +529,7 @@ transfer_learned_model = transfer_learning(
     epochs=1200,
     learning_rate=0.001,
     weight_decay=1e-6,
-    patience=40,
+    patience=19,
 )
 
 ##########################################################################################

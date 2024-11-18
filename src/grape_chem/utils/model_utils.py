@@ -1064,13 +1064,29 @@ def test_model_jit(
 
                 pbar.update(1)
 
-    # Concatenate predictions and latents
-    preds = torch.cat(preds_list, dim=0)
-    if return_latents:
-        latents = torch.cat(latents_list, dim=0)
-        return preds, latents
-    else:
-        return preds
+    # Concatenate predictions and latents if needed to write to a csv or smth
+        # preds = torch.cat(preds_list, dim=0)
+        # if output_csv is not None:
+        #     # Rescale predictions if mean and std are provided
+        #     if mean is not None and std is not None:
+        #         # Ensure mean and std are tensors of correct shape
+        #         mean_tensor = torch.tensor(mean, dtype=preds.dtype).view(1, -1)
+        #         std_tensor = torch.tensor(std, dtype=preds.dtype).view(1, -1)
+        #         preds_rescaled = preds * std_tensor + mean_tensor
+        #     else:
+        #         preds_rescaled = preds
+        #     # Convert to numpy array
+        #     preds_array = preds_rescaled.numpy()
+        #     # Create DataFrame with SMILES and predictions
+        #     preds_df = pd.DataFrame(preds_array)
+        #     preds_df.insert(0, 'SMILES', smiles_list)
+        #     # Save to CSV
+        #     preds_df.to_csv(output_csv, index=False)
+        # if return_latents:
+        #     latents = torch.cat(latents_list, dim=0)
+        #     return preds, latents
+        # else:
+        #     return preds
     
 ##########################################################################
 ########### Prediction Metrics ###########################################

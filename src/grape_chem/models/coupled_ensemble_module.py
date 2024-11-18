@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 from grape_chem.models import GroupGAT
 
-__all__ = ['GroupGAT_Ensemble']
+__all__ = ['GroupGAT_Ensemble', 'old_GroupGAT_Ensemble']
 
 class GroupGAT_Ensemble(nn.Module):
     """
@@ -74,3 +74,39 @@ class CpLayer(nn.Module):
 
         Cp = B + C * ((D_over_T / sinh_term) ** 2) + E * ((F_over_T / cosh_term) ** 2)
         return Cp
+    
+class old_GroupGAT_Ensemble(nn.Module):
+    """
+    the old way that doesn't support hyperparam optimization,
+    but provides the baseline realiably.
+    """
+    def __init__(self, net_params, num_targets, fn=None,):
+        super().__init__()
+        # self.models = nn.ModuleList([
+        #     GroupGAT.GCGAT_v4pro_jit(net_params) for _ in range(num_targets)
+        # ])
+        # ^ If you want a model with variable number of coeffs, though it won't be jittable
+        self.device = net_params['device']
+        A_model = GroupGAT.GCGAT_v4pro(net_params)
+        B_model = GroupGAT.GCGAT_v4pro(net_params)
+        C_model = GroupGAT.GCGAT_v4pro(net_params)
+        D_model = GroupGAT.GCGAT_v4pro(net_params)
+        E_model = GroupGAT.GCGAT_v4pro(net_params)
+        self.models = nn.ModuleDict({
+            'A': A_model,
+            'B': B_model,
+            'C': C_model,
+            'D': D_model,
+            'E': E_model
+        })
+
+    def forward(self, data):
+        T = data.global_feats.to(self.device)
+        outputs = []
+        A = self.models['A'](data)
+        B = self.models['B'](data)
+        C = self.models['C'](data)
+        D = self.models['D'](data)
+        E = self.models['E'](data)
+        Cp = CpLayer()
+        return Cp(A, B, C, D, E, T)

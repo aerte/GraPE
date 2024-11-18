@@ -312,37 +312,51 @@ if __name__ == '__main__':
         device = torch.device("cpu")
         gpu = 0
 
-# Define the configuration space for hyperparameter optimisation
-    config_space = CS.ConfigurationSpace()
-    config_space.add(CS.UniformIntegerHyperparameter("depth", lower=1, upper=4))
-    config_space.add(CS.UniformFloatHyperparameter('initial_lr', lower=1e-4, upper=1e-1))
-    config_space.add(CS.UniformFloatHyperparameter("weight_decay", lower=1e-6, upper=1e-2))
-    config_space.add(CS.UniformFloatHyperparameter("lr_reduction_factor", lower=0.4, upper=0.95))
-    config_space.add(CS.UniformFloatHyperparameter("dropout", lower=0.0, upper=0.15))
-    config_space.add(CS.UniformIntegerHyperparameter("MLP_layers", lower=1, upper=3))
-    # Additional parameters for GroupGAT
-    config_space.add(CS.UniformIntegerHyperparameter("hidden_dim", lower=64, upper=256))
-    config_space.add(CS.UniformIntegerHyperparameter("num_layers_atom", lower=1, upper=4))
-    config_space.add(CS.UniformIntegerHyperparameter("num_layers_mol", lower=1, upper=4))
-    config_space.add(CS.UniformFloatHyperparameter("final_dropout", lower=0.0, upper=0.15))
-    config_space.add(CS.UniformIntegerHyperparameter("num_heads", lower=1, upper=4))
-    # L1:
-    config_space.add(CS.UniformIntegerHyperparameter("L1_layers_atom", lower=1, upper=4))
-    config_space.add(CS.UniformIntegerHyperparameter("L1_layers_mol", lower=1, upper=4))
-    config_space.add(CS.UniformFloatHyperparameter("L1_dropout", lower=0.0, upper=0.15))
-    config_space.add(CS.UniformIntegerHyperparameter("L1_hidden_dim", lower=32, upper=256))
-    config_space.add(CS.UniformIntegerHyperparameter("L2_layers_atom", lower=1, upper=4))
-    config_space.add(CS.UniformIntegerHyperparameter("L2_layers_mol", lower=1, upper=4))
-    config_space.add(CS.UniformFloatHyperparameter("L2_dropout", lower=0.0, upper=0.15))
-    config_space.add(CS.UniformIntegerHyperparameter("L2_hidden_dim", lower=32, upper=256))
-    config_space.add(CS.UniformIntegerHyperparameter("L3_layers_atom", lower=1, upper=4))
-    config_space.add(CS.UniformIntegerHyperparameter("L3_layers_mol", lower=1, upper=4))
-    config_space.add(CS.UniformFloatHyperparameter("L3_dropout", lower=0.0, upper=0.15))
-    config_space.add(CS.UniformIntegerHyperparameter("L3_hidden_dim", lower=32, upper=256))
-
     # Prepare the trainable function with partial
     my_trainable = partial(trainable, data_config=data_config, model_name=model_name, is_dmpnn=is_dmpnn,
                            is_megnet=is_megnet, device=device, is_groupgat=is_groupgat)
+
+    trainable_with_resources = tune.with_resources(my_trainable, {"cpu": 6, "gpu": gpu})
+
+    # Only define the search algorithm and scheduler if not resuming
+    if not args.resume_from_checkpoint_if_present or not resume_from_path:
+        # Define the configuration space for hyperparameter optimization
+        config_space = CS.ConfigurationSpace()
+        config_space.add(CS.UniformIntegerHyperparameter("depth", lower=1, upper=4))
+        config_space.add(CS.UniformFloatHyperparameter('initial_lr', lower=1e-4, upper=1e-1))
+        config_space.add(CS.UniformFloatHyperparameter("weight_decay", lower=1e-6, upper=1e-2))
+        config_space.add(CS.UniformFloatHyperparameter("lr_reduction_factor", lower=0.4, upper=0.95))
+        config_space.add(CS.UniformFloatHyperparameter("dropout", lower=0.0, upper=0.15))
+        config_space.add(CS.UniformIntegerHyperparameter("MLP_layers", lower=1, upper=3))
+        # Additional parameters for GroupGAT
+        config_space.add(CS.UniformIntegerHyperparameter("hidden_dim", lower=64, upper=256))
+        config_space.add(CS.UniformIntegerHyperparameter("num_layers_atom", lower=1, upper=4))
+        config_space.add(CS.UniformIntegerHyperparameter("num_layers_mol", lower=1, upper=4))
+        config_space.add(CS.UniformFloatHyperparameter("final_dropout", lower=0.0, upper=0.15))
+        config_space.add(CS.UniformIntegerHyperparameter("num_heads", lower=1, upper=4))
+        # L1:
+        config_space.add(CS.UniformIntegerHyperparameter("L1_layers_atom", lower=1, upper=4))
+        config_space.add(CS.UniformIntegerHyperparameter("L1_layers_mol", lower=1, upper=4))
+        config_space.add(CS.UniformFloatHyperparameter("L1_dropout", lower=0.0, upper=0.15))
+        config_space.add(CS.UniformIntegerHyperparameter("L1_hidden_dim", lower=32, upper=256))
+        config_space.add(CS.UniformIntegerHyperparameter("L2_layers_atom", lower=1, upper=4))
+        config_space.add(CS.UniformIntegerHyperparameter("L2_layers_mol", lower=1, upper=4))
+        config_space.add(CS.UniformFloatHyperparameter("L2_dropout", lower=0.0, upper=0.15))
+        config_space.add(CS.UniformIntegerHyperparameter("L2_hidden_dim", lower=32, upper=256))
+        config_space.add(CS.UniformIntegerHyperparameter("L3_layers_atom", lower=1, upper=4))
+        config_space.add(CS.UniformIntegerHyperparameter("L3_layers_mol", lower=1, upper=4))
+        config_space.add(CS.UniformFloatHyperparameter("L3_dropout", lower=0.0, upper=0.15))
+        config_space.add(CS.UniformIntegerHyperparameter("L3_hidden_dim", lower=32, upper=256))
+
+        algo = TuneBOHB(config_space, mode='min', metric="mse_loss")
+        scheduler = HyperBandForBOHB(
+            time_attr="epoch",
+            max_t=1000,
+            reduction_factor=2.78,
+        )
+    # Prepare the trainable function with partial
+    # my_trainable = partial(trainable, data_config=data_config, model_name=model_name, is_dmpnn=is_dmpnn,
+    #                        is_megnet=is_megnet, device=device, is_groupgat=is_groupgat)
 
     trainable_with_resources = tune.with_resources(my_trainable, {"cpu": 6, "gpu": gpu})
 
