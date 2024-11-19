@@ -1063,7 +1063,13 @@ def test_model_jit(
                 preds_list.append(out)
 
                 pbar.update(1)
-
+                
+    preds = torch.cat(preds_list, dim=0)
+    if return_latents:
+        latents = torch.cat(latents_list, dim=0)
+        return preds, latents
+    else:
+        return preds
     # Concatenate predictions and latents if needed to write to a csv or smth
         # preds = torch.cat(preds_list, dim=0)
         # if output_csv is not None:
