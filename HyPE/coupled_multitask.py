@@ -64,7 +64,7 @@ mean_global_feats, std_global_feats = np.mean(global_feats), np.std(global_feats
 
 # Fragmentation
 fragmentation_scheme = "MG_plus_reference"
-fragmentation = JT_SubGraph(scheme=fragmentation_scheme)
+fragmentation = JT_SubGraph(scheme=fragmentation_scheme, save_file_path='env/icp_single_task_fragmentation')
 frag_dim = fragmentation.frag_dim
 
 # DataSet Creation
@@ -128,7 +128,7 @@ scheduler = lr_scheduler.ReduceLROnPlateau(
 loss_func = torch.nn.functional.mse_loss
 
 # Define model filename
-model_filename = 'groupgat_icp_latest.pth'
+model_filename = 'groupgat_icp_coupled_multitask.pth'
 
 # Check if the model file exists
 if os.path.exists(model_filename):

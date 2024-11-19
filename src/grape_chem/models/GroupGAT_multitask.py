@@ -1,3 +1,7 @@
+"""
+An instance of regular multitask GroupGAT that takes the physics-informed C_P Layer
+"""
+
 import torch
 import torch.nn as nn
 from grape_chem.models.AFP_gnn_jittable import AFP_jittable as AFP  # Assuming AFP is TorchScript compatible
