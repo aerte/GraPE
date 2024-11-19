@@ -23,6 +23,7 @@ from ray.tune.schedulers.hb_bohb import HyperBandForBOHB
 import ConfigSpace as CS
 import argparse
 import yaml
+from jinja2 import Template
 
 # Initialize Ray
 ray.init()
@@ -194,10 +195,19 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
     n_samples = args.samples
+    config_file = args.config_file  # Get the config file from arguments
 
-    # Read the configuration file
-    with open(args.config_file, 'r') as f:
-        data_config = yaml.safe_load(f)
+    # Load and render the YAML template with Jinja2
+    with open(config_file, 'r') as f:
+        template = Template(f.read())
+        # First, parse the unrendered config to get the variables
+        f.seek(0)
+        f_config_unparsed = yaml.safe_load(f)
+        template_vars = {
+            'root_path': f_config_unparsed.get('root_path', '')  # Default to empty string if not defined
+        }
+        rendered_yaml = template.render(template_vars)
+        data_config = yaml.safe_load(rendered_yaml)
 
     # Device configuration
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
