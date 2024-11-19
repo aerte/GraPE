@@ -9,3 +9,4 @@ from .GroupGAT_jittable import *
 from .GroupGAT_multitask import *
 from .AttentiveFP_alphas import * #TODO: fix naming so class and module aren't the same 
 from .coupled_ensemble_module import *
+from .AGC import *

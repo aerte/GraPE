@@ -70,7 +70,7 @@ global_feats = standardize(global_feats, mean_global_feats, std_global_feats)
 ########################## fragmentation #########################################
 fragmentation_scheme = "MG_plus_reference"
 print("initializing frag...")
-fragmentation = JT_SubGraph(scheme=fragmentation_scheme)
+fragmentation = JT_SubGraph(scheme=fragmentation_scheme, save_file_path="env/default_ICP_frag")
 frag_dim = fragmentation.frag_dim
 print("done.")
 
