@@ -555,269 +555,92 @@ create_parity_plot(
 )
 
 
-##############################################################################################
-################                         Grokking                  ###########################
-##############################################################################################
-if False:
-    from typing import Callable, Union, List, Tuple, Optional
-    from torch.optim import Optimizer
-    import torch.nn.functional as F
-    from torch_geometric.data import Data
+def generate_predictions_and_save(
+    data,
+    model,
+    df,
+    smiles,
+    target_columns,
+    std_targets,
+    mean_targets,
+    batch_size,
+    device,
+    output_filename
+):
+    """
+    Function to generate predictions for the full dataset, align them with the SMILES, and save to a CSV file.
+    """
+    from tqdm import tqdm
+    from rdkit import Chem
 
-    def train_model_jit_grokk(
-        model: torch.nn.Module,
-        loss_func: Union[Callable, str],
-        optimizer: Optimizer,
-        train_data_loader: Union[List[Data], DataLoader],
-        val_data_loader: Union[List[Data], DataLoader],
-        device: str = None,
-        epochs: int = 50,
-        batch_size: int = 32,
-        early_stopper=None,
-        scheduler: lr_scheduler._LRScheduler = None,
-        tuning: bool = False,
-        model_name: str = None,
-        model_needs_frag: bool = False,
-        net_params: dict = None,
-        alpha: float = 0.98,
-        lamb: float = 2.0,
-    ) -> tuple[List[float], List[float]]:
-        """
-        Training function adapted for the JIT-compiled model, which requires individual tensors as input.
-        This version incorporates the Grokfast method (gradfilter_ema).
-        """
-        loss_functions = {
-            'mse': F.mse_loss,
-            'mae': F.l1_loss
-        }
+    # Step 1: Get valid indices using RDKit
+    def get_valid_indices(smiles_list):
+        valid_indices = []
+        for idx, smile in enumerate(tqdm(smiles_list, desc='Validating SMILES')):
+            mol = Chem.MolFromSmiles(smile)
+            if mol is not None:
+                valid_indices.append(idx)
+        return valid_indices
 
-        if isinstance(loss_func, str):
-            loss_func = loss_functions[loss_func]
+    print("Identifying valid SMILES...")
+    valid_indices = get_valid_indices(smiles)
+    print(f"Number of valid SMILES: {len(valid_indices)} out of {len(smiles)}")
 
-        device = torch.device('cpu') if device is None else torch.device(device)
+    # Step 2: Filter df
+    df_filtered = df.iloc[valid_indices].reset_index(drop=True)
 
-        exclude_keys = None
-        # Exclude fragmentation keys if the model doesn't need them
-        if not model_needs_frag:
-            if hasattr(train_data_loader, "fragmentation"):
-                if train_data_loader.fragmentation is not None:
-                    exclude_keys = ["frag_graphs", "motif_graphs"]
+    # Step 3: Ensure lengths match
+    if len(df_filtered) != len(data):
+        print(f"Length mismatch: df_filtered ({len(df_filtered)}) vs. data ({len(data)})")
+        # Attempt to extract SMILES from data
+        smiles_list = []
+        for d in data:
+            if hasattr(d, 'smiles'):
+                smiles_list.append(d.smiles)
+            else:
+                smiles_list.append(None)  # Placeholder if SMILES not available
+        if len(smiles_list) == len(data):
+            print("Extracted SMILES from data objects.")
+            df_filtered = df_filtered.iloc[:len(data)].reset_index(drop=True)
+            df_filtered['SMILES'] = smiles_list
+        else:
+            print("Cannot retrieve SMILES from data. Exiting.")
+            return
+    else:
+        print(f"Lengths match: {len(df_filtered)} entries")
 
-        if not isinstance(train_data_loader, DataLoader):
-            train_data_loader = DataLoader(
-                train_data_loader, batch_size=batch_size, exclude_keys=exclude_keys
-            )
+    # Step 4: Generate predictions
+    print("Generating predictions for the entire dataset...")
+    all_preds, _ = test_model_jit_with_parity(
+        model=model,
+        test_data_loader=data,
+        device=device,
+        batch_size=batch_size,
+        model_needs_frag=True
+    )
 
-        if not isinstance(val_data_loader, DataLoader):
-            val_data_loader = DataLoader(
-                val_data_loader, batch_size=batch_size, exclude_keys=exclude_keys
-            )
+    # Step 5: Rescale predictions
+    all_preds_rescaled = all_preds * std_targets + mean_targets
 
-        model.train()
-        train_loss = []
-        val_loss = []
+    # Step 6: Create DataFrame
+    predictions_np = all_preds_rescaled.cpu().numpy()
+    df_pred = df_filtered.copy()
+    for i, col in enumerate(target_columns):
+        df_pred[f'Predicted_{col}'] = predictions_np[:, i]
 
-        # Initialize grads to None before the training loop
-        grads = None
+    # Step 7: Save to CSV
+    df_pred.to_csv(output_filename, index=False)
+    print(f"Predictions saved to '{output_filename}'.")
 
-        def handle_heterogenous_sizes(y, out):
-            if not isinstance(out, torch.Tensor):
-                return out
-            if y.dim() == out.dim():
-                return out
-            return out.squeeze()  # Needed for some models
-
-        with tqdm(total=epochs) as pbar:
-            for epoch in range(epochs):
-                temp = np.zeros(len(train_data_loader))
-                for idx, batch in enumerate(train_data_loader):
-                    optimizer.zero_grad()
-                    # Extract tensors from batch
-                    data_x = batch.x.to(device)
-                    data_edge_index = batch.edge_index.to(device)
-                    data_edge_attr = batch.edge_attr.to(device)
-                    data_batch = batch.batch.to(device)
-
-                    # Fragment graphs
-                    frag_graphs = batch.frag_graphs  # List[Data]
-                    frag_batch_list = []
-                    frag_x_list = []
-                    frag_edge_index_list = []
-                    frag_edge_attr_list = []
-                    node_offset = 0
-                    for i, frag in enumerate(frag_graphs):
-                        num_nodes = frag.num_nodes
-                        frag_batch_list.append(torch.full((num_nodes,), i, dtype=torch.long, device=device))
-                        frag_x_list.append(frag.x.to(device))
-                        adjusted_edge_index = frag.edge_index + node_offset
-                        frag_edge_index_list.append(adjusted_edge_index.to(device))
-                        frag_edge_attr_list.append(frag.edge_attr.to(device))
-                        node_offset += num_nodes
-
-                    frag_x = torch.cat(frag_x_list, dim=0)
-                    frag_edge_index = torch.cat(frag_edge_index_list, dim=1)
-                    frag_edge_attr = torch.cat(frag_edge_attr_list, dim=0)
-                    frag_batch = Batch.from_data_list(batch.frag_graphs).to(device).batch
-                    motif_nodes = Batch.from_data_list(batch.frag_graphs).x.to(device)
-
-                    # Junction graphs (motif graphs)
-                    junction_graphs = batch.motif_graphs  # List[Data]
-                    junction_batch_list = []
-                    junction_x_list = []
-                    junction_edge_index_list = []
-                    junction_edge_attr_list = []
-                    node_offset = 0
-                    for i, motif in enumerate(junction_graphs):
-                        num_nodes = motif.num_nodes
-                        junction_batch_list.append(torch.full((num_nodes,), i, dtype=torch.long, device=device))
-                        junction_x_list.append(motif.x.to(device))
-                        adjusted_edge_index = motif.edge_index + node_offset
-                        junction_edge_index_list.append(adjusted_edge_index.to(device))
-                        junction_edge_attr_list.append(motif.edge_attr.to(device))
-                        node_offset += num_nodes
-
-                    junction_x = torch.cat(junction_x_list, dim=0)
-                    junction_edge_index = torch.cat(junction_edge_index_list, dim=1)
-                    junction_edge_attr = torch.cat(junction_edge_attr_list, dim=0)
-                    junction_batch = torch.cat(junction_batch_list, dim=0)
-
-                    if hasattr(batch, 'global_feats') and batch.global_feats is not None:
-                        global_feats = batch.global_feats.to(device)
-                    else:
-                        num_mols = data_batch.max().item() + 1  # Number of molecules in the batch
-                        global_feats = torch.zeros((num_mols, 1), device=device)  # Singleton per molecule
-
-                    out = model(
-                        data_x,
-                        data_edge_index,
-                        data_edge_attr,
-                        data_batch,
-                        frag_x,
-                        frag_edge_index,
-                        frag_edge_attr,
-                        frag_batch,
-                        junction_x,
-                        junction_edge_index,
-                        junction_edge_attr,
-                        junction_batch,
-                        motif_nodes,
-                        global_feats,
-                    )
-
-                    out = handle_heterogenous_sizes(batch.y.to(device), out)
-                    by = batch.y.view(out.shape[0], out.shape[1]).to(device)
-                    loss_train = loss_func(by, out)
-
-                    temp[idx] = loss_train.detach().cpu().numpy()
-
-                    loss_train.backward()
-
-                    optimizer.step()
-
-                loss_train = np.mean(temp)
-                train_loss.append(loss_train)
-
-                # Validation loop
-                model.eval()
-                temp = np.zeros(len(val_data_loader))
-                with torch.no_grad():
-                    for idx, batch in enumerate(val_data_loader):
-                        data_x = batch.x.to(device)
-                        data_edge_index = batch.edge_index.to(device)
-                        data_edge_attr = batch.edge_attr.to(device)
-                        data_batch = batch.batch.to(device)
-
-                        # Fragment graphs
-                        frag_graphs = batch.frag_graphs  # List[Data]
-                        frag_batch_list = []
-                        frag_x_list = []
-                        frag_edge_index_list = []
-                        frag_edge_attr_list = []
-                        node_offset = 0
-                        for i, frag in enumerate(frag_graphs):
-                            num_nodes = frag.num_nodes
-                            frag_batch_list.append(torch.full((num_nodes,), i, dtype=torch.long, device=device))
-                            frag_x_list.append(frag.x.to(device))
-                            adjusted_edge_index = frag.edge_index + node_offset
-                            frag_edge_index_list.append(adjusted_edge_index.to(device))
-                            frag_edge_attr_list.append(frag.edge_attr.to(device))
-                            node_offset += num_nodes
-
-                        frag_x = torch.cat(frag_x_list, dim=0)
-                        frag_edge_index = torch.cat(frag_edge_index_list, dim=1)
-                        frag_edge_attr = torch.cat(frag_edge_attr_list, dim=0)
-                        frag_batch = Batch.from_data_list(batch.frag_graphs).to(device).batch
-                        motif_nodes = Batch.from_data_list(batch.frag_graphs).x.to(device)
-
-                        # Junction graphs (motif graphs)
-                        junction_graphs = batch.motif_graphs  # List[Data]
-                        junction_batch_list = []
-                        junction_x_list = []
-                        junction_edge_index_list = []
-                        junction_edge_attr_list = []
-                        node_offset = 0
-                        for i, motif in enumerate(junction_graphs):
-                            num_nodes = motif.num_nodes
-                            junction_batch_list.append(torch.full((num_nodes,), i, dtype=torch.long, device=device))
-                            junction_x_list.append(motif.x.to(device))
-                            adjusted_edge_index = motif.edge_index + node_offset
-                            junction_edge_index_list.append(adjusted_edge_index.to(device))
-                            junction_edge_attr_list.append(motif.edge_attr.to(device))
-                            node_offset += num_nodes
-
-                        junction_x = torch.cat(junction_x_list, dim=0)
-                        junction_edge_index = torch.cat(junction_edge_index_list, dim=1)
-                        junction_edge_attr = torch.cat(junction_edge_attr_list, dim=0)
-                        junction_batch = torch.cat(junction_batch_list, dim=0)
-
-                        if hasattr(batch, 'global_feats') and batch.global_feats is not None:
-                            global_feats = batch.global_feats.to(device)
-                        else:
-                            global_feats = torch.empty(0).to(device)  # Can't have optional args in JIT
-
-                        out = model(
-                            data_x,
-                            data_edge_index,
-                            data_edge_attr,
-                            data_batch,
-                            frag_x,
-                            frag_edge_index,
-                            frag_edge_attr,
-                            frag_batch,
-                            junction_x,
-                            junction_edge_index,
-                            junction_edge_attr,
-                            junction_batch,
-                            motif_nodes,
-                            global_feats,
-                        )
-
-                        out = handle_heterogenous_sizes(batch.y.to(device), out)
-                        temp[idx] = loss_func(batch.y.view(out.shape[0], out.shape[1]).to(device), out).detach().cpu().numpy()
-
-                loss_val = np.mean(temp)
-                val_loss.append(loss_val)
-                model.train()  # Switch back to training mode
-
-                if epoch % 2 == 0:
-                    pbar.set_description(f"Epoch {epoch}, Training Loss: {loss_train:.3f}, Validation Loss: {loss_val:.3f}")
-
-                if scheduler is not None:
-                    scheduler.step(loss_val)
-
-                if early_stopper is not None:
-                    early_stopper(val_loss=loss_val, model=model)
-                    if early_stopper.stop:
-                        print("Early stopping reached with best validation loss: {:.4f}".format(early_stopper.best_score))
-                        early_stopper.stop_epoch = epoch - early_stopper.patience
-                        if tuning:
-                            pass
-                        else:
-                            break
-
-                pbar.update(1)
-            if early_stopper and not early_stopper.stop and model_name:
-                torch.save(model.state_dict(), model_name)
-                print(f'Model saved at: {model_name}')
-
-        return train_loss, val_loss
+generate_predictions_and_save(
+    data=data,
+    model=model,
+    df=df,
+    smiles=smiles,
+    target_columns=target_columns,
+    std_targets=std_targets,
+    mean_targets=mean_targets,
+    batch_size=batch_size,
+    device=device,
+    output_filename='predictions_groupgat_decoupled_multitask.csv'
+)

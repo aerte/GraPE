@@ -267,3 +267,89 @@ create_parity_plot(
     val_preds_rescaled, val_targets_rescaled,
     pred_rescaled, target_rescaled,
 )
+
+####### Function to Generate Predictions and Save to CSV #########
+def generate_predictions_and_save(
+    data,
+    model,
+    df,
+    smiles,
+    target,
+    batch_size,
+    device,
+    output_filename
+):
+    """
+    Function to generate predictions for the full dataset, align them with the SMILES, and save to a CSV file.
+    """
+    from tqdm import tqdm
+    from rdkit import Chem
+
+    # Step 1: Get valid indices using RDKit
+    def get_valid_indices(smiles_list):
+        valid_indices = []
+        for idx, smile in enumerate(tqdm(smiles_list, desc='Validating SMILES')):
+            mol = Chem.MolFromSmiles(smile)
+            if mol is not None:
+                valid_indices.append(idx)
+        return valid_indices
+
+    print("Identifying valid SMILES...")
+    valid_indices = get_valid_indices(smiles)
+    print(f"Number of valid SMILES: {len(valid_indices)} out of {len(smiles)}")
+
+    # Step 2: Filter df
+    df_filtered = df.iloc[valid_indices].reset_index(drop=True)
+
+    # Step 3: Ensure lengths match
+    if len(df_filtered) != len(data):
+        print(f"Length mismatch: df_filtered ({len(df_filtered)}) vs. data ({len(data)})")
+        # Attempt to extract SMILES from data
+        smiles_list = []
+        for d in data:
+            if hasattr(d, 'smiles'):
+                smiles_list.append(d.smiles)
+            else:
+                smiles_list.append(None)  # Placeholder if SMILES not available
+        if len(smiles_list) == len(data):
+            print("Extracted SMILES from data objects.")
+            df_filtered = df_filtered.iloc[:len(data)].reset_index(drop=True)
+            df_filtered['SMILES'] = smiles_list
+        else:
+            print("Cannot retrieve SMILES from data. Exiting.")
+            return
+    else:
+        print(f"Lengths match: {len(df_filtered)} entries")
+
+    # Step 4: Generate predictions
+    print("Generating predictions for the entire dataset...")
+    all_preds = test_model_jit(
+        model=model,
+        test_data_loader=data,
+        device=device,
+        batch_size=batch_size,
+        model_needs_frag=True
+    )
+
+    # Step 5: No need to rescale predictions, since targets were not standardized
+
+    # Step 6: Create DataFrame
+    predictions_np = all_preds.cpu().numpy().flatten()
+    df_pred = df_filtered.copy()
+    df_pred['Predicted_Value'] = predictions_np
+
+    # Step 7: Save to CSV
+    df_pred.to_csv(output_filename, index=False)
+    print(f"Predictions saved to '{output_filename}'.")
+
+# Call the function to generate predictions and save to CSV
+generate_predictions_and_save(
+    data=data,
+    model=model,
+    df=df,
+    smiles=smiles,
+    target=target,
+    batch_size=batch_size,
+    device=device,
+    output_filename='predictions_coupled_multitask.csv'
+)
