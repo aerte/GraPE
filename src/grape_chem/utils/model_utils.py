@@ -241,16 +241,31 @@ def train_model(model: torch.nn.Module, loss_func: Union[Callable,str], optimize
                 optimizer.zero_grad()
 
                 out = model(move_to_device(batch, device),)
-                out = handle_heterogenous_sizes(batch.y, out)
+                out = handle_heterogenous_sizes(batch.y.to(device), out)
 
-                loss_train = loss_func(batch.y, out)
+                if out.dim() == 2:
+                    #TODO: less messy handling of outputs 
+                    by = batch.y.view(out.shape[0], out.shape[1]).to(device)
+                else:
+                    by = batch.y.to(device)
+            
+                if hasattr(batch, 'mask') and batch.mask is not None:
+                    mask = batch.mask.to(device)
+                    if mask.sum() == 0:
+                        continue  # Skip this batch
+
+                    loss_per_element = loss_func(out, by, reduction='none')
+                    loss_per_element = loss_per_element * mask
+                    loss_train = loss_per_element.sum() / mask.sum()
+                else:
+                    # no mask; all targets assumed present
+                    loss_train = loss_func(out, by)
 
                 temp[idx] = loss_train.detach().cpu().numpy()
 
-
                 loss_train.backward()
                 optimizer.step()
-
+                #
             loss_train = np.mean(temp)
             train_loss.append(loss_train)
 
@@ -1138,23 +1153,30 @@ def rescale_arrays(arrays: Union[Tensor, tuple[Tensor,Tensor], list], data:objec
 
 
 
-def pred_metric(prediction: Union[Tensor, ndarray], target: Union[Tensor, ndarray],
-                metrics: Union[str,list[str]] = 'mse', print_out: \
-                bool = True, rescale_data: DataSet = None) -> list[float]:
-    """A function to evaluate continuous predictions compared to targets with different metrics. It can
+def pred_metric(
+    prediction: Union[Tensor, ndarray],
+    target: Union[Tensor, ndarray],
+    metrics: Union[str, List[str]] = 'mse',
+    print_out: bool = True,
+    rescale_data: 'DataSet' = None
+) -> List[float]:
+    """
+    A function to evaluate continuous predictions compared to targets with different metrics. It can
     take either Tensors or ndarrays and will automatically convert them to the correct format. Partly makes use of
     sklearn and their implementations. The options for metrics are:
 
     * ``MSE``: Mean Squared Error
     * ``RMSE``: Root Mean Squared Error
     * ``SSE``: Sum of Squared Errors
-    * ``MAE``: Mean Average Error
+    * ``MAE``: Mean Absolute Error
     * ``R2``: R-squared Error
-    * ``MRE``: Mean Relative Error, which is implemented as:
+    * ``MRE``: Mean Relative Error
     * ``MDAPE``: Median Absolute Percentage Error
+    * ``MARE``: Mean Absolute Relative Error
+    * ``Pearson``: Pearson Correlation Coefficient
 
-    ..math:
-        \frac{1}{N}\sum\limits_{i=1}^{N}\frac{y_{i}-f(x_{i})}{y_{i}}\cdot100
+    .. math::
+        \frac{1}{N}\sum\limits_{i=1}^{N}\frac{|y_{i}-f(x_{i})|}{|y_{i}|}\cdot100
 
     **If a list of metrics is given, then a list of equal length is returned.**
 
@@ -1166,71 +1188,108 @@ def pred_metric(prediction: Union[Tensor, ndarray], target: Union[Tensor, ndarra
         The target array or tensor corresponding to the prediction.
     metrics: str or list[str]
         A string or a list of strings specifying what metrics should be returned. The options are:
-        [``mse``, ``rmse``, ``sse``, ``mae``, ``r2``, ``mre``, ``mdape``, ``pearson``] or 'all' for every option. Default: 'mse'
+        [``mse``, ``rmse``, ``sse``, ``mae``, ``r2``, ``mre``, ``mdape``, ``mape``, ``mare``, ``pearson``] or 'all' for every option. Default: 'mse'
     print_out: bool
         Will print out formatted results if True. Default: True
+    rescale_data: DataSet, optional
+        An instance of DataSet used to rescale the prediction and target data. Default: None
 
     Returns
     --------
     list[float]
-        A list equal to the number of metrics specified contained the corresponding results.
-
+        A list equal to the number of metrics specified containing the corresponding results.
     """
 
+    # Convert Tensors to numpy arrays if necessary
     if isinstance(prediction, Tensor):
         prediction = prediction.cpu().detach().numpy()
     if isinstance(target, Tensor):
         target = target.cpu().detach().numpy()
+
+    # Ensure metrics is a list
     if not isinstance(metrics, list) and metrics != 'all':
         metrics = [metrics]
+
+    # Rescale data if rescale_data is provided
     if rescale_data is not None:
-        prediction =  rescale_data.rescale_data(prediction)
+        prediction = rescale_data.rescale_data(prediction)
         target = rescale_data.rescale_data(target)
 
+    # If metrics is 'all', include all available metrics
     if metrics == 'all':
-        metrics = ['mse','rmse','sse','mae','r2','mre', 'mdape','mape', 'pearson']
+        metrics = ['mse', 'rmse', 'sse', 'mae', 'r2', 'mre', 'mdape', 'mape', 'mare', 'pearson']
 
-    results = dict()
+    results = {}
     prints = []
-    delta = 1e-12
-    target = target+delta
+    epsilon = 1e-12  # Small value to prevent division by zero
 
+    # Flatten the arrays for certain metrics
     target_flat = target.flatten()
     prediction_flat = prediction.flatten()
 
-    for metric_ in metrics:
-        if metric_ == 'mse':
-            results['mse'] = mean_squared_error(target, prediction)
-            prints.append(f'MSE: {mean_squared_error(target, prediction):.3f}')
-        elif metric_ == 'rmse':
-            results['rmse'] = root_mean_squared_error(target, prediction)
-            prints.append(f'RMSE: {root_mean_squared_error(target, prediction):.3f}')
-        elif metric_ ==  'sse':
-            results['sse'] = np.sum((target-prediction)**2)
-            prints.append(f'SSE: {np.sum((target-prediction)**2):.3f}')
-        elif metric_ ==  'mae':
-            results['mae'] = mean_absolute_error(target, prediction)
-            prints.append(f'MAE: {mean_absolute_error(target, prediction):.3f}')
-        elif metric_ ==  'r2':
-            results['r2'] = r2_score(target, prediction)
-            prints.append(f'R2: {r2_score(target, prediction):.3f}')
-        elif metric_ == 'pearson':
-            pearson_corr = np.corrcoef(target_flat, prediction_flat)[0, 1]
-            results['r2'] = pearson_corr
-            prints.append(f'Pearson Corr Coeff: {pearson_corr:.3f}')
-        elif metric_ == 'mape':
-            results['mape'] = mean_absolute_percentage_error(target, prediction)
-            prints.append(f"MAPE: {results['mape']:.3f}%")
-        elif metric_ ==  'mre':
-            results['mre'] = np.mean(np.abs((target-prediction)/target))*100
-            prints.append(f'MRE: {np.mean(np.abs((target - prediction) / target)) * 100:.3f}%')
-            if results['mre'] > 100:
-                prints.append(f'Mean relative error is large, here is the median relative error'
-                                f':{np.median(np.abs((target-prediction)/target))*100:.3f}%')
-        elif metric_ == 'mdape':
-            results['mdape'] = np.median(np.abs((target-prediction)/target))*100
-            prints.append(f'MDAPE: {np.median(np.abs((target-prediction)/target))*100:.3f}%')
+    # Define a helper function to calculate MARE
+    def calc_MARE(ym, yp):
+        RAE = []
+        pstd = np.std(ym)
+        for i in range(len(ym)):
+            if -0.1 <= ym[i] <= 0.1:
+                RAE.append(abs(ym[i] - yp[i]) / (pstd + epsilon) * 100)
+            else:
+                RAE.append(abs(ym[i] - yp[i]) / (abs(ym[i]) + epsilon) * 100)
+        mare = np.mean(RAE)
+        return mare
 
+    for metric_ in metrics:
+        metric_lower = metric_.lower()
+        if metric_lower == 'mse':
+            mse = mean_squared_error(target, prediction)
+            results['mse'] = mse
+            prints.append(f'MSE: {mse:.3f}')
+        elif metric_lower == 'rmse':
+            mse = mean_squared_error(target, prediction)
+            rmse = np.sqrt(mse)
+            results['rmse'] = rmse
+            prints.append(f'RMSE: {rmse:.3f}')
+        elif metric_lower == 'sse':
+            sse = np.sum((target - prediction) ** 2)
+            results['sse'] = sse
+            prints.append(f'SSE: {sse:.3f}')
+        elif metric_lower == 'mae':
+            mae = mean_absolute_error(target, prediction)
+            results['mae'] = mae
+            prints.append(f'MAE: {mae:.3f}')
+        elif metric_lower == 'r2':
+            r2 = r2_score(target, prediction)
+            results['r2'] = r2
+            prints.append(f'R2: {r2:.3f}')
+        elif metric_lower == 'pearson':
+            if np.std(target_flat) == 0 or np.std(prediction_flat) == 0:
+                pearson_corr = 0.0  # Avoid division by zero
+            else:
+                pearson_corr = np.corrcoef(target_flat, prediction_flat)[0, 1]
+            results['pearson'] = pearson_corr
+            prints.append(f'Pearson Corr Coeff: {pearson_corr:.3f}')
+        elif metric_lower == 'mape':
+            mape = mean_absolute_percentage_error(target, prediction) * 100  # Convert to percentage
+            results['mape'] = mape
+            prints.append(f'MAPE: {mape:.3f}%')
+        elif metric_lower == 'mre':
+            mre = np.mean(np.abs((target - prediction) / (np.abs(target) + epsilon))) * 100
+            results['mre'] = mre
+            prints.append(f'MRE: {mre:.3f}%')
+            if mre > 100:
+                median_re = np.median(np.abs((target - prediction) / (np.abs(target) + epsilon))) * 100
+                prints.append(f'Median Relative Error: {median_re:.3f}%')
+        elif metric_lower == 'mdape':
+            mdape = np.median(np.abs((target - prediction) / (np.abs(target) + epsilon))) * 100
+            results['mdape'] = mdape
+            prints.append(f'MDAPE: {mdape:.3f}%')
+        elif metric_lower == 'mare':
+            mare = calc_MARE(target_flat, prediction_flat)
+            results['mare'] = mare
+            prints.append(f'MARE: {mare:.3f}%')
+        else:
+            raise ValueError(f"Unsupported metric: {metric_}")
 
     if print_out:
         for out in prints:
