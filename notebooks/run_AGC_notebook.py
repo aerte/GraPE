@@ -203,237 +203,237 @@ pred_metric(prediction=pred, target=test.y, metrics='all', print_out=True)
 # ---------------------------------------------------------------------------------------
 
 ####### Example for rescaling the MAE prediction ##########
+if False:
+    test_mae = pred_metric(prediction=pred, target=test.y, metrics='mae', print_out=False)['mae']
+    # test_mae_rescaled = test_mae * std_target + mean_target  # TODO: Add rescaling if necessary
+    # print(f'Rescaled MAE for the test set {test_mae_rescaled:.3f}')
 
-test_mae = pred_metric(prediction=pred, target=test.y, metrics='mae', print_out=False)['mae']
-# test_mae_rescaled = test_mae * std_target + mean_target  # TODO: Add rescaling if necessary
-# print(f'Rescaled MAE for the test set {test_mae_rescaled:.3f}')
+    # ---------------------------------------------------------------------------------------
 
-# ---------------------------------------------------------------------------------------
+    ####### Example for overall evaluation of the MAE #########
 
-####### Example for overall evaluation of the MAE #########
+    train_preds = test_model(
+        model=model,
+        test_data_loader=train,
+        device=device,
+    )
+    val_preds = test_model(
+        model=model,
+        test_data_loader=val,
+        device=device,
+    )
 
-train_preds = test_model(
-    model=model,
-    test_data_loader=train,
-    device=device,
-)
-val_preds = test_model(
-    model=model,
-    test_data_loader=val,
-    device=device,
-)
+    train_mae = pred_metric(prediction=train_preds, target=train.y, metrics='mae', print_out=False)['mae']
+    val_mae = pred_metric(prediction=val_preds, target=val.y, metrics='mae', print_out=False)['mae']
 
-train_mae = pred_metric(prediction=train_preds, target=train.y, metrics='mae', print_out=False)['mae']
-val_mae = pred_metric(prediction=val_preds, target=val.y, metrics='mae', print_out=False)['mae']
+    # overall_mae = (train_mae + val_mae + test_mae) / 3 * std_target + mean_target
+    # print(f'Rescaled overall MAE {overall_mae:.3f}')
 
-# overall_mae = (train_mae + val_mae + test_mae) / 3 * std_target + mean_target
-# print(f'Rescaled overall MAE {overall_mae:.3f}')
+    # Function to freeze all layers except the last two
+    def freeze_model_layers(model):
+        # Freeze all parameters first
+        for param in model.parameters():
+            param.requires_grad = False
+        # Unfreeze the last two layers for transfer learning
+        for param in model.linear_predict1.parameters():
+            param.requires_grad = True
+        for param in model.linear_predict2.parameters():
+            param.requires_grad = True
 
-# Function to freeze all layers except the last two
-def freeze_model_layers(model):
-    # Freeze all parameters first
-    for param in model.parameters():
-        param.requires_grad = False
-    # Unfreeze the last two layers for transfer learning
-    for param in model.linear_predict1.parameters():
-        param.requires_grad = True
-    for param in model.linear_predict2.parameters():
-        param.requires_grad = True
+    # Function to perform transfer learning on the model
+    def transfer_learning_loop(
+        base_model,
+        train_loader,
+        val_loader,
+        num_iterations=5,
+        epochs=10,
+        learning_rate=0.001,
+        weight_decay=1e-6,
+        patience=5
+    ):
+        # Initialize a list to store results for each iteration
+        results = []
 
-# Function to perform transfer learning on the model
-def transfer_learning_loop(
-    base_model,
-    train_loader,
-    val_loader,
-    num_iterations=5,
-    epochs=10,
-    learning_rate=0.001,
-    weight_decay=1e-6,
-    patience=5
-):
-    # Initialize a list to store results for each iteration
-    results = []
+        # Loop for multiple transfer learning iterations
+        for i in range(num_iterations):
+            print(f"\nTransfer Learning Iteration {i + 1}/{num_iterations}")
 
-    # Loop for multiple transfer learning iterations
-    for i in range(num_iterations):
-        print(f"\nTransfer Learning Iteration {i + 1}/{num_iterations}")
+            # Clone the base model for each transfer learning iteration
+            model = copy.deepcopy(base_model)
+            model.to(device)
 
-        # Clone the base model for each transfer learning iteration
-        model = copy.deepcopy(base_model)
-        model.to(device)
+            # Freeze all layers except the last two
+            freeze_model_layers(model)
 
-        # Freeze all layers except the last two
-        freeze_model_layers(model)
+            # Define a new optimizer for the un-frozen parameters
+            optimizer = torch.optim.Adam(
+                filter(lambda p: p.requires_grad, model.parameters()),
+                lr=learning_rate,
+                weight_decay=weight_decay
+            )
 
-        # Define a new optimizer for the un-frozen parameters
-        optimizer = torch.optim.Adam(
-            filter(lambda p: p.requires_grad, model.parameters()),
-            lr=learning_rate,
-            weight_decay=weight_decay
-        )
+            # Set up early stopping for each iteration
+            early_stopper = EarlyStopping(
+                patience=patience,
+                model_name=f"transfer_learning_model_{i}",
+                skip_save=True
+            )
 
-        # Set up early stopping for each iteration
-        early_stopper = EarlyStopping(
-            patience=patience,
-            model_name=f"transfer_learning_model_{i}",
-            skip_save=True
-        )
+            # Train the model for the specified number of epochs
+            train_model(
+                model=model,
+                loss_func=loss_func,
+                optimizer=optimizer,
+                train_data_loader=train_loader,
+                val_data_loader=val_loader,
+                epochs=epochs,
+                device=device,
+                batch_size=batch_size,
+                scheduler=scheduler,
+                early_stopper=early_stopper,
+                model_needs_frag=True,
+                model_name=None
+            )
 
-        # Train the model for the specified number of epochs
-        train_model(
-            model=model,
-            loss_func=loss_func,
-            optimizer=optimizer,
-            train_data_loader=train_loader,
-            val_data_loader=val_loader,
-            epochs=epochs,
-            device=device,
-            batch_size=batch_size,
-            scheduler=scheduler,
-            early_stopper=early_stopper,
-            model_needs_frag=True,
-            model_name=None
-        )
+            # Evaluate the model
+            val_preds = test_model(
+                model=model,
+                test_data_loader=val_loader,
+                device=device,
+                batch_size=batch_size,
+                model_needs_frag=True
+            )
+            val_mae = pred_metric(
+                prediction=val_preds,
+                target=torch.cat([data.y for data in val_loader], dim=0),
+                metrics='mae',
+                print_out=False
+            )['mae']
+            print(f"Validation MAE after transfer learning iteration {i+1}: {val_mae}")
 
-        # Evaluate the model
-        val_preds = test_model(
-            model=model,
-            test_data_loader=val_loader,
-            device=device,
-            batch_size=batch_size,
-            model_needs_frag=True
-        )
-        val_mae = pred_metric(
-            prediction=val_preds,
-            target=torch.cat([data.y for data in val_loader], dim=0),
-            metrics='mae',
-            print_out=False
-        )['mae']
-        print(f"Validation MAE after transfer learning iteration {i+1}: {val_mae}")
+            # Store results
+            results.append({
+                'iteration': i + 1,
+                'model': model,
+                'val_mae': val_mae
+            })
 
-        # Store results
-        results.append({
-            'iteration': i + 1,
-            'model': model,
-            'val_mae': val_mae
-        })
+        return results
 
-    return results
+    results = transfer_learning_loop(
+        base_model=model,
+        train_loader=train,
+        val_loader=val,
+        num_iterations=5,
+        epochs=300,
+        learning_rate=0.001,
+        weight_decay=1e-6,
+        patience=5
+    )
 
-results = transfer_learning_loop(
-    base_model=model,
-    train_loader=train,
-    val_loader=val,
-    num_iterations=5,
-    epochs=300,
-    learning_rate=0.001,
-    weight_decay=1e-6,
-    patience=5
-)
+    # Modify the test_model function to return both predictions and targets
+    def test_model_with_parity(
+        model: torch.nn.Module,
+        test_data_loader: Union[List, DataLoader],
+        device: str = None,
+        batch_size: int = 32,
+        return_latents: bool = False,
+        model_needs_frag: bool = False,
+    ) -> Union[Tuple[Tensor, Tensor], Tuple[Tensor, Tensor, Tensor]]:
+        """
+        Auxiliary function to test a trained model and return the predictions as well as the targets and optional latent node
+        representations. Can initialize DataLoaders if only list of Data objects are given.
 
-# Modify the test_model function to return both predictions and targets
-def test_model_with_parity(
-    model: torch.nn.Module,
-    test_data_loader: Union[List, DataLoader],
-    device: str = None,
-    batch_size: int = 32,
-    return_latents: bool = False,
-    model_needs_frag: bool = False,
-) -> Union[Tuple[Tensor, Tensor], Tuple[Tensor, Tensor, Tensor]]:
-    """
-    Auxiliary function to test a trained model and return the predictions as well as the targets and optional latent node
-    representations. Can initialize DataLoaders if only list of Data objects are given.
+        Parameters
+        ----------
+        model : torch.nn.Module
+            Model that will be tested. Has to be a torch Module.
+        test_data_loader : list of Data or DataLoader
+            A list of Data objects or the DataLoader directly to be used as the test graphs.
+        device : str
+            Torch device to be used ('cpu', 'cuda', or 'mps'). Default is 'cpu'.
+        batch_size : int
+            Batch size of the DataLoader if not given directly. Default is 32.
+        return_latents : bool
+            Determines if the latents should be returned. **If used, the model must include return_latent statement**.
+            Default is False.
+        model_needs_frag : bool
+            Indicates whether the model requires fragment information.
 
-    Parameters
-    ----------
-    model : torch.nn.Module
-        Model that will be tested. Has to be a torch Module.
-    test_data_loader : list of Data or DataLoader
-        A list of Data objects or the DataLoader directly to be used as the test graphs.
-    device : str
-        Torch device to be used ('cpu', 'cuda', or 'mps'). Default is 'cpu'.
-    batch_size : int
-        Batch size of the DataLoader if not given directly. Default is 32.
-    return_latents : bool
-        Determines if the latents should be returned. **If used, the model must include return_latent statement**.
-        Default is False.
-    model_needs_frag : bool
-        Indicates whether the model requires fragment information.
+        Returns
+        -------
+        Tuple[Tensor, Tensor] or Tuple[Tensor, Tensor, Tensor]
+            Returns predictions and targets, and optionally latents if return_latents is True.
+        """
 
-    Returns
-    -------
-    Tuple[Tensor, Tensor] or Tuple[Tensor, Tensor, Tensor]
-        Returns predictions and targets, and optionally latents if return_latents is True.
-    """
+        device = torch.device('cpu') if device is None else device
 
-    device = torch.device('cpu') if device is None else device
+        if not isinstance(test_data_loader, DataLoader):
+            test_data_loader = DataLoader(
+                [data for data in test_data_loader], batch_size=batch_size
+            )
 
-    if not isinstance(test_data_loader, DataLoader):
-        test_data_loader = DataLoader(
-            [data for data in test_data_loader], batch_size=batch_size
-        )
+        model.eval()
 
-    model.eval()
+        with tqdm(total=len(test_data_loader)) as pbar:
 
-    with tqdm(total=len(test_data_loader)) as pbar:
-
-        for idx, batch in enumerate(test_data_loader):
-            batch = batch.to(device)
-            # Handling models that require fragment information
-            if model_needs_frag:
-                if return_latents:
-                    out, lat = model(batch, return_lats=True)
+            for idx, batch in enumerate(test_data_loader):
+                batch = batch.to(device)
+                # Handling models that require fragment information
+                if model_needs_frag:
+                    if return_latents:
+                        out, lat = model(batch, return_lats=True)
+                    else:
+                        out = model(batch)
                 else:
-                    out = model(batch)
-            else:
-                if return_latents:
-                    out, lat = model(batch, return_lats=True)
+                    if return_latents:
+                        out, lat = model(batch, return_lats=True)
+                    else:
+                        out = model(batch)
+
+                # Collect targets
+                target = batch.y
+
+                # Concatenate predictions, targets, and latents
+                if idx == 0:
+                    preds = out
+                    targets = target
+                    if return_latents:
+                        latents = lat
                 else:
-                    out = model(batch)
+                    preds = torch.cat([preds, out], dim=0)
+                    targets = torch.cat([targets, target], dim=0)
+                    if return_latents:
+                        latents = torch.cat([latents, lat], dim=0)
 
-            # Collect targets
-            target = batch.y
+                pbar.update(1)
 
-            # Concatenate predictions, targets, and latents
-            if idx == 0:
-                preds = out
-                targets = target
-                if return_latents:
-                    latents = lat
-            else:
-                preds = torch.cat([preds, out], dim=0)
-                targets = torch.cat([targets, target], dim=0)
-                if return_latents:
-                    latents = torch.cat([latents, lat], dim=0)
+        if return_latents:
+            return preds, targets, latents
+        return preds, targets
 
-            pbar.update(1)
+    ####### Generating predictions and targets for all datasets #########
 
-    if return_latents:
-        return preds, targets, latents
-    return preds, targets
+    train_preds, train_targets = test_model_with_parity(
+        model=model,
+        test_data_loader=train,
+        device=device,
+        batch_size=batch_size,
+        model_needs_frag=True
+    )
 
-####### Generating predictions and targets for all datasets #########
+    val_preds, val_targets = test_model_with_parity(
+        model=model,
+        test_data_loader=val,
+        device=device,
+        batch_size=batch_size,
+        model_needs_frag=True
+    )
 
-train_preds, train_targets = test_model_with_parity(
-    model=model,
-    test_data_loader=train,
-    device=device,
-    batch_size=batch_size,
-    model_needs_frag=True
-)
-
-val_preds, val_targets = test_model_with_parity(
-    model=model,
-    test_data_loader=val,
-    device=device,
-    batch_size=batch_size,
-    model_needs_frag=True
-)
-
-test_preds, test_targets = test_model_with_parity(
-    model=model,
-    test_data_loader=test,
-    device=device,
-    batch_size=batch_size,
-    model_needs_frag=True
-)
+    test_preds, test_targets = test_model_with_parity(
+        model=model,
+        test_data_loader=test,
+        device=device,
+        batch_size=batch_size,
+        model_needs_frag=True
+    )
