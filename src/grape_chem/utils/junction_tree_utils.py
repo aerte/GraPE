@@ -23,12 +23,12 @@ from torch_geometric.utils import add_self_loops
 
 import scipy.sparse as sp
 
-#temp imports for debugging function
+# temp imports for debugging function
 import matplotlib.pyplot as plt
 import networkx as nkx
 from torch_geometric.utils import to_networkx
 
-#temporary import
+# temporary import
 import logging
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.ERROR)
@@ -88,21 +88,23 @@ def visualize_pyg_graph(data, mol):
     nkx.draw(G, with_labels=True, **options)
     plt.show()
 
-#use "MG_plus_reference" as scheme
+# use "MG_plus_reference" as scheme
 
 ###############################################################################
 ###############                 Junction tree                  ################
 ###############################################################################
 
 class JT_SubGraph(object):
-    def __init__(self, scheme):
-        path = os.path.join('./env', scheme + '.csv') #change to your needs TODO: load from yaml or larger config of script where called
+    def __init__(self, scheme, save_file_path=None, verbose=True):
+        path = os.path.join('./env', scheme + '.csv') # change to your needs TODO: load from yaml or larger config of script where called
         data_from = os.path.realpath(path)
         df = pd.read_csv(data_from)
         pattern = df[['First-Order Group', 'SMARTs', 'Priority']].values.tolist()
         self.patterns = sorted(pattern, key=lambda x: x[2], reverse=False)
         self.frag_name_list = [x[0] for x in self.patterns]
         self.frag_dim = len(self.frag_name_list)
+        self.save_file_path = save_file_path
+        self.verbose = verbose
 
     def fragmentation(self, graph, mol, save_file_path=None, check_metadata=False):
         """
@@ -110,30 +112,15 @@ class JT_SubGraph(object):
         - graph: The input graph to fragment.
         - mol: The RDKit molecule object.
         - save_file_path: Optional; path to save/load the fragmentation result.
-        #TODO: get from self instead of passing
+        Currently that logic is implemented in the `_prepare_frag` method of DataSet class (TODO: change this)
         - check_metadata: Optional; if True, checks fragment metadata before returning a loaded file.
         
         Returns:
         - frag_graph_list: List of fragment graphs (subgraphs resulting of fragmentation).
         - motif_graph: The "motif graph" (junction tree), encoding connectivity between fragments
         - atom_mask: for each fragment, a mask of atoms in the original molecule.
-        - frag_flag: Fragment flags indentifying fragments to nodes in the motif graph.
+        - frag_flag: Fragment flags identifying fragments to nodes in the motif graph.
         """
-        if save_file_path and os.path.exists(save_file_path):
-            print(f"Loading fragmentation data from {save_file_path}")
-            with open(save_file_path, 'rb') as f:
-                saved_data = pickle.load(f)
-            
-            if check_metadata:
-                frag_count = len(saved_data['frag_graph_list'])
-                print(f"Loaded data has {frag_count} fragments.")
-                # TODO: actually implement checks
-            
-            return (saved_data['frag_graph_list'], 
-                    saved_data['motif_graph'], 
-                    saved_data['atom_mask'], 
-                    saved_data['frag_flag'])
-        
         num_atoms = mol.GetNumAtoms()
 
         frag_graph, frag_flag, atom_mask, idx_tuples, frag_features = self.compute_fragments(mol, graph, num_atoms)
@@ -183,7 +170,7 @@ class JT_SubGraph(object):
 
     def compute_fragments(self, mol, graph, num_atoms):
         clean_edge_index = graph.edge_index
-        #graph.edge_index = add_self_loops(graph.edge_index)[0] #might make it slower: TODO: investigate #this part changes the self loops
+        # graph.edge_index = add_self_loops(graph.edge_index)[0] # might make it slower: TODO: investigate #this part changes the self loops
         pat_list = []
         mol_size = mol.GetNumAtoms()
         num_atoms = mol.GetNumAtoms()
@@ -327,17 +314,17 @@ class JT_SubGraph(object):
             idx_list = coord.tolist()
 
             # Create new fragment graph as a subgraph of the original
-            new_graph_edge_index, new_graph_edge_attr,= subgraph(
-                idx_list, frag_graph.edge_index, edge_attr=frag_graph.edge_attr, relabel_nodes=True,num_nodes=frag_graph.num_nodes,
+            new_graph_edge_index, new_graph_edge_attr = subgraph(
+                idx_list, frag_graph.edge_index, edge_attr=frag_graph.edge_attr, relabel_nodes=True, num_nodes=frag_graph.num_nodes,
             )
 
             new_node_features = frag_graph.x[idx_list] if frag_graph.x is not None else None
 
-            new_frag_graph= Data(
+            new_frag_graph = Data(
                 edge_index=new_graph_edge_index,
                 edge_attr=new_graph_edge_attr,
                 num_nodes=len(idx_list), 
-                x=new_node_features #explicitely passing nodes. TODO: unit test to make sure feats match with origin graph
+                x=new_node_features #explicitly passing nodes. TODO: unit test to make sure feats match with origin graph
             )
             frag_graph_list.append(new_frag_graph)
         
@@ -381,7 +368,7 @@ def remove_edges(data, to_remove: list[tuple[int, int]]):
 
 def remove_edges_other(data, to_remove: list[tuple[int, int]]):
     """
-    other more PyG-esque take on the remove edges fucntion
+    Other more PyG-esque take on the remove edges function
     TODO: unit test against top function
     """
     edge_indices = []

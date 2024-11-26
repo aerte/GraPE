@@ -1,13 +1,14 @@
 
-from grape_chem.models import GroupGAT_jittable
-from grape_chem.utils import DataSet, train_model_jit, EarlyStopping, split_data, test_model_jit, pred_metric, return_hidden_layers, set_seed, JT_SubGraph, FragmentGraphDataSet
+from grape_chem.models import GroupGAT
+from grape_chem.utils import DataSet, train_model, EarlyStopping, split_data, test_model, pred_metric, return_hidden_layers, set_seed, JT_SubGraph, FragmentGraphDataSet
 from grape_chem.datasets import FreeSolv 
 from torch.optim import lr_scheduler
 import numpy as np
 import torch
 import pandas as pd
 import matplotlib.pyplot as plt
-from torch_geometric.data import DataLoader, Data, Batch
+from torch_geometric.data import Data, Batch
+from torch_geometric.loader import DataLoader
 from tqdm import tqdm
 from typing import Union, List, Tuple
 from torch import Tensor
@@ -24,21 +25,9 @@ def standardize(x, mean, std):
 
 set_seed(42)
 
-# Hyperparameters
-epochs = 1000
-batch_size = 700
-patience = 30
-hidden_dim = 47
-learning_rate = 0.001054627
-weight_decay = 1e-4 
-mlp_layers = 2
-atom_layers = 3
-mol_layers = 3
-
-
 # Change to your own specifications
-root = './env/Vc_cace_corrected.xlsx'
-sheet_name = 'Melting Point'
+root = './env/pka_dataset.xlsx'
+sheet_name = ''
 
 df = pd.read_excel(root,)#.iloc[:25] 
 smiles = df['SMILES'].to_numpy()
@@ -66,7 +55,7 @@ global_feats = standardize(global_feats, mean_global_feats, std_global_feats)
 ########################## fragmentation #########################################
 fragmentation_scheme = "MG_plus_reference"
 print("initializing frag...")
-fragmentation = JT_SubGraph(scheme=fragmentation_scheme)
+fragmentation = JT_SubGraph(scheme=fragmentation_scheme, save_file_path='env/frag_pka_run.pth')
 frag_dim = fragmentation.frag_dim
 print("done.")
 
@@ -76,11 +65,13 @@ print("done.")
 ########################################################################################
 
 ######################## QM9 / testing /excel ##########################################
-data = DataSet(smiles=smiles, target=target, global_features=None, filter=True, fragmentation=fragmentation)
+data = DataSet(smiles=smiles, target=target, global_features=global_feats, filter=True, fragmentation=fragmentation, custom_split=custom_split)
+custom_split = data.custom_split #messy but it gets recomputed in this way
 ########################################################################################
 
 
 #train_set, val_set, _ = data.split_and_scale(scale=True, split_type='random')
+
 train, val, test = split_data(data, split_type='custom', custom_split=custom_split,)
 ############################################################################################
 ############################################################################################
@@ -91,6 +82,23 @@ if torch.cuda.is_available():
 else:
     device = torch.device('cpu')
 
+
+# Hyperparameters
+epochs = 1000
+batch_size = len(train)
+patience = 30
+hidden_dim = 47
+learning_rate = 0.00126
+weight_decay = 0.003250012
+mlp_layers = 4
+atom_layers = 3
+mol_layers = 3
+#final_droupout = 0.257507
+final_droupout = 0.257507
+
+init_lr = 0.001054627
+min_lr = 1.00E-09  
+
 # num_global_feats is the dimension of global features per observation
 mlp = return_hidden_layers(mlp_layers)
 net_params = {
@@ -98,9 +106,10 @@ net_params = {
               "num_atom_type": 44, # == node_in_dim TODO: check matches with featurizer or read from featurizer
               "num_bond_type": 12, # == edge_in_dim
               "dropout": 0.0,
-              "MLP_layers":mlp_layers,
+              "MLP_layers":2,
               "frag_dim": frag_dim,
-              "final_dropout": 0.119,
+              "final_dropout": final_droupout,
+              "global_features": 1,
             # for origins:
               "num_heads": 1,
             # for AFP:
@@ -112,54 +121,49 @@ net_params = {
               "num_layers_atom": atom_layers, 
               "num_layers_mol": mol_layers,
             # for channels:
-              "L1_layers_atom": 4, #L1_layers
-              "L1_layers_mol": 1,  #L1_depth
-              "L1_dropout": 0.142,
+              "L1_layers_atom": 3, #L1_layers
+              "L1_layers_mol": 3,  #L1_depth
+              "L1_dropout": 0.370796,
 
-              "L2_layers_atom": 2, #L2_layers
-              "L2_layers_mol": 3,  #2_depth
-              "L2_dropout": 0.255,
+              "L2_layers_atom": 3, #L2_layers
+              "L2_layers_mol": 2,  #2_depth
+              "L2_dropout": 0.056907,
 
               "L3_layers_atom": 1, #L3_layers
               "L3_layers_mol": 4,  #L3_depth
-              "L3_dropout": 0.026,
+              "L3_dropout": 0.137254,
 
-              "L1_hidden_dim": 247,
-              "L2_hidden_dim": 141,
-              "L3_hidden_dim": 47,
+              "L1_hidden_dim": 125,
+              "L2_hidden_dim": 155,
+              "L3_hidden_dim": 64,
               }
-#model = torch.jit.script(GroupGAT_jittable.GCGAT_v4pro_jit(net_params))
-model = GroupGAT_jittable.GCGAT_v4pro_jit(net_params)
+model = GroupGAT.GCGAT_v4pro(net_params)
 
 optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
-early_Stopper = EarlyStopping(patience=50, model_name='random', skip_save=True)
-scheduler = lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.7, min_lr=1.00E-09,
-                                           patience=15)
+early_Stopper = EarlyStopping(patience=100, model_name='random', skip_save=True)
+scheduler = lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.8, min_lr=min_lr,  #0.7552366725079
+                                           patience=60)
 
-loss_func = torch.nn.functional.l1_loss
+loss_func = torch.nn.functional.mse_loss
 
 model.to(device)
 
-# Define model filename
-model_filename = 'gcgat_jitted_latest.pth'
+model_filename = 'pka_groupgat_latest.pth'
 
-# Check if the model file exists
 if os.path.exists(model_filename):
     print(f"Model file '{model_filename}' found. Loading the trained model.")
-    # Load the model state dict
     model.load_state_dict(torch.load(model_filename, map_location=device))
     model.eval()
 else:
     print(f"No trained model found at '{model_filename}'. Proceeding to train the model.")
-    # Train the model
-    train_model_jit(model=model, loss_func=loss_func, optimizer=optimizer, train_data_loader=train,
-                val_data_loader=val, epochs=epochs, device=device, batch_size=batch_size, scheduler=scheduler, model_needs_frag=True, net_params=net_params)
-    # Save the trained model
+    train_model(model=model, loss_func=loss_func, optimizer=optimizer, train_data_loader=train,
+                val_data_loader=val, epochs=epochs, device=device, batch_size=batch_size, scheduler=scheduler, early_stopper=early_Stopper, model_needs_frag=True, ) #net_params=net_params
+
     torch.save(model.state_dict(), model_filename)
     print(f"Model saved to '{model_filename}'.")
 
 ####### Generating prediction tensor for the TEST set (Not rescaled) #########
-pred = test_model_jit(model=model, test_data_loader=test, device=device, batch_size=batch_size) #TODO: make it able to take a loss func
+pred = test_model(model=model, test_data_loader=test, device=device, batch_size=batch_size) #TODO: make it able to take a loss func
 pred_metric(prediction=pred, target=test.y, metrics='all', print_out=True)
 
 # ---------------------------------------------------------------------------------------
@@ -177,8 +181,8 @@ test_mae = pred_metric(prediction=pred, target=test.y, metrics='mae', print_out=
 
 ####### Example for overall evaluation of the MAE #########
 
-train_preds = test_model_jit(model=model, test_data_loader=train, device=device) #TODO
-val_preds = test_model_jit(model=model, test_data_loader=val, device=device)
+train_preds = test_model(model=model, test_data_loader=train, device=device) #TODO
+val_preds = test_model(model=model, test_data_loader=val, device=device)
 
 train_mae = pred_metric(prediction=train_preds, target=train.y, metrics='mae', print_out=False)['mae']
 val_mae = pred_metric(prediction=val_preds, target=val.y, metrics='mae', print_out=False)['mae']
@@ -263,7 +267,7 @@ def test_model_with_parity(model: torch.nn.Module, test_data_loader: Union[list,
 
 def test_model_jit_with_parity(
     model: torch.nn.Module,
-    test_data_loader: Union[List, DataLoader],
+    test_data_loader: Union[List,], #Union[List, DataLoader],
     device: str = None,
     batch_size: int = 32,
     return_latents: bool = False,
@@ -300,7 +304,6 @@ def test_model_jit_with_parity(
     """
 
     device = torch.device('cpu') if device is None else torch.device(device)
-    breakpoint()
     if not isinstance(test_data_loader, DataLoader):
         test_data_loader = DataLoader([data for data in test_data_loader], batch_size=batch_size)
 
@@ -339,6 +342,13 @@ def test_model_jit_with_parity(
 
                     motif_nodes = frag_x  # Assuming motif nodes are fragment node features
 
+                    if hasattr(batch, 'global_feats'):
+                        global_feats = batch.global_feats
+                    else:
+                        global_feats = torch.empty((data_x.size(0), 1), dtype=torch.float32).to(device)
+
+                    global_feats = global_feats.to(device)
+                    
                     # Forward pass
                     if return_latents:
                         # Assuming the model's forward method supports `return_lats` parameter
@@ -355,7 +365,8 @@ def test_model_jit_with_parity(
                             junction_edge_index,
                             junction_edge_attr,
                             junction_batch,
-                            motif_nodes
+                            motif_nodes,
+                            global_feats
                         )
                         lat = lat.detach().cpu()
                         latents_list.append(lat)
@@ -373,7 +384,8 @@ def test_model_jit_with_parity(
                             junction_edge_index,
                             junction_edge_attr,
                             junction_batch,
-                            motif_nodes
+                            motif_nodes,
+                            global_feats
                         )
                 else:
                     # For models that do not need fragment information
@@ -473,6 +485,17 @@ plt.legend(handles=[
     plt.Line2D([], [], marker='o', color='w', label='Test', markerfacecolor='red', markersize=10)
 ])
 plt.show()
+
+# first run :
+# MSE: 0.006
+# RMSE: 0.078
+# SSE: 1278.019
+# MAE: 0.067
+# R2: 0.994
+# MRE: 5204.053%
+# Mean relative error is large, here is the median relative error:132.780%
+# MDAPE: 132.780%
+
 
 if False:
     ####### Generating predictions and targets for all datasets #########

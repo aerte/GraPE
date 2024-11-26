@@ -1,6 +1,5 @@
-# Atom and Bond featurizers
-#
-# Inspired by the feature extractor of  https://github.com/awslabs/dgl-lifesci
+# Same functions as in the original featurizer, but with less features to match the featurizers used in
+# the original implementation of some of the models.
 
 import itertools
 

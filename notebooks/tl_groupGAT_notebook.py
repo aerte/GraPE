@@ -1,6 +1,6 @@
 
-from grape_chem.models import GroupGAT
-from grape_chem.utils import DataSet, train_model, EarlyStopping, split_data, test_model, pred_metric, return_hidden_layers, set_seed, JT_SubGraph, FragmentGraphDataSet
+from grape_chem.models import GroupGAT_jittable
+from grape_chem.utils import DataSet, train_model_jit, EarlyStopping, split_data, test_model_jit, pred_metric, return_hidden_layers, set_seed, JT_SubGraph, FragmentGraphDataSet
 from grape_chem.datasets import FreeSolv 
 from torch.optim import lr_scheduler
 import numpy as np
@@ -12,6 +12,7 @@ from tqdm import tqdm
 from typing import Union, List, Tuple
 from torch import Tensor
 import os
+import copy
 
 ## Install GraPE with: pip install "git+https://github.com/aerte/GraPE.git#subdirectory=python"
 
@@ -25,32 +26,32 @@ def standardize(x, mean, std):
 set_seed(42)
 
 # Hyperparameters
-epochs = 12000
+epochs = 1000
 batch_size = 700
 patience = 30
 hidden_dim = 47
-learning_rate = 0.001054627
-weight_decay = 1e-4
+learning_rate = 0.01054627
+weight_decay = 1e-6
 mlp_layers = 2
 atom_layers = 3
 mol_layers = 3
 
 
 # Change to your own specifications
-#root = './env/ICP.xlsx'
-root = './env/Solvation_splits_new.csv'
+root = './env/ICP.xlsx'
+#root = './env/Solvation__splits.csv'
 #in solvation the global feat is ['Temperature'], target is ['Energy'], subset is ['Split']
 sheet_name = ''
 
-df = pd.read_csv(root,).iloc[10100:] #10198
+df = pd.read_excel(root,)#.iloc[:25]
 #df = pd.read_csv(root)
 smiles = df['SMILES'].to_numpy()
-target = df['Energy'].to_numpy()
-breakpoint()
+target = df['Value'].to_numpy()
+
 #specific to one xlsx with a "Tag" column
-tags = df['Split'].to_numpy()
+tags = df['Subset'].to_numpy()
 unique_tags = np.unique(tags)
-tag_to_int = {'train': 0, 'val': 1, 'test': 2}
+tag_to_int = {'Training': 0, 'Validation': 1, 'Test': 2}
 #tag_to_int = {'train': 0, 'val': 1, 'test': 2}
 custom_split = np.array([tag_to_int[tag] for tag in tags])
 
@@ -59,7 +60,7 @@ custom_split = np.array([tag_to_int[tag] for tag in tags])
 
 #### REMOVE, just for testing ####
 #global_feats = np.random.randn(len(smiles))
-global_feats = df['Temperature'].to_numpy()
+global_feats = df['T'].to_numpy()
 ############ We need to standardize BEFORE loading it into a DataSet #############
 mean_target, std_target = np.mean(target), np.std(target)
 target = standardize(target, mean_target, std_target)
@@ -69,7 +70,7 @@ global_feats = standardize(global_feats, mean_global_feats, std_global_feats)
 ########################## fragmentation #########################################
 fragmentation_scheme = "MG_plus_reference"
 print("initializing frag...")
-fragmentation = JT_SubGraph(scheme=fragmentation_scheme, save_file_path='./env/fragmentation_data_solvation.pth')
+fragmentation = JT_SubGraph(scheme=fragmentation_scheme, save_file_path="env/default_ICP_frag")
 frag_dim = fragmentation.frag_dim
 print("done.")
 
@@ -79,12 +80,11 @@ print("done.")
 ########################################################################################
 
 ######################## QM9 / testing /excel ##########################################
-data = DataSet(smiles=smiles, target=target, global_features=global_feats, filter=False, fragmentation=fragmentation,custom_split=custom_split)
+data = DataSet(smiles=smiles, target=target, global_features=global_feats, filter=True, fragmentation=fragmentation,)
 ########################################################################################
 
 
 #train_set, val_set, _ = data.split_and_scale(scale=True, split_type='random')
-
 train, val, test = split_data(data, split_type='custom', custom_split=custom_split,)
 ############################################################################################
 ############################################################################################
@@ -105,7 +105,7 @@ net_params = {
               "MLP_layers":mlp_layers,
               "frag_dim": frag_dim,
               "final_dropout": 0.119,
-              "global_features": True,
+              "use_global_features": True,
             # for origins:
               "num_heads": 1,
             # for AFP:
@@ -134,20 +134,19 @@ net_params = {
               "L3_hidden_dim": 47,
               }
 #model = torch.jit.script(GroupGAT_jittable.GCGAT_v4pro_jit(net_params))
-model = GroupGAT.GCGAT_v4pro(net_params)
+model = GroupGAT_jittable.GCGAT_v4pro_jit(net_params)
 
 optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
 early_Stopper = EarlyStopping(patience=50, model_name='random', skip_save=True)
 scheduler = lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.7, min_lr=1.00E-09,
-                                           patience=8)
+                                           patience=15)
 
-#loss_func = torch.nn.functional.l1_loss
 loss_func = torch.nn.functional.mse_loss
 
 model.to(device)
 
 # Define model filename
-model_filename = 'gcgat_global_feats_solvation_latest.pth'
+model_filename = 'gcgat_jitted_latest.pth'
 
 # Check if the model file exists
 if os.path.exists(model_filename):
@@ -158,19 +157,19 @@ if os.path.exists(model_filename):
 else:
     print(f"No trained model found at '{model_filename}'. Proceeding to train the model.")
     # Train the model
-    train_model(model=model, loss_func=loss_func, optimizer=optimizer, train_data_loader=train,
-                val_data_loader=val, epochs=epochs, device=device, batch_size=batch_size, scheduler=scheduler, model_needs_frag=True, early_stopper=early_Stopper)
+    train_model_jit(model=model, loss_func=loss_func, optimizer=optimizer, train_data_loader=train,
+                val_data_loader=val, epochs=epochs, device=device, batch_size=batch_size, scheduler=scheduler, early_stopper=early_Stopper, model_needs_frag=True, net_params=net_params)
     # Save the trained model
     torch.save(model.state_dict(), model_filename)
     print(f"Model saved to '{model_filename}'.")
 
 ####### Generating prediction tensor for the TEST set (Not rescaled) #########
-pred = test_model(model=model, test_data_loader=test, device=device, batch_size=batch_size) #TODO: make it able to take a loss func
+
+
+pred = test_model_jit(model=model, test_data_loader=test, device=device, batch_size=batch_size) #TODO: make it able to take a loss func
 pred_metric(prediction=pred, target=test.y, metrics='all', print_out=True)
 
 # ---------------------------------------------------------------------------------------
-
-breakpoint()
 
 ####### Example for rescaling the MAE prediction ##########
 
@@ -183,8 +182,8 @@ test_mae = pred_metric(prediction=pred, target=test.y, metrics='mae', print_out=
 
 ####### Example for overall evaluation of the MAE #########
 
-train_preds = test_model(model=model, test_data_loader=train, device=device) #TODO
-val_preds = test_model(model=model, test_data_loader=val, device=device)
+train_preds = test_model_jit(model=model, test_data_loader=train, device=device) #TODO
+val_preds = test_model_jit(model=model, test_data_loader=val, device=device)
 
 train_mae = pred_metric(prediction=train_preds, target=train.y, metrics='mae', print_out=False)['mae']
 val_mae = pred_metric(prediction=val_preds, target=val.y, metrics='mae', print_out=False)['mae']
@@ -266,6 +265,108 @@ def test_model_with_parity(model: torch.nn.Module, test_data_loader: Union[list,
         return preds, targets, latents
     return preds, targets
 
+# Function to freeze all layers except the last two
+def freeze_model_layers_groupgat(model):
+    # Freeze all parameters first
+    for param in model.parameters():
+        param.requires_grad = False
+    # Unfreeze the last two layers for transfer learning
+    for param in model.linear_predict1.parameters():
+        param.requires_grad = True
+    for param in model.linear_predict2.parameters():
+        param.requires_grad = True
+
+# Function to perform transfer learning on the model
+def transfer_learning_loop(
+    base_model,
+    train_loader,
+    val_loader,
+    num_iterations=5,
+    epochs=10,
+    learning_rate=0.001,
+    weight_decay=1e-6,
+    patience=5
+):
+    # Initialize a list to store results for each iteration
+    results = []
+
+    # Loop for multiple transfer learning iterations
+    for i in range(num_iterations):
+        print(f"\nTransfer Learning Iteration {i + 1}/{num_iterations}")
+
+        # Clone the base model for each transfer learning iteration
+        model = copy.deepcopy(base_model)
+        model.to(device)
+
+        # Freeze all layers except the last two
+        freeze_model_layers(model)
+        breakpoint()
+        # Define a new optimizer for the un-frozen parameters
+        optimizer = torch.optim.Adam(
+            filter(lambda p: p.requires_grad, model.parameters()),
+            lr=learning_rate,
+            weight_decay=weight_decay
+        )
+
+        # Set up early stopping for each iteration
+        early_stopper = EarlyStopping(
+            patience=patience,
+            model_name=f"transfer_learning_model_{i}",
+            skip_save=True
+        )
+
+        # Train the model for the specified number of epochs
+        train_model_jit(
+            model=model,
+            loss_func=loss_func,
+            optimizer=optimizer,
+            train_data_loader=train_loader,
+            val_data_loader=val_loader,
+            epochs=epochs,
+            device=device,
+            batch_size=batch_size,
+            scheduler=scheduler,
+            early_stopper=early_stopper,
+            model_needs_frag=True,
+            net_params=net_params
+        )
+
+        # Evaluate the model
+        val_preds = test_model_jit(
+            model=model,
+            test_data_loader=val_loader,
+            device=device,
+            batch_size=batch_size,
+            model_needs_frag=True
+        )
+        val_mae = pred_metric(
+            prediction=val_preds,
+            target=torch.cat([data.y for data in val_loader], dim=0),
+            metrics='mae',
+            print_out=False
+        )['mae']
+        print(f"Validation MAE after transfer learning iteration {i+1}: {val_mae}")
+
+        # Store results
+        results.append({
+            'iteration': i + 1,
+            'model': model,
+            'val_mae': val_mae
+        })
+
+    return results
+
+
+results = transfer_learning_loop(
+    base_model=model,
+    train_loader=train,
+    val_loader=val,
+    num_iterations=5,
+    epochs=300,
+    learning_rate=0.001,
+    weight_decay=1e-6,
+    patience=5
+)
 
 def test_model_jit_with_parity(
     model: torch.nn.Module,
@@ -306,7 +407,6 @@ def test_model_jit_with_parity(
     """
 
     device = torch.device('cpu') if device is None else torch.device(device)
-    breakpoint()
     if not isinstance(test_data_loader, DataLoader):
         test_data_loader = DataLoader([data for data in test_data_loader], batch_size=batch_size)
 
@@ -345,6 +445,12 @@ def test_model_jit_with_parity(
 
                     motif_nodes = frag_x  # Assuming motif nodes are fragment node features
 
+                    if hasattr(batch, 'global_feats'):
+                        global_feats = batch.global_feats
+                    else:
+                        global_feats = torch.empty((data_x.size(0), 1), dtype=torch.float32).to(device)
+
+                    global_feats = global_feats.to(device)
                     # Forward pass
                     if return_latents:
                         # Assuming the model's forward method supports `return_lats` parameter
@@ -361,7 +467,8 @@ def test_model_jit_with_parity(
                             junction_edge_index,
                             junction_edge_attr,
                             junction_batch,
-                            motif_nodes
+                            motif_nodes,
+                            global_feats,
                         )
                         lat = lat.detach().cpu()
                         latents_list.append(lat)
@@ -379,7 +486,8 @@ def test_model_jit_with_parity(
                             junction_edge_index,
                             junction_edge_attr,
                             junction_batch,
-                            motif_nodes
+                            motif_nodes,
+                            global_feats,
                         )
                 else:
                     # For models that do not need fragment information
@@ -407,7 +515,7 @@ def test_model_jit_with_parity(
 ####### Generating predictions and targets for all datasets #########
 
 # Replace 'train_loader', 'val_loader', 'test_loader' with your actual data loaders
-train_preds, train_targets = test_model_with_parity(
+train_preds, train_targets = test_model_jit_with_parity(
     model=model,
     test_data_loader=train,
     device=device,
@@ -415,7 +523,7 @@ train_preds, train_targets = test_model_with_parity(
     model_needs_frag=True
 )
 
-val_preds, val_targets = test_model_with_parity(
+val_preds, val_targets = test_model_jit_with_parity(
     model=model,
     test_data_loader=val,
     device=device,
@@ -423,7 +531,7 @@ val_preds, val_targets = test_model_with_parity(
     model_needs_frag=True
 )
 
-test_preds, test_targets = test_model_with_parity(
+test_preds, test_targets = test_model_jit_with_parity(
     model=model,
     test_data_loader=test,
     device=device,
@@ -431,110 +539,21 @@ test_preds, test_targets = test_model_with_parity(
     model_needs_frag=True
 )
 
-####### Creating Parity Plot #########
-
-# Convert tensors to numpy arrays
-train_preds_np = train_preds.detach().cpu().numpy()
-train_targets_np = train_targets.detach().cpu().numpy()
-val_preds_np = val_preds.detach().cpu().numpy()
-val_targets_np = val_targets.detach().cpu().numpy()
-test_preds_np = test_preds.detach().cpu().numpy()
-test_targets_np = test_targets.detach().cpu().numpy()
-
-# Concatenate predictions and targets
-all_preds = np.concatenate([train_preds_np, val_preds_np, test_preds_np], axis=0).reshape(-1)
-all_targets = np.concatenate([train_targets_np, val_targets_np, test_targets_np], axis=0)
-
-# Create labels
-train_labels = np.array(['Train'] * len(train_preds_np))
-val_labels = np.array(['Validation'] * len(val_preds_np))
-test_labels = np.array(['Test'] * len(test_preds_np))
-all_labels = np.concatenate([train_labels, val_labels, test_labels])
-
-smiles_list = np.concatenate([train.smiles, val.smiles, test.smiles], axis=0)  # Adjust as needed
-
-# Create a DataFrame with the predictions and targets
-breakpoint()
-results_df = pd.DataFrame({
-    'SMILES': smiles_list,
-    'Set': all_labels,
-    'Actual': all_targets,
-    'Predicted': all_preds
-})
-
-# Optionally, rescale the targets and predictions back to original scale
-results_df['Actual_rescaled'] = results_df['Actual'] * std_target + mean_target
-results_df['Predicted_rescaled'] = results_df['Predicted'] * std_target + mean_target
-
-# Write the DataFrame to a CSV file
-results_df.to_csv('predictions_results.csv', index=False)
-
-# Set a breakpoint or use an interactive shell
-breakpoint()
-
-# Create a color map
-colors = {'Train': 'blue', 'Validation': 'green', 'Test': 'red'}
-color_list = [colors[label] for label in all_labels]
-
-# Create parity plot
-plt.figure(figsize=(8, 8))
-plt.scatter(all_targets, all_preds, c=color_list, alpha=0.6)
-
-# Plot y=x line
-min_val = min(all_targets.min(), all_preds.min())
-max_val = max(all_targets.max(), all_preds.max())
-plt.plot([min_val, max_val], [min_val, max_val], 'k--')
-
-# Set limits with buffer
-buffer = (max_val - min_val) * 0.05
-plt.xlim([min_val - buffer, max_val + buffer])
-plt.ylim([min_val - buffer, max_val + buffer])
-
-# Labels and title
-plt.xlabel('Actual')
-plt.ylabel('Predicted')
-plt.title('Parity Plot')
-plt.legend(handles=[
-    plt.Line2D([], [], marker='o', color='w', label='Train', markerfacecolor='blue', markersize=10),
-    plt.Line2D([], [], marker='o', color='w', label='Validation', markerfacecolor='green', markersize=10),
-    plt.Line2D([], [], marker='o', color='w', label='Test', markerfacecolor='red', markersize=10)
-])
-breakpoint()
-plt.show()
 
 if False:
-    ####### Generating predictions and targets for all datasets #########
-
-    # Obtain predictions and targets for train, val, and test sets
-    train_preds, train_targets = test_model_with_parity(model=model, test_data_loader=train, device=device,
-                                            batch_size=batch_size, model_needs_frag=True)
-    val_preds, val_targets = test_model_with_parity(model=model, test_data_loader=val, device=device,
-                                        batch_size=batch_size, model_needs_frag=True)
-    test_preds, test_targets = test_model_with_parity(model=model, test_data_loader=test, device=device,
-                                        batch_size=batch_size, model_needs_frag=True)
-
-    ####### Calculating Metrics #########
-
-    train_mae = pred_metric(prediction=train_preds, target=train_targets, metrics='mae', print_out=False)['mae']
-    val_mae = pred_metric(prediction=val_preds, target=val_targets, metrics='mae', print_out=False)['mae']
-    test_mae = pred_metric(prediction=test_preds, target=test_targets, metrics='mae', print_out=False)['mae']
-
-    overall_mae = (train_mae + val_mae + test_mae) / 3  # Assuming targets are not scaled
-    print(f'Overall MAE {overall_mae:.3f}')
-
     ####### Creating Parity Plot #########
 
     # Convert tensors to numpy arrays
-    train_preds_np = train_preds.cpu().detach().numpy()
-    train_targets_np = train_targets.cpu().detach().numpy()
-    val_preds_np = val_preds.cpu().detach().numpy()
-    val_targets_np = val_targets.cpu().detach().numpy()
-    test_preds_np = test_preds.cpu().detach().numpy()
-    test_targets_np = test_targets.cpu().detach().numpy()
+    train_preds_np = train_preds.cpu().numpy()
+    train_targets_np = train_targets.cpu().numpy()
+    val_preds_np = val_preds.cpu().numpy()
+    val_targets_np = val_targets.cpu().numpy()
+    test_preds_np = test_preds.cpu().numpy()
+    test_targets_np = test_targets.cpu().numpy()
 
     # Concatenate predictions and targets
-    all_preds = np.concatenate([train_preds_np, val_preds_np, test_preds_np])
-    all_targets = np.concatenate([train_targets_np, val_targets_np, test_targets_np])
+    all_preds = np.concatenate([train_preds_np, val_preds_np, test_preds_np], axis=0)
+    all_targets = np.concatenate([train_targets_np, val_targets_np, test_targets_np], axis=0)
 
     # Create labels
     train_labels = np.array(['Train'] * len(train_preds_np))
@@ -564,7 +583,76 @@ if False:
     plt.xlabel('Actual')
     plt.ylabel('Predicted')
     plt.title('Parity Plot')
-    plt.legend(handles=[plt.Line2D([], [], marker='o', color='w', label='Train', markerfacecolor='blue', markersize=10),
-                        plt.Line2D([], [], marker='o', color='w', label='Validation', markerfacecolor='green', markersize=10),
-                        plt.Line2D([], [], marker='o', color='w', label='Test', markerfacecolor='red', markersize=10)])
+    plt.legend(handles=[
+        plt.Line2D([], [], marker='o', color='w', label='Train', markerfacecolor='blue', markersize=10),
+        plt.Line2D([], [], marker='o', color='w', label='Validation', markerfacecolor='green', markersize=10),
+        plt.Line2D([], [], marker='o', color='w', label='Test', markerfacecolor='red', markersize=10)
+    ])
     plt.show()
+
+    if False:
+        ####### Generating predictions and targets for all datasets #########
+
+        # Obtain predictions and targets for train, val, and test sets
+        train_preds, train_targets = test_model_with_parity(model=model, test_data_loader=train, device=device,
+                                                batch_size=batch_size, model_needs_frag=True)
+        val_preds, val_targets = test_model_with_parity(model=model, test_data_loader=val, device=device,
+                                            batch_size=batch_size, model_needs_frag=True)
+        test_preds, test_targets = test_model_with_parity(model=model, test_data_loader=test, device=device,
+                                            batch_size=batch_size, model_needs_frag=True)
+
+        ####### Calculating Metrics #########
+
+        train_mae = pred_metric(prediction=train_preds, target=train_targets, metrics='mae', print_out=False)['mae']
+        val_mae = pred_metric(prediction=val_preds, target=val_targets, metrics='mae', print_out=False)['mae']
+        test_mae = pred_metric(prediction=test_preds, target=test_targets, metrics='mae', print_out=False)['mae']
+
+        overall_mae = (train_mae + val_mae + test_mae) / 3  # Assuming targets are not scaled
+        print(f'Overall MAE {overall_mae:.3f}')
+
+        ####### Creating Parity Plot #########
+
+        # Convert tensors to numpy arrays
+        train_preds_np = train_preds.cpu().detach().numpy()
+        train_targets_np = train_targets.cpu().detach().numpy()
+        val_preds_np = val_preds.cpu().detach().numpy()
+        val_targets_np = val_targets.cpu().detach().numpy()
+        test_preds_np = test_preds.cpu().detach().numpy()
+        test_targets_np = test_targets.cpu().detach().numpy()
+
+        # Concatenate predictions and targets
+        all_preds = np.concatenate([train_preds_np, val_preds_np, test_preds_np])
+        all_targets = np.concatenate([train_targets_np, val_targets_np, test_targets_np])
+
+        # Create labels
+        train_labels = np.array(['Train'] * len(train_preds_np))
+        val_labels = np.array(['Validation'] * len(val_preds_np))
+        test_labels = np.array(['Test'] * len(test_preds_np))
+        all_labels = np.concatenate([train_labels, val_labels, test_labels])
+
+        # Create a color map
+        colors = {'Train': 'blue', 'Validation': 'green', 'Test': 'red'}
+        color_list = [colors[label] for label in all_labels]
+
+        # Create parity plot
+        plt.figure(figsize=(8, 8))
+        plt.scatter(all_targets, all_preds, c=color_list, alpha=0.6)
+
+        # Plot y=x line
+        min_val = min(all_targets.min(), all_preds.min())
+        max_val = max(all_targets.max(), all_preds.max())
+        plt.plot([min_val, max_val], [min_val, max_val], 'k--')
+
+        # Set limits with buffer
+        buffer = (max_val - min_val) * 0.05
+        plt.xlim([min_val - buffer, max_val + buffer])
+        plt.ylim([min_val - buffer, max_val + buffer])
+
+        # Labels and title
+        plt.xlabel('Actual')
+        plt.ylabel('Predicted')
+        plt.title('Parity Plot')
+        plt.legend(handles=[plt.Line2D([], [], marker='o', color='w', label='Train', markerfacecolor='blue', markersize=10),
+                            plt.Line2D([], [], marker='o', color='w', label='Validation', markerfacecolor='green', markersize=10),
+                            plt.Line2D([], [], marker='o', color='w', label='Test', markerfacecolor='red', markersize=10)])
+        plt.show()

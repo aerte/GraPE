@@ -123,6 +123,9 @@ target/
 profile_default/
 ipython_config.py
 
+#config_file
+config.yaml
+
 # pyenv
 #   For a library or package, you might want to ignore these files since the code is
 #   intended to run in multiple environments; otherwise, check them in:
@@ -168,6 +171,7 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+set_env_vars_cluster.sh
 
 # Spyder project settings
 .spyderproject
@@ -202,11 +206,19 @@ cython_debug/
 
 # saved models
 gcgat_jitted_latest.pth
-
-# pickle files shouldn't be shared on this repo anyways
 *.pth
+# saved models
+gcgat_jitted_latest.pth
+# saved predictions
+*.npy
 
 ## Ignore venv directory
 pyvenv.cfg
 Scripts/
 share/
+
+predictions_AGC_decoupled_single-task.csv
+predictions_coupled_multitask.csv
+predictions_groupGAT_coupled_singletask.csv
+predictions_groupgat_decoupled_multitask.csv
+predictions_groupgat_decoupled_single-task.csv

@@ -1,0 +1,19 @@
+dataset_name: omega
+# root_path: /zhome/8c/5/143289/GraPE/env/
+root_path: /zhome/b1/0/88900/GraPE/env/
+file_name: /zhome/b1/0/88900/GraPE/env/icas_omega.xlsx
+file_type: excel
+smiles_column: SMILES
+target_column: 'Omega (-)'
+split_column: null
+split_ratios: [0.85, 0.14, 0.01]  # used if split_column is not provided
+model_save_path: "/zhome/b1/0/88900/GraPE/env/omega_model.pth"
+global_features_column: null
+
+# resume path for resuming experiments
+resume_from_path: "/zhome/b1/0/88900/ray_results/bo_exp"
+
+fragmentation:
+  scheme: "/zhome/b1/0/88900/GraPE/env/MG_plus_reference"  # don't add .csv suffix !!
+  save_file_path: "/zhome/b1/0/88900/GraPE/env/fragmentation_data_omega.pth"
+  verbose: False

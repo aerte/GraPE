@@ -43,7 +43,7 @@ __all__ = ['filter_smiles',
 
 def filter_smiles(smiles: list[str], target: Union[list[str], list[float], ndarray], allowed_atoms: list[str] = None,
                   only_organic: bool = True, allow_dupes: bool = False, log: bool = False,
-                  global_feats = None, custom_split=None) -> Union[list,list]:
+                  global_feats = None, custom_split=None, target_columns=None) -> Union[list,list]:
     """Filters a list of smiles based on the allowed atom symbols.
 
     Parameters
@@ -64,6 +64,8 @@ def filter_smiles(smiles: list[str], target: Union[list[str], list[float], ndarr
         Decides if duplicate smiles should be allowed. Default: False
     custom_split: list (optional)
         The custom split array calculated on the dataset before filtering. Default: None
+    target_columns: list of str
+        In the case of multi dimensional targets, we specify the columns that should also be filtered. Default: None
     Returns
     ----------
     list[str]
@@ -74,64 +76,73 @@ def filter_smiles(smiles: list[str], target: Union[list[str], list[float], ndarr
     if allowed_atoms is None:
         allowed_atoms = ['C', 'N', 'O', 'S', 'F', 'Cl', 'Br', 'I', 'P']
 
-    if global_feats is not None:
-        df = pd.DataFrame({'smiles': smiles, 'target': target, 'global_feat': global_feats})
+    if target_columns is None:
+        if global_feats is not None:
+            df = pd.DataFrame({'smiles': smiles, 'target': target, 'global_feat': global_feats})
+        else:
+            df = pd.DataFrame({'smiles': smiles, 'target': target,})
     else:
-        df = pd.DataFrame({'smiles': smiles, 'target': target,})
-
+        target_df = pd.DataFrame(target, columns=target_columns)
+        df = pd.DataFrame({'smiles': smiles})
+        df = pd.concat([df.reset_index(drop=True), target_df.reset_index(drop=True)], axis=1)
+    
     if custom_split is not None:
         df['split'] = custom_split
 
     indices_to_drop = []
 
-    for element in smiles:
+    for idx, element in enumerate(df.smiles):
         mol = Chem.MolFromSmiles(element)
 
         if mol is None:
             if log:
-                print(f'SMILES {element} in index {list(df.smiles).index(element)} is not valid.')
-            indices_to_drop.append(list(df.smiles).index(element))
+                print(f'SMILES {element} in index {idx} is not valid.')
+            indices_to_drop.append(idx)
+            continue  # Move to the next SMILES
 
-        else:
-            if mol.GetNumHeavyAtoms() < 2:
+        if mol.GetNumHeavyAtoms() < 2:
+            if log:
+                print(f'SMILES {element} in index {idx} consists of less than 2 heavy atoms and will be ignored.')
+            indices_to_drop.append(idx)
+            continue
+
+        carbon_count = 0
+        invalid_atom = False
+        for atom in mol.GetAtoms():
+            if atom.GetSymbol() not in allowed_atoms:
                 if log:
-                    print(f'SMILES {element} in index {list(df.smiles).index(element)} consists of less than 2 heavy atoms'
-                        f' and will be ignored.')
-                #TODO: fix index issue, it does not handle cases where there are duplicates of the same mol which fits this condition
-                indices_to_drop.append(list(df.smiles).index(element)) 
+                    print(f'SMILES {element} in index {idx} contains the atom {atom.GetSymbol()} that is not permitted and will be ignored.')
+                indices_to_drop.append(idx)
+                invalid_atom = True
+                break  # No need to check further atoms
+            if atom.GetSymbol() == 'C':
+                carbon_count += 1
 
-            else:
-                carbon_count = 0
-                for atoms in mol.GetAtoms():
-                    if atoms.GetSymbol() not in allowed_atoms:
-                        if log:
-                            print(f'SMILES {element} in index {list(df.smiles).index(element)} contains the atom {atoms.GetSymbol()} that is not'
-                                f' permitted and will be ignored.')
-                        indices_to_drop.append(list(df.smiles).index(element))
-                    else:
-                        if atoms.GetSymbol() == 'C':
-                            carbon_count += 1
+        if invalid_atom:
+            continue  # Skip to the next SMILES
 
-                if carbon_count < 1 and only_organic:
-                    indices_to_drop.append(list(df.smiles).index(element))
-                    if log:
-                        print(f'SMILES {element} in index {list(df.smiles).index(element)} does not contain at least one'
-                            f' carbon and will be ignored.')
+        if carbon_count < 1 and only_organic:
+            indices_to_drop.append(idx)
+            if log:
+                print(f'SMILES {element} in index {idx} does not contain at least one carbon and will be ignored.')
 
     df.drop(indices_to_drop, inplace=True)
     df.reset_index(drop=True, inplace=True)
 
-    # map smiles to mol and back to ensure SMILE notation consistency
-    mols = df.smiles.map(lambda x: MolFromSmiles(x))
-    df.smiles = mols.map(lambda x: MolToSmiles(x))
+    # Map smiles to mol and back to ensure SMILES notation consistency
+    mols = df.smiles.map(lambda x: Chem.MolFromSmiles(x))
+    df.smiles = mols.map(lambda x: Chem.MolToSmiles(x))
 
     if not allow_dupes:
         df.drop_duplicates(subset='smiles', inplace=True)
+        df.reset_index(drop=True, inplace=True)
 
-    #TODO: refactor
     smiles = np.array(df.smiles)
-    target = np.array(df.target)
-    
+
+    if target_columns is None:
+        target = np.array(df.target)
+    else:
+        target = np.array(df[target_columns])
     global_feat = np.array(df.global_feat) if global_feats is not None else None
     split = np.array(df.split) if custom_split is not None else None
 
@@ -181,24 +192,34 @@ def construct_dataset(smiles: list[str], target: Union[list[int], list[float], n
     data = []
 
     for (smile, i) in zip(smiles, range(len(smiles))):
-        mol = MolFromSmiles(smile) # get into rdkit object
+        mol = MolFromSmiles(smile)  # get into rdkit object
         edge_index = dense_to_sparse(torch.tensor(rdmolops.GetAdjacencyMatrix(mol)))[0]
-        x = atom_featurizer(mol) #creates nodes
-        edge_attr = bond_featurizer(mol) #creates "edges" attrs
+        x = atom_featurizer(mol)  # creates node features
+        edge_attr = bond_featurizer(mol)  # creates edge attributes
+        
         if graph_only:
             data_temp = Data(x=x, edge_index=edge_index, edge_attr=edge_attr)
             return data_temp
-        data_temp = Data(x = x, edge_index = edge_index, edge_attr = edge_attr, y=tensor([target[i]],
-                                                                                         dtype=torch.float32))
+
+        # Prepare the target `y_value`
+        y_value = torch.tensor(target[i], dtype=torch.float32)
+        if y_value.ndim == 0:
+            y_value = y_value.unsqueeze(0)  # Ensure `y_value` is at least 1-dimensional
+        data_temp = Data(x=x, edge_index=edge_index, edge_attr=edge_attr, y=y_value)
+
         # TODO: Might need to be tested on multidim global feats
         if global_features is not None:
-            data_temp['global_feats'] = tensor([global_features[i]], dtype=torch.float32)
+            global_feat_value = torch.tensor(global_features[i], dtype=torch.float32)
+            if global_feat_value.ndim == 0:
+                global_feat_value = global_feat_value.unsqueeze(0)  # Ensure it's at least 1-dimensional
+            data_temp['global_feats'] = global_feat_value
         else:
             data_temp['global_feats'] = None
+        # ------------------------------------------
 
         data.append(data_temp)
 
-    return data #actual pyg graphs
+    return data  # actual PyG graphs
 
 
 ##########################################################################
@@ -250,6 +271,8 @@ class DataSet(DataLoad):
         List of smiles to be made into a graph.
     target: list of in or float
         List of target values that will act as the graphs 'y'.
+    filter: bool
+        Decides if the smiles should be according to filtering defined in `filter_smiles`. Default: True
     allowed_atoms: list of str
         List of allowed atom symbols.
     only_organic: bool
@@ -264,14 +287,18 @@ class DataSet(DataLoad):
     fragmentation: instance of grape_chem.utils.junction_tree_utils.Fragmentation
         for now, a function that performs fragmentation
     custom_split: list (optional)
-        The custom split array calculated on the dataset before filtering. Default: None
-        it's passed in here to avoid recomputing the split after filtering.
-
+        The custom split array calculated on the dataset before filtering. 
+        it's passed in here to avoid recomputing the split after filtering. Default: None
+    target_columns: list of str
+        In the case of multi dimensional targets, columns that contain them. Default: None
+    mask: list of bool
+        In the case of multi-task learning, a mask that indicates which targets are missing. Default: None
     """
     def __init__(self, file_path: str = None, smiles: list[str] = None, target: Union[list[int], list[float],
     ndarray] = None, global_features:Union[list[float], ndarray] = None, filter: bool=True,allowed_atoms:list[str] = None,
     only_organic: bool = True, atom_feature_list: list[str] = None, bond_feature_list: list[str] = None,
-    log: bool = False, root: str = None, indices:list[int] = None, fragmentation=None, custom_split=None):
+    log: bool = False, root: str = None, indices:list[int] = None, fragmentation=None, custom_split=None, 
+    target_columns=None, mask=None):
         assert (file_path is not None) or (smiles is not None and target is not None),'path or (smiles and target) must given.'
         super().__int__(root)
 
@@ -289,18 +316,19 @@ class DataSet(DataLoad):
 
             self.global_features = np.array(df.global_features)
             self.graphs = list(df.graphs)
-
+            
+            self.target_columns = target_columns
         else:
             if filter:
                 self.smiles, self.raw_target, self.global_features, self.custom_split = filter_smiles(smiles, target,
                                                                                    allowed_atoms= allowed_atoms,
                                                                                     only_organic=only_organic, log=log,
                                                                                    global_feats=global_features, custom_split=custom_split,
-                                                                                   allow_dupes=allow_dupes)
-
+                                                                                   allow_dupes=allow_dupes, target_columns=target_columns)
             else:
                 self.smiles, self.raw_target = np.array(smiles), np.array(target)
                 self.global_features = np.array(global_features) if global_features is not None else None
+                self.custom_split = custom_split
 
             self.target = self.raw_target
 
@@ -312,8 +340,7 @@ class DataSet(DataLoad):
                                             bond_feature_list = bond_feature_list)
             for g in self.graphs:
                 assert g.edge_index.shape[1] == g.edge_attr.shape[0], "Mismatch between edge_index and edge_attr dimensions"
-            self.global_features = global_features
-        
+            
         self.allowed_atoms = allowed_atoms
         self.atom_feature_list = atom_feature_list
         self.bond_feature_list = bond_feature_list
@@ -322,10 +349,12 @@ class DataSet(DataLoad):
         self.num_edge_features = self.graphs[0].num_edge_features
         self.data_name=None
         self.mean, self.std = None, None
-
+        
         self.mol_weights = np.zeros(len(self.smiles))
         for i in range(len(self.smiles)):
             self.mol_weights[i] = mol_weight(Chem.MolFromSmiles(self.smiles[i]))
+        
+        self.mask = mask
 
         if fragmentation is not None:
             self.fragmentation = fragmentation
@@ -441,26 +470,61 @@ class DataSet(DataLoad):
 
         return list(map(lambda x: MolFromSmiles(x), self.smiles))
 
-    def _prepare_frag_data(self, log_progress=True, log_every=100):
+    def _prepare_frag_data(self, log_progress=True, log_every=1):
         """
         return a list of frag_graphs and motif_graphs based on the fragmentation
         passed-in when initializing the datatset
-        TODO: complete, remove debug statements, could be made static
+
+        If the file path exists, it will attempt to load the data from there.
+        Else it will compute fragmentation and attempt to save to the file path.
+        TODO: could be made static
         """
         assert self.fragmentation is not None, 'fragmentation scheme and method must not be none to prepare frag data'
-
+        if self.fragmentation.save_file_path is not None:
+            try:
+                if os.path.exists(self.fragmentation.save_file_path):
+                    with open(self.fragmentation.save_file_path, 'rb') as saved_frags:
+                        frag_data = pickle.load(saved_frags)
+                        if len(frag_data) != len(self.smiles):
+                            raise ValueError(f"Fragmentation data does not match the number of smiles in the dataset. ")
+                        for i in range(len(self.smiles)):
+                            frag_graphs, motif_graph = frag_data[i]
+                            self.graphs[i].frag_graphs = frag_graphs
+                            self.graphs[i].motif_graphs = motif_graph
+                        print(f"successfully loaded saved fragmentation at {self.fragmentation.save_file_path}")
+                        return
+            except Exception as e:
+                print(f"Warning: Could not load fragmentation data from {self.fragmentation.save_file_path}. Reason: {e}")
+        
+        ## - Actual computation - ##
         print("beginning fragmentation...")
+        frag_data = []
         for i, s in enumerate(self.smiles):
             if log_progress:
                 if (i + 1) % log_every == 0:
                     print('Currently performing fragmentation on molecule {:d}/{:d}'.format(i + 1, len(self.smiles)))
-            frag_graphs, motif_graph, _, _ = graph_2_frag(s, self.graphs[i], self.fragmentation) #TODO: add graph_2_frag method to take fragmentation 
+            frag_graphs, motif_graph, _, _ = graph_2_frag(s, self.graphs[i], self.fragmentation)
             if hasattr(motif_graph, 'atom_mask'):
                 del motif_graph.atom_mask #hacky, but necessary to avoid issues with pytorch geometric
             if frag_graphs is not None:
                 self.graphs[i].frag_graphs = Batch.from_data_list(frag_graphs) #empty lists could cause issues. consider replacing with None in case list empty
                 self.graphs[i].motif_graphs = motif_graph
-            
+                frag_data.append((self.graphs[i].frag_graphs, self.graphs[i].motif_graphs))
+            else:
+                frag_data.append((None, None)) 
+                #^to keep consistent with the length of the dataset, in case it contains singletons which won't produce frag and motif
+        ## --- ##
+
+        if self.fragmentation.save_file_path is not None:
+            with open(self.fragmentation.save_file_path, 'wb') as save_frags:
+                pickle.dump(frag_data, save_frags)
+
+    def _prepare_mask(self):
+        """
+        TODO: implement
+        for the multi-task case, produce a mask for when targets are missing
+        """
+        pass
 
     def indices(self):
         return range(len(self.graphs)) if self._indices is None else self._indices
@@ -647,8 +711,11 @@ class DataSet(DataLoad):
         split_type = 'random' if split_type is None else split_type
         split_frac = [0.8, 0.1, 0.1] if split_frac is None else split_frac
 
+        if custom_split is None:
+            custom_split = self.custom_split
+
         return split_data(data = self, split_type = split_type,
-                            split_frac = split_frac, custom_split = custom_split, **kwargs)
+                            split_frac = split_frac, custom_split = self.custom_split, **kwargs)
 
     def generate_global_feats(self, seed:int = None):
         """Generates normally distributed random global features, fx. used for MEGNet. Subsequently,
@@ -707,6 +774,9 @@ class DataSet(DataLoad):
 
         split_type = 'random' if split_type is None else split_type
         split_frac = [0.8, 0.1, 0.1] if split_frac is None else split_frac
+
+        if custom_split is None:
+            custom_split = self.custom_split
 
         if scale is True:
             train, val, test = split_data(data = self, split_type = split_type,

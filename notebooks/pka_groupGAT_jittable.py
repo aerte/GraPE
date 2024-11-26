@@ -7,7 +7,8 @@ import numpy as np
 import torch
 import pandas as pd
 import matplotlib.pyplot as plt
-from torch_geometric.data import DataLoader, Data, Batch
+from torch_geometric.data import Data, Batch
+from torch_geometric.loader import DataLoader
 from tqdm import tqdm
 from typing import Union, List, Tuple
 from torch import Tensor
@@ -17,6 +18,9 @@ import os
 
 def standardize(x, mean, std):
     return (x - mean) / std
+
+def unstandardize(x, mean, std):
+    return x * std + mean
 
 ##########################################################################################
 #####################    Data Input Region  ##############################################
@@ -29,6 +33,7 @@ root = './env/pka_dataset.xlsx'
 sheet_name = ''
 
 df = pd.read_excel(root,)#.iloc[:25] 
+df.drop_duplicates(subset='SMILES', inplace=True)
 smiles = df['SMILES'].to_numpy()
 target = df['Target'].to_numpy()
 
@@ -42,19 +47,18 @@ custom_split = np.array([tag_to_int[tag] for tag in tags])
 #global_feats = df['Global Feats'].to_numpy()
 
 #### REMOVE, just for testing ####
-global_feats = np.random.randn(len(smiles))
 
 ############ We need to standardize BEFORE loading it into a DataSet #############
 mean_target, std_target = np.mean(target), np.std(target)
 target = standardize(target, mean_target, std_target)
-mean_global_feats, std_global_feats = np.mean(global_feats), np.std(global_feats)
-global_feats = standardize(global_feats, mean_global_feats, std_global_feats)
+# mean_global_feats, std_global_feats = np.mean(global_feats), np.std(global_feats)
+# global_feats = standardize(global_feats, mean_global_feats, std_global_feats)
 
 
 ########################## fragmentation #########################################
 fragmentation_scheme = "MG_plus_reference"
 print("initializing frag...")
-fragmentation = JT_SubGraph(scheme=fragmentation_scheme)
+fragmentation = JT_SubGraph(scheme=fragmentation_scheme, save_file_path='env/frag_pka_run.pth')
 frag_dim = fragmentation.frag_dim
 print("done.")
 
@@ -83,8 +87,8 @@ else:
 
 
 # Hyperparameters
-epochs = 600
-batch_size = 700
+epochs = 1000
+batch_size = len(train)
 patience = 30
 hidden_dim = 47
 learning_rate = 0.00126
@@ -92,6 +96,11 @@ weight_decay = 0.003250012
 mlp_layers = 4
 atom_layers = 3
 mol_layers = 3
+#final_droupout = 0.257507
+final_droupout = 0.257507
+
+init_lr = 0.001054627
+min_lr = 1.00E-09  
 
 # num_global_feats is the dimension of global features per observation
 mlp = return_hidden_layers(mlp_layers)
@@ -100,9 +109,9 @@ net_params = {
               "num_atom_type": 44, # == node_in_dim TODO: check matches with featurizer or read from featurizer
               "num_bond_type": 12, # == edge_in_dim
               "dropout": 0.0,
-              "MLP_layers":mlp_layers,
+              "MLP_layers":2,
               "frag_dim": frag_dim,
-              "final_dropout": 0.257507,
+              "final_dropout": final_droupout,
             # for origins:
               "num_heads": 1,
             # for AFP:
@@ -133,15 +142,15 @@ net_params = {
 model = torch.jit.script(GroupGAT_jittable.GCGAT_v4pro_jit(net_params))
 
 optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
-early_Stopper = EarlyStopping(patience=100, model_name='random', skip_save=True)
-scheduler = lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.7, min_lr=1e-9,
+early_Stopper = EarlyStopping(patience=62, model_name='random', skip_save=True)
+scheduler = lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.7552366725079, min_lr=min_lr,
                                            patience=30)
 
 loss_func = torch.nn.functional.mse_loss
 
 model.to(device)
 
-model_filename = 'gcgat_jitted_latest.pth'
+model_filename = 'gcgat_pka_jitted_latest.pth'
 
 if os.path.exists(model_filename):
     print(f"Model file '{model_filename}' found. Loading the trained model.")
@@ -335,6 +344,13 @@ def test_model_jit_with_parity(
 
                     motif_nodes = frag_x  # Assuming motif nodes are fragment node features
 
+                    if hasattr(batch, 'global_feats'):
+                        global_feats = batch.global_feats
+                    else:
+                        global_feats = torch.empty((data_x.size(0), 1), dtype=torch.float32).to(device)
+
+                    global_feats = global_feats.to(device)
+                    
                     # Forward pass
                     if return_latents:
                         # Assuming the model's forward method supports `return_lats` parameter
@@ -351,7 +367,8 @@ def test_model_jit_with_parity(
                             junction_edge_index,
                             junction_edge_attr,
                             junction_batch,
-                            motif_nodes
+                            motif_nodes,
+                            global_feats
                         )
                         lat = lat.detach().cpu()
                         latents_list.append(lat)
@@ -369,7 +386,8 @@ def test_model_jit_with_parity(
                             junction_edge_index,
                             junction_edge_attr,
                             junction_batch,
-                            motif_nodes
+                            motif_nodes,
+                            global_feats
                         )
                 else:
                     # For models that do not need fragment information
@@ -381,8 +399,13 @@ def test_model_jit_with_parity(
                         out = model(batch)
 
                 # Collect predictions and targets
-                preds_list.append(out.detach().cpu())
-                targets_list.append(batch.y.detach().cpu())
+
+                #out_unscaled = unstandardize(out.detach().cpu(), mean_target, std_target)
+                #target_unscaled = unstandardize(batch.y.detach().cpu(), mean_target, std_target)
+                out_unscaled = out.detach().cpu()
+                target_unscaled = batch.y.detach().cpu()
+                preds_list.append(out_unscaled)
+                targets_list.append(target_unscaled)
 
                 pbar.update(1)
 
@@ -396,7 +419,7 @@ def test_model_jit_with_parity(
 
 ####### Generating predictions and targets for all datasets #########
 
-# Replace 'train_loader', 'val_loader', 'test_loader' with your actual data loaders
+# Obtain predictions and targets for train, val, and test sets
 train_preds, train_targets = test_model_jit_with_parity(
     model=model,
     test_data_loader=train,
@@ -404,7 +427,6 @@ train_preds, train_targets = test_model_jit_with_parity(
     batch_size=batch_size,
     model_needs_frag=True
 )
-
 val_preds, val_targets = test_model_jit_with_parity(
     model=model,
     test_data_loader=val,
@@ -412,7 +434,6 @@ val_preds, val_targets = test_model_jit_with_parity(
     batch_size=batch_size,
     model_needs_frag=True
 )
-
 test_preds, test_targets = test_model_jit_with_parity(
     model=model,
     test_data_loader=test,
@@ -421,19 +442,141 @@ test_preds, test_targets = test_model_jit_with_parity(
     model_needs_frag=True
 )
 
+####### Unscaling Predictions and Targets #########
+
+# Unscale predictions and targets
+# train_preds_unscaled = unstandardize(train_preds, mean_target, std_target)
+# train_targets_unscaled = unstandardize(train_targets, mean_target, std_target)
+# val_preds_unscaled = unstandardize(val_preds, mean_target, std_target)
+# val_targets_unscaled = unstandardize(val_targets, mean_target, std_target)
+# test_preds_unscaled = unstandardize(test_preds, mean_target, std_target)
+# test_targets_unscaled = unstandardize(test_targets, mean_target, std_target)
+
+####### Calculating Metrics #########
+breakpoint()
+# Compute metrics using unscaled predictions and targets
+print("Train Set Metrics:")
+pred_metric(
+    prediction=train_preds,
+    target=train_targets,
+    metrics='all',
+    print_out=True
+)
+print("\nValidation Set Metrics:")
+pred_metric(
+    prediction=val_preds,
+    target=val_targets,
+    metrics='all',
+    print_out=True
+)
+print("\nTest Set Metrics:")
+pred_metric(
+    prediction=test_preds,
+    target=test_targets,
+    metrics='all',
+    print_out=True
+)
+
+# Compute overall MAE
+train_mae = pred_metric(
+    prediction=train_preds,
+    target=train_targets,
+    metrics='mae',
+    print_out=False
+)['mae']
+val_mae = pred_metric(
+    prediction=val_preds,
+    target=val_targets,
+    metrics='mae',
+    print_out=False
+)['mae']
+test_mae = pred_metric(
+    prediction=test_preds,
+    target=test_targets,
+    metrics='mae',
+    print_out=False
+)['mae']
+
+overall_mae = (train_mae + val_mae + test_mae) / 3
+print(f'\nOverall MAE: {overall_mae:.3f}')
+
 ####### Creating Parity Plot #########
 
 # Convert tensors to numpy arrays
-train_preds_np = train_preds.cpu().numpy()
-train_targets_np = train_targets.cpu().numpy()
-val_preds_np = val_preds.cpu().numpy()
-val_targets_np = val_targets.cpu().numpy()
-test_preds_np = test_preds.cpu().numpy()
-test_targets_np = test_targets.cpu().numpy()
+train_preds_np = train_preds.numpy()
+train_targets_np = train_targets.numpy()
+val_preds_np = val_preds.numpy()
+val_targets_np = val_targets.numpy()
+test_preds_np = test_preds.numpy()
+test_targets_np = test_targets.numpy()
 
 # Concatenate predictions and targets
 all_preds = np.concatenate([train_preds_np, val_preds_np, test_preds_np], axis=0)
 all_targets = np.concatenate([train_targets_np, val_targets_np, test_targets_np], axis=0)
+
+external_predictions = df['Prediction'][:-1].to_numpy()
+breakpoint()
+train_external_preds = external_predictions[custom_split == 0]
+val_external_preds = external_predictions[custom_split == 1]
+test_external_preds = external_predictions[custom_split == 2]
+
+# Corresponding targets (already unscaled)
+targets_external = df['Target'][:-1].to_numpy()
+
+train_targets_external = targets_external[custom_split == 0]
+val_targets_external = targets_external[custom_split == 1]
+test_targets_external = targets_external[custom_split == 2]
+
+train_external_preds_tensor = torch.tensor(train_external_preds, dtype=torch.float32)
+val_external_preds_tensor = torch.tensor(val_external_preds, dtype=torch.float32)
+test_external_preds_tensor = torch.tensor(test_external_preds, dtype=torch.float32)
+
+train_targets_external_tensor = torch.tensor(train_targets_external, dtype=torch.float32)
+val_targets_external_tensor = torch.tensor(val_targets_external, dtype=torch.float32)
+test_targets_external_tensor = torch.tensor(test_targets_external, dtype=torch.float32)
+
+# print("\n=== External Predictions Metrics ===")
+# print("\nPaper Train Set Metrics:")
+# train_external_metrics = pred_metric(
+#     prediction=train_external_preds_tensor,
+#     target=train_targets_external_tensor,
+#     metrics='all',
+#     print_out=True
+# )
+# print("\nPaper Validation Set Metrics:")
+# val_external_metrics = pred_metric(
+#     prediction=val_external_preds_tensor,
+#     target=val_targets_external_tensor,
+#     metrics='all',
+#     print_out=True
+# )
+# print("\nPaper Test Set Metrics:")
+# test_external_metrics = pred_metric(
+#     prediction=test_external_preds_tensor,
+#     target=test_targets_external_tensor,
+#     metrics='all',
+#     print_out=True
+# )
+
+# Compute overall metrics
+all_external_preds = torch.cat([train_external_preds_tensor, val_external_preds_tensor, test_external_preds_tensor], dim=0)
+all_targets_external = torch.cat([train_targets_external_tensor, val_targets_external_tensor, test_targets_external_tensor], dim=0)
+
+print("\nPaper Overall Metrics:")
+overall_external_metrics = pred_metric(
+    prediction=all_external_preds,
+    target=all_targets_external,
+    metrics='all',
+    print_out=True
+)
+
+print("\nOverall Metrics:")
+overall_metrics = pred_metric(
+    prediction=all_preds,
+    target=all_targets,
+    metrics='all',
+    print_out=True
+)
 
 # Create labels
 train_labels = np.array(['Train'] * len(train_preds_np))
@@ -469,6 +612,7 @@ plt.legend(handles=[
     plt.Line2D([], [], marker='o', color='w', label='Test', markerfacecolor='red', markersize=10)
 ])
 plt.show()
+
 
 # first run :
 # MSE: 0.006
