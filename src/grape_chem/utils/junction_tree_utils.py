@@ -73,7 +73,7 @@ def add_edge(data, edge):
 
 def visualize_pyg_graph(data, mol):
     """
-    Helper function can be sometimes useful for debugging PyG stuff
+    helper function can be sometimes useful for debugging PyG stuff
     does not actually respect node information so don't rely on it
     for debugging the fragmentation algo.
     """
@@ -106,7 +106,7 @@ class JT_SubGraph(object):
         self.save_file_path = save_file_path
         self.verbose = verbose
 
-    def fragmentation(self, graph, mol, check_metadata=False):
+    def fragmentation(self, graph, mol, save_file_path=None, check_metadata=False):
         """
         Parameters:
         - graph: The input graph to fragment.
@@ -153,6 +153,17 @@ class JT_SubGraph(object):
             frag_graph_list = self.rebuild_frag_graph(frag_graph, motif_graph, mol)
         else:
             frag_graph_list = self.rebuild_frag_graph(frag_graph, motif_graph, mol)
+
+        if save_file_path:
+            print(f"Saving fragmentation data to {save_file_path}")
+            frag_data = {
+                'frag_graph_list': frag_graph_list,
+                'motif_graph': motif_graph,
+                'atom_mask': atom_mask,
+                'frag_flag': frag_flag
+            }
+            with open(save_file_path, 'wb') as f:
+                pickle.dump(frag_data, f)
 
         return frag_graph_list, motif_graph, atom_mask, frag_flag
     

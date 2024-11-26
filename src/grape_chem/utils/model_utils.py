@@ -13,6 +13,7 @@ from torch_geometric.data import Batch
 from tqdm import tqdm
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score, root_mean_squared_error, mean_absolute_percentage_error
 from grape_chem.utils import DataSet
+import matplotlib.pyplot as plt
 import os
 import dgl
 
@@ -1297,6 +1298,39 @@ def pred_metric(
 
     return results
 
+#######################################################################################################
+######################### Tool to visualize training in loop ##########################################
+#######################################################################################################
+
+class learning_curve_producer:
+    """
+    designed to be instantiated outside of training loop then passed
+    by value. Can also be pickled.
+    """
+    def __init__(self):
+        self.train_losses = []
+        self.val_losses = []
+
+    def update(self, train_loss, val_loss=None):
+        self.train_losses.append(train_loss)
+        if val_loss is not None:
+            self.val_losses.append(val_loss)
+
+    def print_losses(self):
+        print('Training losses:', self.train_losses)
+        if self.val_losses:
+            print('Validation losses:', self.val_losses)
+
+    def display_learning_curve(self):
+        plt.figure(figsize=(8, 6))
+        plt.plot(self.train_losses, label='Training Loss')
+        if self.val_losses:
+            plt.plot(self.val_losses, label='Validation Loss')
+        plt.xlabel('Epoch')
+        plt.ylabel('Loss')
+        plt.title('Learning Curve')
+        plt.legend()
+        plt.show()
 #######################################################################################################
 #################################### Learning curve visualizer ########################################
 #######################################################################################################
