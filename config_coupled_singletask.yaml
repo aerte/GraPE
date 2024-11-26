@@ -1,6 +1,6 @@
 # config.yaml
 
-file_name: '/home/paul/Documents/spaghetti/GraPE/env/ICP.xlsx'
+file_name: 
 file_type: 'excel'
 smiles_column: 'SMILES'
 target_column: 'Value'
@@ -12,5 +12,5 @@ split_mapping:
   Test: 2
 
 fragmentation_scheme: 'MG_plus_reference'
-fragmentation_save_file_path: '/home/paul/Documents/spaghetti/GraPE/env/ICP_fragmentation.pth'
+fragmentation_save_file_path: '<root-path>/GraPE/env/ICP_fragmentation.pth'
 fragmentation_verbose: False

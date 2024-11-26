@@ -167,10 +167,11 @@ pred = test_model_jit(
 
 # Rescale predictions and targets
 pred_rescaled = pred * std_target + mean_target
-target_rescaled = test.y * std_target + mean_target
+test_target_rescaled = test.y * std_target + mean_target
 
-# Compute metrics
-test_metrics = pred_metric(prediction=pred_rescaled, target=target_rescaled, metrics='all', print_out=True)
+# Compute metrics for Test set
+print("\n--- Test Set Metrics ---")
+test_metrics = pred_metric(prediction=pred_rescaled, target=test_target_rescaled, metrics='all', print_out=True)
 
 ####### Example for overall evaluation of the MAE #########
 train_preds = test_model_jit(
@@ -195,13 +196,28 @@ train_targets_rescaled = train.y * std_target + mean_target
 val_preds_rescaled = val_preds * std_target + mean_target
 val_targets_rescaled = val.y * std_target + mean_target
 
-# Calculate metrics for train and validation sets
-train_metrics = pred_metric(prediction=train_preds_rescaled, target=train_targets_rescaled, metrics='all', print_out=True)
+# Calculate and print metrics for Validation set
+print("\n--- Validation Set Metrics ---")
 val_metrics = pred_metric(prediction=val_preds_rescaled, target=val_targets_rescaled, metrics='all', print_out=True)
 
-# Overall MAE across all datasets
-overall_mae = (train_metrics['mae'] + val_metrics['mae'] + test_metrics['mae']) / 3
-print(f'Overall MAE across all datasets: {overall_mae:.4f}')
+# Calculate and print metrics for Overall (Entire Data)
+# Concatenate all predictions and targets
+overall_preds_rescaled = torch.cat([train_preds_rescaled, val_preds_rescaled, pred_rescaled], dim=0)
+
+# we need to convert to torch tensors:
+if isinstance(train_targets_rescaled, np.ndarray):
+    train_targets_rescaled = torch.from_numpy(train_targets_rescaled).float().to(device)
+
+if isinstance(val_targets_rescaled, np.ndarray):
+    val_targets_rescaled = torch.from_numpy(val_targets_rescaled).float().to(device)
+
+if isinstance(test_target_rescaled, np.ndarray):
+    test_target_rescaled = torch.from_numpy(test_target_rescaled).float().to(device)
+
+overall_targets_rescaled = torch.cat([train_targets_rescaled, val_targets_rescaled, test_target_rescaled], dim=0)
+
+print("\n--- Overall (Entire Data) Metrics ---")
+overall_metrics = pred_metric(prediction=overall_preds_rescaled, target=overall_targets_rescaled, metrics='all', print_out=True)
 
 ####### Creating Parity Plot #########
 def create_parity_plot(
@@ -210,6 +226,10 @@ def create_parity_plot(
     test_preds_rescaled, test_targets_rescaled,
 ):
     import matplotlib.pyplot as plt
+
+    val_targets_rescaled = val_targets_rescaled.cpu().numpy()
+    test_targets_rescaled = test_targets_rescaled.cpu().numpy()
+    train_targets_rescaled = train_targets_rescaled.cpu().numpy()
 
     # Combine all datasets
     all_preds = np.concatenate([
@@ -251,9 +271,9 @@ def create_parity_plot(
     plt.ylim([min_val - buffer, max_val + buffer])
 
     # Labels and title
-    plt.xlabel('Actual Cp')
-    plt.ylabel('Predicted Cp')
-    plt.title('Parity Plot for Cp Prediction')
+    plt.xlabel('Actual Cp (kJ/kmol⋅K')
+    plt.ylabel('Predicted Cp (kJ/kmol⋅K')
+    plt.title('Parity Plot for Cp Prediction - Coupled Multitask (GroupGAT)')
     plt.legend(handles=[
         plt.Line2D([], [], marker='o', color='w', label='Train', markerfacecolor='blue', markersize=10),
         plt.Line2D([], [], marker='o', color='w', label='Validation', markerfacecolor='green', markersize=10),
@@ -265,7 +285,7 @@ def create_parity_plot(
 create_parity_plot(
     train_preds_rescaled, train_targets_rescaled,
     val_preds_rescaled, val_targets_rescaled,
-    pred_rescaled, target_rescaled,
+    pred_rescaled, test_target_rescaled,
 )
 
 ####### Function to Generate Predictions and Save to CSV #########

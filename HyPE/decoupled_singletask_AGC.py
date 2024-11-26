@@ -1,9 +1,9 @@
 ###### with variable number of coeffs ###########
 
-from grape_chem.models import GroupGAT_jittable
+from grape_chem.models.AGC import AGC
 from grape_chem.utils import (
-    DataSet, train_model_jit, EarlyStopping, split_data,
-    test_model_jit, pred_metric, return_hidden_layers,
+    DataSet, train_model, EarlyStopping, split_data,
+    test_model, pred_metric, return_hidden_layers,
     set_seed, JT_SubGraph
 )
 from grape_chem.datasets import FreeSolv
@@ -109,7 +109,7 @@ def train_and_evaluate_model(
     )
 
     # Initialize model
-    model = GroupGAT_jittable.GCGAT_v4pro_jit(net_params).to(device)
+    model = AGC(net_params).to(device)
 
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
     scheduler = lr_scheduler.ReduceLROnPlateau(
@@ -119,7 +119,7 @@ def train_and_evaluate_model(
     loss_func = torch.nn.functional.mse_loss
 
     # Define model filename
-    model_filename = f'gcgat_model_subpart_{target_name}.pth'
+    model_filename = f'AGC_dst_model_subpart_{target_name}.pth'
 
     # Check if the model file exists
     if os.path.exists(model_filename):
@@ -129,7 +129,7 @@ def train_and_evaluate_model(
     else:
         print(f"No trained model found at '{model_filename}'. Proceeding to train the model.")
         # Train the model
-        train_model_jit(
+        train_model(
             model=model,
             loss_func=loss_func,
             optimizer=optimizer,
@@ -140,7 +140,6 @@ def train_and_evaluate_model(
             batch_size=batch_size,
             scheduler=scheduler,
             model_needs_frag=True,
-            net_params=net_params,
             early_stopper=early_Stopper
         )
         # Save the trained model
@@ -149,7 +148,7 @@ def train_and_evaluate_model(
 
     ####### Evaluating the Model #########
     # Generate predictions on test set
-    test_pred = test_model_jit(
+    test_pred = test_model(
         model=model,
         test_data_loader=test_data,
         device=device,
@@ -167,13 +166,13 @@ def train_and_evaluate_model(
     print(f'MAE for property {target_name} on test set: {mae.item():.4f}')
 
     # Generate predictions on train and val sets
-    train_pred = test_model_jit(
+    train_pred = test_model(
         model=model,
         test_data_loader=train_data,
         device=device,
         batch_size=batch_size
     )
-    val_pred = test_model_jit(
+    val_pred = test_model(
         model=model,
         test_data_loader=val_data,
         device=device,
@@ -243,7 +242,7 @@ def create_parity_plot(results_dict, target_name):
     # Labels and title
     plt.xlabel('Actual')
     plt.ylabel('Predicted')
-    plt.title(f'Parity Plot for Property {target_name} for decoupled single-task (GroupGAT)')
+    plt.title(f'Parity Plot for Property {target_name} for decoupled single-task (AGC)')
     plt.legend(handles=[
         plt.Line2D([], [], marker='o', color='w', label='Train', markerfacecolor='blue', markersize=10),
         plt.Line2D([], [], marker='o', color='w', label='Validation', markerfacecolor='green', markersize=10),
@@ -306,12 +305,11 @@ def generate_predictions_and_save(
         )
 
         # Generate predictions
-        preds = test_model_jit(
+        preds = test_model(
             model=model,
             test_data_loader=data,
             device=device,
             batch_size=batch_size,
-            model_needs_frag=True
         )
 
         # Rescale predictions
@@ -454,7 +452,7 @@ for target_name in target_names:
 ##########################################################################################
 
 # Define output filename
-output_filename = 'predictions_groupgat_decoupled_single-task.csv'
+output_filename = 'predictions_AGC_decoupled_single-task.csv'
 
 # Generate predictions and save to CSV
 generate_predictions_and_save(

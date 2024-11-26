@@ -192,13 +192,186 @@ else:
 
 ####### Generating prediction tensor for the TEST set (Not rescaled) #########
 
-pred = test_model(
+pred_test = test_model(
     model=model,
     test_data_loader=test,
     device=device,
     batch_size=batch_size,
 )
-pred_metric(prediction=pred, target=test.y, metrics='all', print_out=True)
+
+pred_val = test_model(
+    model=model,
+    test_data_loader=val,
+    device=device,
+    batch_size=batch_size,
+)
+
+pred_metric(prediction=pred_test, target=test.y, metrics='all', print_out=True)
+pred_metric(prediction=pred_val, target=val.y, metrics='all', print_out=True)
+
+
+pred_train = test_model(
+    model=model,
+    test_data_loader=train,
+    device=device,
+    batch_size=batch_size,
+)
+
+# Rescale predictions and targets
+# Note: Ensure that `test.y`, `val.y`, and `train.y` are PyTorch Tensors
+# If they are NumPy arrays, convert them first
+if isinstance(test.y, np.ndarray):
+    target_test = torch.from_numpy(test.y).float()
+else:
+    target_test = test.y
+
+if isinstance(val.y, np.ndarray):
+    target_val = torch.from_numpy(val.y).float()
+else:
+    target_val = val.y
+
+if isinstance(train.y, np.ndarray):
+    target_train = torch.from_numpy(train.y).float()
+else:
+    target_train = train.y
+
+# Rescale
+pred_test_rescaled = pred_test * std_target + mean_target
+target_test_rescaled = target_test * std_target + mean_target
+
+pred_val_rescaled = pred_val * std_target + mean_target
+target_val_rescaled = target_val * std_target + mean_target
+
+pred_train_rescaled = pred_train * std_target + mean_target
+target_train_rescaled = target_train * std_target + mean_target
+
+# Ensure all are PyTorch Tensors
+if isinstance(pred_test_rescaled, np.ndarray):
+    pred_test_rescaled = torch.from_numpy(pred_test_rescaled).float()
+if isinstance(target_test_rescaled, np.ndarray):
+    target_test_rescaled = torch.from_numpy(target_test_rescaled).float()
+
+if isinstance(pred_val_rescaled, np.ndarray):
+    pred_val_rescaled = torch.from_numpy(pred_val_rescaled).float()
+if isinstance(target_val_rescaled, np.ndarray):
+    target_val_rescaled = torch.from_numpy(target_val_rescaled).float()
+
+if isinstance(pred_train_rescaled, np.ndarray):
+    pred_train_rescaled = torch.from_numpy(pred_train_rescaled).float()
+if isinstance(target_train_rescaled, np.ndarray):
+    target_train_rescaled = torch.from_numpy(target_train_rescaled).float()
+
+# Move tensors to CPU if they are on GPU
+pred_test_rescaled = pred_test_rescaled.cpu()
+target_test_rescaled = target_test_rescaled.cpu()
+
+pred_val_rescaled = pred_val_rescaled.cpu()
+target_val_rescaled = target_val_rescaled.cpu()
+
+pred_train_rescaled = pred_train_rescaled.cpu()
+target_train_rescaled = target_train_rescaled.cpu()
+
+# Compute metrics for Test set
+print("\n--- Test Set Metrics ---")
+test_metrics = pred_metric(
+    prediction=pred_test_rescaled, 
+    target=target_test_rescaled, 
+    metrics='all', 
+    print_out=True
+)
+
+# Compute metrics for Validation set
+print("\n--- Validation Set Metrics ---")
+val_metrics = pred_metric(
+    prediction=pred_val_rescaled, 
+    target=target_val_rescaled, 
+    metrics='all', 
+    print_out=True
+)
+
+# Compute metrics for Training set
+print("\n--- Training Set Metrics ---")
+train_metrics = pred_metric(
+    prediction=pred_train_rescaled, 
+    target=target_train_rescaled, 
+    metrics='all', 
+    print_out=True
+)
+
+# Compute Overall Metrics across all datasets
+overall_preds_rescaled = torch.cat([pred_train_rescaled, pred_val_rescaled, pred_test_rescaled], dim=0)
+overall_targets_rescaled = torch.cat([target_train_rescaled, target_val_rescaled, target_test_rescaled], dim=0)
+
+print("\n--- Overall (Entire Data) Metrics ---")
+overall_metrics = pred_metric(
+    prediction=overall_preds_rescaled, 
+    target=overall_targets_rescaled, 
+    metrics='all', 
+    print_out=True
+)
+
+####### Creating Parity Plot #########
+def create_parity_plot(
+    train_preds_rescaled, train_targets_rescaled,
+    val_preds_rescaled, val_targets_rescaled,
+    test_preds_rescaled, test_targets_rescaled,
+):
+    # Convert tensors to numpy arrays
+    train_preds_np = train_preds_rescaled.detach().numpy()
+    train_targets_np = train_targets_rescaled.detach().numpy()
+    val_preds_np = val_preds_rescaled.detach().numpy()
+    val_targets_np = val_targets_rescaled.detach().numpy()
+    test_preds_np = test_preds_rescaled.detach().numpy()
+    test_targets_np = test_targets_rescaled.detach().numpy()
+    
+    # Combine all datasets
+    all_preds = np.concatenate([train_preds_np, val_preds_np, test_preds_np])
+    all_targets = np.concatenate([train_targets_np, val_targets_np, test_targets_np])
+    
+    # Create labels
+    num_train = len(train_preds_np)
+    num_val = len(val_preds_np)
+    num_test = len(test_preds_np)
+    train_labels = np.array(['Train'] * num_train)
+    val_labels = np.array(['Validation'] * num_val)
+    test_labels = np.array(['Test'] * num_test)
+    all_labels = np.concatenate([train_labels, val_labels, test_labels])
+    
+    # Create a color map
+    colors = {'Train': 'blue', 'Validation': 'green', 'Test': 'red'}
+    color_list = [colors[label] for label in all_labels]
+    
+    # Create parity plot
+    plt.figure(figsize=(8, 8))
+    plt.scatter(all_targets, all_preds, c=color_list, alpha=0.6)
+    
+    # Plot y=x line
+    min_val = min(all_targets.min(), all_preds.min())
+    max_val = max(all_targets.max(), all_preds.max())
+    plt.plot([min_val, max_val], [min_val, max_val], 'k--')
+    
+    # Set limits with buffer
+    buffer = (max_val - min_val) * 0.05
+    plt.xlim([min_val - buffer, max_val + buffer])
+    plt.ylim([min_val - buffer, max_val + buffer])
+    
+    # Labels and title
+    plt.xlabel('Actual Cp (kJ/kmol⋅K)')
+    plt.ylabel('Predicted Cp (kJ/kmol⋅K)')
+    plt.title('Parity Plot for Cp Prediction using data driven AGC')
+    plt.legend(handles=[
+        plt.Line2D([], [], marker='o', color='w', label='Train', markerfacecolor='blue', markersize=10),
+        plt.Line2D([], [], marker='o', color='w', label='Validation', markerfacecolor='green', markersize=10),
+        plt.Line2D([], [], marker='o', color='w', label='Test', markerfacecolor='red', markersize=10)
+    ])
+    plt.show()
+
+# Generate parity plot
+create_parity_plot(
+    pred_train_rescaled, target_train_rescaled,
+    pred_val_rescaled, target_val_rescaled,
+    pred_test_rescaled, target_test_rescaled,
+)
 
 # ---------------------------------------------------------------------------------------
 

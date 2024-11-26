@@ -1,7 +1,7 @@
-from grape_chem.models import GroupGAT
+from grape_chem.models import GroupGAT_jittable
 from grape_chem.utils import (
-    DataSet, train_model, EarlyStopping, split_data, 
-    test_model, pred_metric, return_hidden_layers, set_seed, JT_SubGraph
+    DataSet, train_model_jit, EarlyStopping, split_data, 
+    test_model_jit, pred_metric, return_hidden_layers, set_seed, JT_SubGraph
 )
 from torch.optim import lr_scheduler
 import numpy as np
@@ -67,7 +67,7 @@ global_feats = standardize(global_feats, mean_global_feats, std_global_feats)
 # -------------------- Fragmentation -------------------------
 fragmentation_scheme = "MG_plus_reference"
 print("Initializing fragmentation...")
-fragmentation = JT_SubGraph(scheme=fragmentation_scheme, save_file_path="env/default_Vc_cace_frag")
+fragmentation = JT_SubGraph(scheme=fragmentation_scheme, save_file_path="env/icp_frag")
 frag_dim = fragmentation.frag_dim
 print("Fragmentation initialized.")
 # ------------------------------------------------------------
@@ -96,35 +96,35 @@ net_params = {
     "device": device,
     "num_atom_type": 44,         # Ensure this matches your featurizer
     "num_bond_type": 12,         # Ensure this matches your featurizer
-    "dropout": 0.0,
-    "MLP_layers": mlp_layers,
+    "dropout": 0.1459542359848,
+    "MLP_layers": 1,
     "frag_dim": frag_dim,
-    "final_dropout": 0.119,
+    "final_dropout": 0.482811492885,
     "use_global_features": True,  # Enable use of global features
-    "num_heads": 1,
+    "num_heads": 3,
     "node_in_dim": 44, 
     "edge_in_dim": 12, 
     "num_global_feats": 1, 
-    "hidden_dim": hidden_dim,
+    "hidden_dim": 319,
     "mlp_out_hidden": mlp, 
-    "num_layers_atom": atom_layers, 
-    "num_layers_mol": mol_layers,
-    "L1_layers_atom": 4,
-    "L1_layers_mol": 1,
-    "L1_dropout": 0.142,
+    "num_layers_atom": 2, 
+    "num_layers_mol": 2,
+    "L1_layers_atom": 2,
+    "L1_layers_mol": 4,
+    "L1_dropout": 0.1459542359848,
     "L2_layers_atom": 2,
-    "L2_layers_mol": 3,
-    "L2_dropout": 0.255,
+    "L2_layers_mol": 2,
+    "L2_dropout": 0.0798744447151,
     "L3_layers_atom": 1,
-    "L3_layers_mol": 4,
-    "L3_dropout": 0.026,
-    "L1_hidden_dim": 247,
-    "L2_hidden_dim": 141,
-    "L3_hidden_dim": 47,
+    "L3_layers_mol": 3,
+    "L3_dropout": 0.0634387027139,
+    "L1_hidden_dim": 249,
+    "L2_hidden_dim": 227,
+    "L3_hidden_dim": 76,
 }
 
 # Initialize Model
-model = GroupGAT.GCGAT_v4pro(net_params).to(device)
+model = GroupGAT_jittable.GCGAT_v4pro_jit(net_params).to(device)
 
 # ----------------- Optimizer, Scheduler, Loss ----------------
 optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
@@ -137,7 +137,7 @@ loss_func = torch.nn.functional.l1_loss
 early_stopper = EarlyStopping(patience=patience, model_name='gcgat_model', skip_save=True)
 
 # Model Checkpoint
-model_filename = 'gcgat_latest.pth'
+model_filename = 'gcgat_latest_showcasebad.pth'
 
 # ------------------- Load or Train Model ---------------------
 if os.path.exists(model_filename):
@@ -146,7 +146,7 @@ if os.path.exists(model_filename):
     model.eval()
 else:
     print("Training the model...")
-    train_model(
+    train_model_jit(
         model=model,
         loss_func=loss_func,
         optimizer=optimizer,

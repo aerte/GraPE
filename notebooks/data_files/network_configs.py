@@ -34,7 +34,7 @@ GroupGAT_pka = {
     },
     'net_params' : {
               "device": device,#shouldn't be passed in in this way but best we have for now  
-              "num_atom_type": 39, # == node_in_dim TODO: check matches with featurizer or read from featurizer
+              "num_atom_type": 39,# == node_in_dim TODO: check matches with featurizer or read from featurizer
               "num_bond_type": 12, # == edge_in_dim
               "dropout": 0.0,
               "MLP_layers":mlp_layers,
@@ -241,4 +241,53 @@ params={
 'num_heads': 1,
 'num_layers_atom': 3,
 'num_layers_mol': 4,
-'weight_decay': 0.0008670852451}
+'weight_decay': 0.0008670852451
+}
+
+hyperparam_opt_ICP_pddgroupgat_params = {
+    'L1_dropout': 0.2785096050756,
+    'L1_hidden_dim': 91,
+    'L1_layers_atom': 4,
+    'L1_layers_mol': 5,
+    'L2_dropout': 0.2994343573948,
+    'L2_hidden_dim': 69,
+    'L2_layers_atom': 2,
+    'L2_layers_mol': 2,
+    'L3_dropout': 0.2111227117327,
+    'L3_hidden_dim': 191,
+    'L3_layers_atom': 1,
+    'L3_layers_mol': 2,
+    'MLP_layers': 2,
+    'dropout': 0.1153677540364,
+    'final_dropout': 0.0392564772347,
+    'hidden_dim': 468,
+    'initial_lr': 3.60530383e-05,
+    'lr_reduction_factor': 0.9593370235448,
+    'num_layers_atom': 5,
+    'num_layers_mol': 3,
+    'weight_decay': 7.81484164e-05
+}
+
+groupgat_pdd_params={
+'L1_dropout': 0.1459542359848,
+'L1_hidden_dim': 249,
+'L1_layers_atom': 2,
+'L1_layers_mol': 4,
+'L2_dropout': 0.0798744447151,
+'L2_hidden_dim': 227,
+'L2_layers_atom': 2,
+'L2_layers_mol': 2,
+'L3_dropout': 0.0634387027139,
+'L3_hidden_dim': 76,
+'L3_layers_atom': 1,
+'L3_layers_mol': 3,
+'MLP_layers': 1,
+'dropout': 0.2340773447748,
+'final_dropout': 0.482811492885,
+'hidden_dim': 319,
+'initial_lr': 0.0014516461238,
+'lr_reduction_factor': 0.5874594731827,
+'num_heads': 3,
+'num_layers_atom': 2,
+'num_layers_mol': 2,
+'weight_decay': 0.0065225760795}

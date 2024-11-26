@@ -1,7 +1,4 @@
-# config.yaml
-
-root_path: 
-file_name: "{{ root_path }}ICP.xlsx"
+file_name: '<root-path>/GraPE/env/ICP.xlsx'
 file_type: 'excel'
 smiles_column: 'SMILES'
 target_column: 'Value'
@@ -11,7 +8,6 @@ split_mapping:
   Training: 0
   Validation: 1
   Test: 2
-
 fragmentation_scheme: 'MG_plus_reference'
-fragmentation_save_file_path: "{{ root_path }}ICP_fragmentation.pth"
-fragmentation_verbose: False
+fragmentation_save_file_path: '<root-path>/GraPE/env/ICP_fragmentation.pth'
+

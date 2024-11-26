@@ -216,3 +216,9 @@ gcgat_jitted_latest.pth
 pyvenv.cfg
 Scripts/
 share/
+
+predictions_AGC_decoupled_single-task.csv
+predictions_coupled_multitask.csv
+predictions_groupGAT_coupled_singletask.csv
+predictions_groupgat_decoupled_multitask.csv
+predictions_groupgat_decoupled_single-task.csv

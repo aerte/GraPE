@@ -538,7 +538,7 @@ def create_parity_plot(
         # Labels and title
         plt.xlabel('Actual')
         plt.ylabel('Predicted')
-        plt.title(f'Parity Plot for Property {prop}')
+        plt.title(f'Parity Plot for Property {prop} in Decoupled Multitask (GroupGAT)')
         plt.legend(handles=[
             plt.Line2D([], [], marker='o', color='w', label='Train', markerfacecolor='blue', markersize=10),
             plt.Line2D([], [], marker='o', color='w', label='Validation', markerfacecolor='green', markersize=10),

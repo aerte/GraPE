@@ -395,9 +395,9 @@ def create_parity_plot(
     plt.ylim([min_val - buffer, max_val + buffer])
 
     # Labels and title
-    plt.xlabel(f'Actual {property_name}')
-    plt.ylabel(f'Predicted {property_name}')
-    plt.title(f'Parity Plot for {property_name} Prediction')
+    plt.xlabel(f'Actual {property_name} (kJ/kmol⋅K')
+    plt.ylabel(f'Predicted {property_name} (kJ/kmol⋅K')
+    plt.title(f'Parity Plot for C_p Prediction - Coupled Singeltask (GroupGAT)')
     plt.legend(handles=[
         plt.Line2D([], [], marker='o', color='w', label='Train', markerfacecolor='blue', markersize=10),
         plt.Line2D([], [], marker='o', color='w', label='Validation', markerfacecolor='green', markersize=10),
